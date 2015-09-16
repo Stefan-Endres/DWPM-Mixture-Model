@@ -26,9 +26,9 @@ def inputs():
 #         'Compounds'    : ['benzene','cyclohexane'], # Compound to simulate.
          #'Compounds'    : ['acetone','water'], # Compound to simulate.
          'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
-         #'Compounds'    : ['ethane','carbon_dioxide'],
+ #         'Compounds'    : ['ethane','carbon_dioxide'],
          #'Compounds'    : ['cyclohexane','benzene'], # TEST
-         'Mixture model': 'VdW standard', #  'VdW standard' 'DWMP'
+         'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
          'Model'       : 'Adachi-Lu',   # Model used in the simulation, 
                                      # options:
                                       # 'Soave'                   
@@ -221,12 +221,12 @@ def a_mix_partial_i(s,p, i = 1):
                *(
                s.c[1]['x']*(s.c[1]['x']*s.c[1]['a']**p.m['s'] \
                + s.c[2]['x']*a12(s,p)**p.m['s'])**(p.m['r'] /p.m['s'] - 1) \
-               * akj(s,p,k=1,j=i)**p.m['s'] + \
+               * akj(s,p,i=1,j=i)**p.m['s'] + \
                s.c[2]['x']*(s.c[1]['x']*a21(s,p)**p.m['s'] \
                + s.c[2]['x']*s.c[2]['a']**p.m['s'])**(p.m['r'] /p.m['s'] - 1) \
-               * akj(s,p,k=2,j=i)**p.m['s'])  \
-               +(s.c[1]['x']*akj(s,p,k=i,j=1)**p.m['s']  \
-               + s.c[2]['x']*akj(s,p,k=i,j=2)**p.m['s'])**(p.m['r']/p.m['s']))
+               * akj(s,p,i=2,j=i)**p.m['s'])  \
+               +(s.c[1]['x']*akj(s,p,i=i,j=1)**p.m['s']  \
+               + s.c[2]['x']*akj(s,p,i=i,j=2)**p.m['s'])**(p.m['r']/p.m['s']))
 #%%
 def b_mix(s,p):
     return s.c[1]['x']*s.c[1]['b'] + s.c[2]['x']*s.c[2]['b']
@@ -236,7 +236,7 @@ def akj(s,p,i=1,j=1): # find a for specified indices
     if i == j:
         return s.c[i]['a'] # Return pure paramater
     else: # find mixture aij i =/= j
-        exec 'ij = p.m[\'i{}{}\']'.format(i,j) 
+        exec 'ij = p.m[\'k{}{}\']'.format(i,j) 
         return (1 - ij) * sqrt(s.c[i]['a'] * s.c[j]['a'])     
     
 def a12(s,p): # TO DO TRY MODEL  p.m['k12'] ==  k1*x1 + k2*x2 
@@ -280,7 +280,7 @@ def ln_fug_coeff_i_partial(s, p, i = 1, phase = 'l'):     ### NOTE ADD EXCEPTION
     q = amix / (bmix * p.m['R'] * s.s['T'])
     #bar_q_i = q * (1 + s.m['a_mix_partial'] / amix - s.c[1]['b'] / bmix)
     bar_q_i = q * (1 + s.m['a_mix_partial'] / amix - s.c[i]['b'] / bmix)
-    return (s.c[1]['b'] / bmix) * (Z - 1) - log(Z - Beta) - bar_q_i * I
+    return (s.c[i]['b'] / bmix) * (Z - 1) - log(Z - Beta) - bar_q_i * I
     
 #%% g - g_ref (add g of volume phase)
 def g_R_v(s,p):
@@ -566,14 +566,13 @@ def Sigma_K(Py, s, p, x_1):
     try:
         # Find the phi_1^l g_mix_x^R l'
         # Find Partial fugacities
-        s.c[1]['g_mix_x_i l'] = Decimal( ln_fug_coeff_i_partial(s,p,i=1,phase='l') )
-        s.c[2]['g_mix_x_i l'] = Decimal( ln_fug_coeff_i_partial(s,p,i=2,phase='l') )
+        s.c[1]['g_mix_x_i l'] = ln_fug_coeff_i_partial(s,p,i=1,phase='l') 
+        s.c[2]['g_mix_x_i l'] = ln_fug_coeff_i_partial(s,p,i=2,phase='l') 
         #s.m['phi_i^l'] = math.e**s.m['g_mix_x_1 l'] # Uses V_l at x_
         # Find phi_i^l
-        #s.c[1]['phi^l'] = Decimal( math.e**s.c[1]['g_mix_x_i l'] ) # Uses V_l at x_1
-        #s.c[2]['phi^l'] = Decimal( math.e**s.c[2]['g_mix_x_i l'] )# Uses V_l at x_1
-        s.c[1]['phi^l'] = s.c[1]['g_mix_x_i l'].exp() # Uses V_l at x_1
-        s.c[2]['phi^l'] = s.c[2]['g_mix_x_i l'].exp() # Uses V_l at x_1
+        s.c[1]['phi^l'] = math.e**s.c[1]['g_mix_x_i l'] # Uses V_l at x_1
+        s.c[2]['phi^l'] = math.e**s.c[2]['g_mix_x_i l'] # Uses V_l at x_1
+
     except (ValueError, ZeroDivisionError):
         s.s['Math Error'] = True
         print 'WARNING: Math error in fugacity_error. Failure to calculate '+\
@@ -606,11 +605,11 @@ def Sigma_K(Py, s, p, x_1):
     try:
         # Find the phi_1^v g_mix_x^R v'
         # Find Partial fugacities
-        s.c[1]['g_mix_x_i v'] = Decimal( ln_fug_coeff_i_partial(s,p,i=1,phase='v') )
-        s.c[2]['g_mix_x_i v'] = Decimal( ln_fug_coeff_i_partial(s,p,i=2,phase='v') )
+        s.c[1]['g_mix_x_i v'] = ln_fug_coeff_i_partial(s,p,i=1,phase='v') 
+        s.c[2]['g_mix_x_i v'] = ln_fug_coeff_i_partial(s,p,i=2,phase='v') 
         # Find phi_i^l
-        s.c[1]['phi^v'] = s.c[1]['g_mix_x_i v'].exp() # Uses V_v at y_1
-        s.c[2]['phi^v'] = s.c[2]['g_mix_x_i v'].exp() # Uses V_v at y_1
+        s.c[1]['phi^v'] = math.e**s.c[1]['g_mix_x_i v'] # Uses V_v at y_1
+        s.c[2]['phi^v'] = math.e**s.c[2]['g_mix_x_i v'] # Uses V_v at y_1
     except (ValueError, ZeroDivisionError):
         s.s['Math Error'] = True
         print 'WARNING: Math error in fugacity_error. Failure to calculate '+\
@@ -622,7 +621,7 @@ def Sigma_K(Py, s, p, x_1):
     s.c[1]['K'] = s.c[1]['phi^l'] / s.c[1]['phi^v']
     s.c[2]['K'] = s.c[2]['phi^l'] / s.c[2]['phi^v']
       # Summ of all K_i x_i
-    s.m['Sigma K'] =  Decimal( x_1 ) * s.c[1]['K'] + (1 - Decimal( x_1 ))  * s.c[2]['K'] 
+    s.m['Sigma K'] =  x_1 * s.c[1]['K'] + (1 - x_1)  * s.c[2]['K'] 
     
     return s, p
     
@@ -636,7 +635,6 @@ def y_i_error(y, s, p, P, x_1):
     Significant improvement to Bubble_error can be gained if bounded internal
     optimzation on {y_i} is used.
     """
-    import scipy.optimize
     Py = [P, y] # Note P should be constant for optimization
     Py[1] = y # Set y in Py vector to new y
     
@@ -657,13 +655,10 @@ def Bubble_error(Py, s, p, x_1, returns = 'error'):
     
     Returns = error in root finder / optimizer
     if returns = 'y', return "s" to get {y_i} points as { s.c[1]['y'] }
-    """
-
-        
+    """     
     s, p = Sigma_K(Py, s, p, x_1)
     
     #%%  Find yi = Ki xi / SUM Ki xi  
-    import scipy.optimize
     
     #yi = scipy.optimize.brentq(y_i_error, 0.0, 1.0, args=(s, p, Py[0], x_1)) 
     # note, brent works for scalar funcs only, will need new root solver
@@ -672,13 +667,10 @@ def Bubble_error(Py, s, p, x_1, returns = 'error'):
     #%% Find error from SUM Ki xi  - 1.0  == 0
     if returns == 'error':
         s, p = Sigma_K(Py, s, p, x_1) # Solve with correct yi
-        return [s.m['Sigma K'] - Decimal( 1.0 ),
-                Decimal( Py[1] )  - ( Decimal( x_1 ) * s.c[1]['K'] / s.m['Sigma K'] )]
+        return [s.m['Sigma K'] - 1.0 ,
+                Py[1] - (x_1 * s.c[1]['K'] / s.m['Sigma K'] )]
                 
-                
-
-    
-    if returns == 'y':
+    if returns == 'y': # not really used
         s.c[1]['y'] = (x_1 * s.c[1]['K']) / s.m['Sigma K']
         s.c[2]['y'] = (x_1 * s.c[2]['K']) / s.m['Sigma K']
         return s
@@ -701,9 +693,7 @@ def fug_err_plot(s,p, i):
         #errstore.append(fugacity_error(P, s, p, x_1 , y_1 ))
         errstore.append(\
          Bubble_error([P, y_1], s, p, x_1, returns = 'error')[0])
-    from matplotlib import rc
     from matplotlib import pyplot as plot
-    from numpy import array
     plot.figure()
     #plot.plot(Pr, errstore, 'o--r')
     plot.plot(Pr, errstore, 'r')
@@ -730,7 +720,7 @@ def Py_VdW_Multicomp(s, p, P_guess=101.3e3, y_1_guess=0.0, T=None, x_1=None, \
     from scipy.optimize import fsolve
     #%% Save x1 and y1 if needed
     #if x_1 is None and 'x1' not in s.c[1]: # Save x
-    if x_1 is None: # Vals giver
+    if x_1 is None: # Vals giveN
         if 'x' in s.c[1] and 'x' in s.c[2]:
             x_1, x_2 = s.c[1]['x'], s.c[2]['x'] 
         else:
@@ -745,7 +735,7 @@ def Py_VdW_Multicomp(s, p, P_guess=101.3e3, y_1_guess=0.0, T=None, x_1=None, \
     if T is not None:
         s.m['T'], s.s['T'], s.c[1]['T'], s.c[2]['T'] = (T,)*4
     elif 'T' not in s.m or 'T' not in s.c[1] or 'T' not in s.c[2]:
-        raise IOError('Error in P_VdW_Multicomp: No T specified')
+        raise IOError('Error in P_VdW_Multicomp: No Temperature specified')
     #%% Update Pressure and y1
     s.m['P'], P = (P_guess,)*2  
     y1, s.c[1]['y'], s.c[2]['y']  = y_1_guess, y_1_guess, 1 - y_1_guess
@@ -935,7 +925,8 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
                 Py = Py_VdW_Multicomp(s, p, 
                                       P_guess = s.m['P'],
                                       y_1_guess = s.c[1]['y'], 
-                                      T = s.m['T'], x_1=s.c[1]['x'], 
+                                      T = s.m['T'], 
+                                      x_1 = s.c[1]['x'], 
                                       update_pure=None)   
                              
                 #P = P_VdW_Multicomp(s, p, P_guess = s.m['P'], T=s.m['T'], \
@@ -945,11 +936,7 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
                 Model['y1'].append(Py[1])
                 
                     
-                Py = Py_VdW_Multicomp(s, p, 
-                                      P_guess = s.m['P'],
-                                      y_1_guess = s.c[1]['y'], 
-                                      T = s.m['T'], x_1=s.c[1]['x'], 
-                                      update_pure=None)
+
                     
 #                    P = P_VdW_Multicomp(s, p, P_guess = s.m['P'], T=s.m['T'], \
 #                                    x_1=s.c[1]['x'], y_1=s.c[1]['y'], \
@@ -1197,11 +1184,13 @@ if __name__ == '__main__':
             #p.m['k12'] = 0.0
             #plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
             p.m['k12'] = 0.124
+            p.m['k21'] = p.m['k12']
             plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
-            p.m['k12'] =  0.13460743
+            p.m['k12'] =  0.0
+            p.m['k21'] = p.m['k12']
             plot_isotherm(s, p, T_plot = 263.1, added_res= 50, SingleFig=True)
            
-            
+
             #Benze-cyclo
             #p.m['k12'] = 0.03059005  # p.m['k12'] =5.28317633e-06 
             #plot_isotherm(s, p, T_plot = 281.15, SingleFig=True) 
