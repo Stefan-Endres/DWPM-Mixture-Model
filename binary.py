@@ -24,8 +24,8 @@ except NameError:
 def inputs():
     I = {# Model inputs
 #         'Compounds'    : ['benzene','cyclohexane'], # Compound to simulate.
-         'Compounds'    : ['acetone','water'], # Compound to simulate.
-#         'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
+#         'Compounds'    : ['acetone','water'], # Compound to simulate.
+         'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
  #         'Compounds'    : ['ethane','carbon_dioxide'],
          #'Compounds'    : ['cyclohexane','benzene'], # TEST
          'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
@@ -1287,7 +1287,7 @@ if __name__ == '__main__':
             for T_i in T_isos:
                 plot_isotherm(s, p, T_plot = T_i, added_res= 50) 
 
-        if True: # Acetone-Water
+        if False: # Acetone-Water
             
             #p.m['k12'] = 0.0
             #p.m['k21'] = 0.0
@@ -1328,7 +1328,7 @@ if __name__ == '__main__':
             p.m['r'] = 1
             p.m['s']  = 1
             
-        if False: # Plot data from Kont. Graph for # CO2-Ethan
+        if True: # Plot data from Kont. Graph for # CO2-Ethan
             
             #p.m['k12'] = 0.0
             #plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
