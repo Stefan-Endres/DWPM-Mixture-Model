@@ -24,8 +24,8 @@ except NameError:
 def inputs():
     I = {# Model inputs
 #         'Compounds'    : ['benzene','cyclohexane'], # Compound to simulate.
-         #'Compounds'    : ['acetone','water'], # Compound to simulate.
-         'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
+         'Compounds'    : ['acetone','water'], # Compound to simulate.
+#         'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
  #         'Compounds'    : ['ethane','carbon_dioxide'],
          #'Compounds'    : ['cyclohexane','benzene'], # TEST
          'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
@@ -126,6 +126,7 @@ class MixParameters:
              'b_c' : Data['b_c (m3 mol-1)'][0],
              'vT'  : Data['virialT'],
              'vB'  : Data['virialB'],
+             'name' : Data['name'],
              'Model': I['Model']
              }
     
@@ -391,6 +392,7 @@ def del_g_mix(s, p, x_1=None, update_pure=False, derivative=None):
         s.s['Math Error'] = True
         #print 'WARNING: Math Domain error in del_g_mix(s,p)!' """UNCOMMENT!!!
         s.m['del g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
+        s.m['del g_mix'] = 0.0
 
     return s
 #%% TEMPORARY (CENTRAL FD) DERIVATIVE ESTIMATE; replace with analyt-est. hybrid
@@ -555,15 +557,17 @@ def Sigma_K(Py, s, p, x_1):
         s.m['a']   = a_mix(s,p)
         #s.m['b12'] = b12(s,p)  # Not currently in use
         s.m['b']   = b_mix(s,p)
-    except (ValueError, ZeroDivisionError): # DO NOT RAISE, SET PENALTY
+    except (ValueError, ZeroDivisionError, 
+            numpy.linalg.linalg.LinAlgError): # DO NOT RAISE, SET PENALTY
         s.s['Math Error'] = True
-        s.m['a12'], s.m['a21'], s.m['a'], s.m['b12'], s.m['b'] = (0.0,)*5     
+        s.m['a12'], s.m['a21'], s.m['a'], s.m['b12'], s.m['b'] = (1e-5,)*5     
         print 'WARNING: Math error in fugacity_error. Failed to calculated '+\
         'a12, a21, a_mix or b_mix for g_l^R, setting to 0.0'
-    #% Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for both components.
-    s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
-    #% Find Change in gibbs energies of mixing
+
     try:
+        #% Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for both components.
+        s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
+        #% Find Change in gibbs energies of mixing
         # Find the phi_1^l g_mix_x^R l'
         # Find Partial fugacities
         s.c[1]['g_mix_x_i l'] = ln_fug_coeff_i_partial(s,p,i=1,phase='l') 
@@ -573,13 +577,18 @@ def Sigma_K(Py, s, p, x_1):
         s.c[1]['phi^l'] = math.e**s.c[1]['g_mix_x_i l'] # Uses V_l at x_1
         s.c[2]['phi^l'] = math.e**s.c[2]['g_mix_x_i l'] # Uses V_l at x_1
 
-    except (ValueError, ZeroDivisionError):
+    except (ValueError, ZeroDivisionError, KeyError, 
+            numpy.linalg.linalg.LinAlgError):
         s.s['Math Error'] = True
         print 'WARNING: Math error in fugacity_error. Failure to calculate '+\
-        'g_mix_x^R l or phi_i^l for g_l^R'
+        'g_mix_x^R l or phi_i^l for g_l^R, setting to 1e-5'
+        s.c[1]['phi^l'] = 1e-5
+        s.c[2]['phi^l'] = 1e-5
         #print s.m['g_mix_x^R l']
-        print s.m['g_mix_x_i l']
-      
+        try: # TEST DELETE
+            print s.m['g_mix_x_i l']
+        except (KeyError):
+            pass
     #%%  Find g_v^R (P,V_v,T,x)
     #%%
     #Update new x_1 if specified or save x1 and y1 vals.
@@ -594,15 +603,17 @@ def Sigma_K(Py, s, p, x_1):
         s.m['a']   = a_mix(s,p)
         #s.m['b12'] = b12(s,p)  # Not currently in use
         s.m['b']   = b_mix(s,p)
-    except (ValueError, ZeroDivisionError): # DO NOT RAISE, SET PENALTY
+    except (ValueError, ZeroDivisionError, 
+            numpy.linalg.linalg.LinAlgError): # DO NOT RAISE, SET PENALTY
         s.s['Math Error'] = True
-        s.m['a12'], s.m['a21'], s.m['a'], s.m['b12'], s.m['b'] = (0.0,)*5
+        s.m['a12'], s.m['a21'], s.m['a'], s.m['b12'], s.m['b'] = (1e-5,)*5
         print 'WARNING: Math error in fugacity_error. Failed to calculated '+\
-        'a12, a21, a_mix or b_mix for g_v^R, setting to 0.0'
-    #% Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for both components.
-    s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at y1, y2
-    #% Find Change in gibbs energies of mixing
+        'a12, a21, a_mix or b_mix for g_v^R, setting to 1e-5'
+
     try:
+        #% Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for both components.
+        s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at y1, y2
+        #% Find Change in gibbs energies of mixing
         # Find the phi_1^v g_mix_x^R v'
         # Find Partial fugacities
         s.c[1]['g_mix_x_i v'] = ln_fug_coeff_i_partial(s,p,i=1,phase='v') 
@@ -610,11 +621,18 @@ def Sigma_K(Py, s, p, x_1):
         # Find phi_i^l
         s.c[1]['phi^v'] = math.e**s.c[1]['g_mix_x_i v'] # Uses V_v at y_1
         s.c[2]['phi^v'] = math.e**s.c[2]['g_mix_x_i v'] # Uses V_v at y_1
-    except (ValueError, ZeroDivisionError):
+    except (ValueError, ZeroDivisionError, KeyError, 
+            numpy.linalg.linalg.LinAlgError):
         s.s['Math Error'] = True
         print 'WARNING: Math error in fugacity_error. Failure to calculate '+\
-        'g_mix_x^R v or phi_i^v for g_l^R'
+        'g_mix_x^R v or phi_i^v for g_l^R, setting to zero'
         #print s.m['g_mix_x_i v']
+        s.c[1]['phi^v'] = 1e-5
+        s.c[2]['phi^v'] = 1e-5
+        try: # TEST DELETE
+            print s.m['g_mix_x_i l']
+        except (KeyError):
+            pass
 
     #%%  Find Summ of all K_i x_i yi = Ki xi / SUM Ki xi  
     # Currently can be used to return s.c[#]['y'] 
@@ -674,8 +692,6 @@ def Bubble_error(Py, s, p, x_1, returns = 'error'):
         s.c[1]['y'] = (x_1 * s.c[1]['K']) / s.m['Sigma K']
         s.c[2]['y'] = (x_1 * s.c[2]['K']) / s.m['Sigma K']
         return s
-
-
 
 #%% TEST PLOT RANGE
 def fug_err_plot(s,p, i):
@@ -745,16 +761,16 @@ def Py_VdW_Multicomp(s, p, P_guess=101.3e3, y_1_guess=0.0, T=None, x_1=None, \
     # Find optimized Pressure from x_i * phi_i^l(P) - y_i * phi_i^v(P) == 0
     ans = fsolve(Bubble_error,Py,args=(s,p,x_1,'error'),xtol=1e-8)
     #%% TEST CONVERGENCE:
-    testPerr = Bubble_error(ans, s, p, x_1)
-    if abs(testPerr[0]) > 1e-5:
-        print 'WARNING: Poor convergence in Py_VdW_Multicomp detected, '\
-              'x_i * phi_i^l(P) - y_i * phi_i^v(P) == {}.'.format(testPerr) +\
-              ' Attempting lower intitial P guess at 0.9*P.m[\'P\']'
-        #ans = fsolve(fugacity_error,P-0.9*P,args=(s,p,x_1,y_1),xtol=1e-8)
-        if abs(testPerr[0]) > 1e-30:
-              print 'WARNING: Poor convergence in Py_VdW_Multicomp detected, '\
-              'x_i * phi_i^l(P) - y_i * phi_i^v(P) == {}'.format(testPerr) +\
-              ''
+#    testPerr = Bubble_error(ans, s, p, x_1)
+#    if abs(testPerr[0]) > 1e-5:
+#        print 'WARNING: Poor convergence in Py_VdW_Multicomp detected, '\
+#              'x_i * phi_i^l(P) - y_i * phi_i^v(P) == {}.'.format(testPerr) +\
+#              ' Attempting lower intitial P guess at 0.9*P.m[\'P\']'
+#        #ans = fsolve(fugacity_error,P-0.9*P,args=(s,p,x_1,y_1),xtol=1e-8)
+#        if abs(testPerr[0]) > 1e-30:
+#              print 'WARNING: Poor convergence in Py_VdW_Multicomp detected, '\
+#              'x_i * phi_i^l(P) - y_i * phi_i^v(P) == {}'.format(testPerr) +\
+#              ''
     return ans 
     
 #%% Optimize parameters via pressure minimization.
@@ -769,8 +785,11 @@ def Py_error(p_set, s, p):
     For 'VdW standard' model: p_set is scalar = p.m['k12'] 
     For 'DWMP' model: p_set is a vector [k12, k21, r, s]
     """
+    import numpy
     if p.m['Model'] == 'VdW standard':
-        p.m['k12'] = p_set
+#        print p_set
+        p.m['k12'] = p_set[0]
+        p.m['k21'] = p.m['k12']
     if p.m['Model'] == 'DWMP':
         p.m['k12'], p.m['k21'], p.m['r'], p.m['s'] = \
         p_set[0],   p_set[1],   p_set[2], p_set[3]
@@ -789,36 +808,90 @@ def Py_error(p_set, s, p):
                                  y_1_guess = s.c[1]['y'], 
                                  T = s.m['T'], x_1=s.c[1]['x'], 
                                  update_pure=None)
-                                 
-        except (ValueError, ZeroDivisionError):
-            err += 10.0*max(err)
+            
+            #print P[0]       
+            #print err     
+            #print '(p.m[P][i] - P[0])**2 * 1e-12 = {}'.format( 
+            #       (p.m['P'][i] - P[0])**2 * 1e-12 )
+            #print '2*abs(p.m[y1][i] - P[1])  = {}'.format( 
+            #       2*abs(p.m['y1'][i] - P[1]) )
+            err += (p.m['P'][i] - P[0])**2 * 1e-12  \
+                   + 2*abs(p.m['y1'][i] - P[1]) # 
+                  
+        except (ValueError, ZeroDivisionError, 
+                numpy.linalg.linalg.LinAlgError):
+
+            err += 10.0*err#max(err)
             print 'WARNING: Math Error in P_error, raising goalfunc error.'
         
-        err += (p.m['P'][i] - P)**2 # TO DO ADD ERRORS FOR {y_1}
+
     
     
     #if p.m['Model'] == 'DWMP':
     #    return [err, 0, 0, 0]
-        
+    #print p_set    
+    print err
     return err
     
 
 #%% Error func (over all data points)
 def optim_param_set(s, p, guess=None, constraints=None):
     """
-    Optimizes the parameter set TO SET A PROPER OPTIMIZATION ROUTINE
+    Optimizes the parameter set TO DO SET A PROPER OPTIMIZATION ROUTINE
     """
+#    from scipy.optimize import differential_evolution
+    from scipy.optimize import minimize, brute, differential_evolution
+
     if p.m['Model'] == 'VdW standard':
+        if guess == None:
+            guess = (0.01)
         from scipy.optimize import fsolve
-        p.m['k12'] = fsolve(Py_error,guess,args=(s,p)) #Scalar 
+#        p.m['k12'] = fsolve(Py_error,guess,args=(s,p)) #Scalar 
+#        ans = minimize(Py_error, guess, method='SLSQP', bounds=[(-2,2)],
+#                     args=(s, p) )
+#        p.m['k12'] = ans.x[0]
+        
+        #rranges = slice(-1.0,1.0, 0.25)
+        rranges = (slice(-0.1, 1.0, 0.001), slice(-0.1, 1.0, 0.001))
+        ans = brute(Py_error, ranges= rranges , args=(s,p))
+        print 'ANSWER = {}'.format(ans)
+        
     if p.m['Model'] == 'DWMP':
-        from scipy.optimize import minimize
+        if guess == None:
+            guess = (0.5, 0.5, 1, 1)
+        bounds = [(-1.5,1.5),       # p.m['k12']
+                  (-1.5,1.5),       # p.m['k21']
+                  (-25,25),     # p.m['r']
+                  (-25,25)      # p.m['s'] 
+                  ]       
+        bounds = [(-1.0,1.0),       # p.m['k12']
+                  (-1.0,1.0),       # p.m['k21']
+                  (-1,25),     # p.m['r']
+                  (-1,25)      # p.m['s'] 
+                  ]           
+
+
         #p.m['k12'], p.m['k21'], p.m['r'], p.m['s'] = \
+        
+        ans = differential_evolution(Py_error, bounds, args=(s, p))
+        
+        ans
+        print ans
         import numpy
-        guess = numpy.array(guess)
+
+        
+#        guess = numpy.array(guess)   
+
+#        ans = minimize(Py_error, guess, method='SLSQP', bounds=bounds,
+#                     args=(s, p) )#,
+                    #constraints=cons
         #test = fsolve(P_error,guess,args=(s,p)) 
-    
+        p.m['k12'] = ans.x[0]
+        p.m['k21'] = ans.x[1]
+        p.m['r'] = ans.x[2]
+        p.m['s'] = ans.x[3]
     return p
+    
 #%% Trim Azeotrope and single phase points    
 def trim_azeo_and_pure(s, p):
     """Previously insdie optim_mixture_parameter(s, p) 
@@ -860,6 +933,9 @@ def trim_azeo_and_pure(s, p):
 
     return s, p
     
+    
+    
+    
 #%% Plot functions
 #%% 
 def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False, 
@@ -900,10 +976,13 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
                 printit = True
                 
             else:
-                x1_dif = p.m['x1'][i+1] - p.m['x1'][i]
-                y1_dif = p.m['y1'][i+1] - p.m['y1'][i] # used for guess val
-                P_dif  = p.m['P'][i+1] - p.m['P'][i]
-
+                try:
+                    x1_dif = p.m['x1'][i+1] - p.m['x1'][i]
+                    y1_dif = p.m['y1'][i+1] - p.m['y1'][i] # used for guess val
+                    P_dif  = p.m['P'][i+1] - p.m['P'][i]
+                except(IndexError):
+                    pass # Use preveious difference values
+                
                 printit = False
                 
             for j in range(int(added_res)):
@@ -917,10 +996,10 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
                 s.c[1]['x'], s.c[1]['y'] = p.m['x1'][i] + x1_dif*j/nr \
                                          , p.m['y1'][i] + y1_dif*j/nr
                 
-                if False:#printit:
-                    print s.m['P']
-                    print s.c[1]['x']
-                    print s.c[1]['y'] 
+                if True:#printit:
+                    print 'P_data = {}'.format(s.m['P'])
+                    print 'x_data = {}'.format(s.c[1]['x'])
+                    print 'y_data = {}'.format(s.c[1]['y'])
                     
                 Py = Py_VdW_Multicomp(s, p, 
                                       P_guess = s.m['P'],
@@ -934,6 +1013,8 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
                 #                update_pure=None)
                 Model['P'].append(Py[0])
                 Model['y1'].append(Py[1])
+                print 'P_model = {}'.format(Py[0])
+                print 'y_model = {}'.format(Py[1])
                 
                     
 
@@ -949,9 +1030,10 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
 #%% ERROR PLOTS 
             #if ind == 0 or ind == 1 or ind == 2  or ind == 3 or\
             if ind == 8 or ind == 9 or ind == 10 or ind == 11: # TEST ROUTINE DELETE
+                pass
                 print 'Printing error plot for x_1 = {}' \
                 .format(s.c[1]['x'])
-#                fug_err_plot(s,p, i)
+                #fug_err_plot(s,p, i)
            #fug_err_plot(s,p, i)
             ind += 1
                 
@@ -977,6 +1059,9 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
     plot.plot(Model['y1'], Model['P'], y1pf, label='Vapour model')
     plot.xlabel(r"$z_1$", fontsize=14)
     plot.ylabel("P", fontsize=14, rotation='horizontal')
+    plot.title("{}-{} isotherm at {}".format(p.c[1]['name'][0],
+                                             p.c[2]['name'][0],
+                                             T_plot))
     #plot.legend()
     
     ##%% TEST PURE PRESSURE
@@ -1034,8 +1119,7 @@ def error_func(s,p):
     s.c[1]['b'], s.c[2]['b'] = p.c[1]['b_c'], p.c[2]['b_c']  
     # Trim raw data points
     #s, p = trim_azeo_and_pure(s, p)
-    p.m['k12'] = 0.0 # TO DO
-    p.m['k21'] = 0.0 # TO DO
+
     # Get meshgrid for error func range
     #rrange = np.linspace(-2, 1.5)
     #srange = np.linspace(-2, 1.5)
@@ -1048,14 +1132,19 @@ def error_func(s,p):
     for i in range(rg.shape[0]):
         for j in range(sg.shape[0]):
             # Do stuff to find "z"
+            print 'i = {}'.format(i)
+            print 'j = {}'.format(j)
             p.m['r'] = rg[i, j]
             p.m['s'] = sg[i, j]
             print 'Progress = {} %'.format(((i+1)/50.0)*100.0)
-            try:
-                zer = P_error([p.m['k12'], p.m['k21'], p.m['r'], p.m['s']],s,p)
-            except:
-                print 'WARNING: Error excepted in error_func'
-                zer = 1.6e15 # TO DO FIND HIGHER ESTIMATE THAN MAX zerr
+            #try:
+            zer = Py_error([p.m['k12'], p.m['k21'], p.m['r'], p.m['s']],s,p)
+            #maximum = max([max(zerr[i]) for i in range(len(zerr))]) 
+            #if zer > 1e5*maximum:
+            #    zer = 1.5*maximum
+            #except:
+            #    print 'WARNING: Error excepted in error_func'
+            #    zer = 1.6e15 # TO DO FIND HIGHER ESTIMATE THAN MAX zerr
             zerr[i,j] = zer
             
     # Plot Meshgrid        
@@ -1068,6 +1157,7 @@ def error_func(s,p):
     ax.set_ylabel('s')
     ax.set_zlabel('$\epsilon$',rotation='vertical')
     #ax.set_title('Six-hump Camelback function')
+    return rg, sg, zerr, surf 
 
 def error_plot_VdW_standard(s,p): #% TEST PLOT DELETE
     from numpy import linspace
@@ -1127,7 +1217,9 @@ if __name__ == '__main__':
     
     #%% Plot error function
     if False:
-        error_func(s,p)
+        p.m['k12'] = 0.0#0.124#0.0 # TO DO
+        p.m['k21'] = 0.0#0.124#0.0 # TO DO
+        rg, sg, zerr, surf  = error_func(s,p)
         
     
     #%% Find mixture model parameters if not defined
@@ -1151,6 +1243,8 @@ if __name__ == '__main__':
                 print 'Optimized paramters:'
                 print 'k12 = {}'.format(  p.m['k12']    )
             if p.m['Model'] == 'DWMP':
+                print 'Console Test'
+                p.m['k12'], p.m['k21'], p.m['r'], p.m['s']= 0.1, 0.1, 1, 1
                 p = optim_param_set(s, p, guess=[p.m['k12'], p.m['k21'], \
                                                  p.m['r'], p.m['s']]) 
                 print 'Optimized paramters:'
@@ -1174,15 +1268,71 @@ if __name__ == '__main__':
         if False: # Plot all isotherms
 #            T_isos = [281.15, 283.15, 287.15, 293.15, 298.06, 298.15, 313.15, \
 #                      318.15, 328.2, 333.15, 343.15]
+            
+            
+            # Acetone-Water
+            p.m['k12'] = 0.9#1.36758234609
+            p.m['k21'] = 0.522182150663
+            p.m['r'] = -3.01592078893
+            p.m['s']  = -3.55163821423
+            
+            #p.m['k12'] = 1.36758234609
+            #p.m['k21'] = 0.522182150663
+            #p.m['r'] = 3.01592078893
+            #p.m['s']  = 3.55163821423
+            
             T_isos =  p.m['T']   
             from  more_itertools import unique_everseen
             T_isos = list(unique_everseen(T_isos))
             for T_i in T_isos:
-                plot_isotherm(s, p, T_plot = T_i) 
-         
-        if True: # Plot data from Kont. Graph
+                plot_isotherm(s, p, T_plot = T_i, added_res= 50) 
+
+        if True: # Acetone-Water
+            
+            #p.m['k12'] = 0.0
+            #p.m['k21'] = 0.0
+            p.m['k12'] = -9.56080361137
+            p.m['k21'] = 8.57589067108
+            p.m['r'] = -41.8958376865
+            p.m['s']  = 102.158239374
+
+            p.m['k12'] = 9.27950399002
+            p.m['k21'] = -0.437213205543
+            p.m['r'] = -33.5607442337
+            p.m['s']  = -177.105587853
+            
+
+            p.m['k12'] = 1.36758234609
+            p.m['k21'] = 0.522182150663
+            p.m['r'] = -3.01592078893
+            p.m['s']  = -3.55163821423
+            
+            p.m['k12'] = 1.0
+            p.m['k21'] = -1.0
+            p.m['r'] = 6.43313519554
+            p.m['s'] = -0.526444090473    
+          
+            p.m['k12'] = 0.0528180441074
+            p.m['k21'] = 0.623384831942
+            p.m['r'] = 7.53330786789
+            p.m['s']  = 0.107160035705
+            
+            plot_isotherm(s, p, T_plot = 308.15, added_res= 50)
+            plot_isotherm(s, p, T_plot = 333.15, added_res= 50)
+            plot_isotherm(s, p, T_plot = 373.15, added_res= 50)
+            plot_isotherm(s, p, T_plot = 423.15, added_res= 50)
+            plot_isotherm(s, p, T_plot = 523.15, added_res= 50)
+            
+            p.m['k12'] = 0.0#0.1
+            p.m['k21'] = 0.0#0.3
+            p.m['r'] = 1
+            p.m['s']  = 1
+            
+        if False: # Plot data from Kont. Graph for # CO2-Ethan
+            
             #p.m['k12'] = 0.0
             #plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
+            p.m['r'], p.m['s'] = 1.0, 1.0
             p.m['k12'] = 0.124
             p.m['k21'] = p.m['k12']
             plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
@@ -1219,9 +1369,10 @@ if __name__ == '__main__':
     #%% Find phase equilibrium at specified T, P point
     if False:
     #if I['Phase split']:
-        I['T'] = 313.15
-        I['P'] = 27245.75912
-
+        #I['T'] = 313.15
+        #I['P'] = 27245.75912
+        I['T'] = p.m['T'][33] #263.1
+        I['P'] = p.m['P'][33] #2660800.0
         if I['T'] and I['P']:
             #p.m['k12'] = 0.0135 # DEBUGGING
             #p.m['k12'] = 0.03922446 
@@ -1236,7 +1387,8 @@ if __name__ == '__main__':
             #s, p = phase_split(s, p, est=[0.556,0.55])
            # s, p = phase_split(s, p, est=[0.3551,0.3849])
             #s, p = phase_split(s, p, est=[0.265,0.3849])
-            s, p = phase_split(s, p, est=[0.71,0.85])
+            #s, p = phase_split(s, p, est=[0.71,0.85])
+            s, p = phase_split(s, p, est=[ p.m['x1'][33], p.m['P'][33] ])
             #print s.m['ans']
             #print s.m['ans'][1] - s.m['ans'][0]
             print s.m['x1']
@@ -1285,8 +1437,23 @@ if __name__ == '__main__':
     #%% !!! NB NB NB !!! Remember to revert indiced from 1,2 back to [0] [1] 
     # when saving data from s or p components
 
+    if False: # Test plots for co2-ethane
+        p.m['r'], p.m['s'] = 1.0, 1.0
+        p.m['k12'] = 0.124
+        p.m['k21'] = p.m['k12']
+        I['T'] = p.m['T'][33] #263.1
+        I['P'] = p.m['P'][33] #2660800.0
+        s.s['P'], s.s['T'] = p.m['T'][33] , p.m['P'][33]
+        s.c[1]['b'], s.c[2]['b'] = p.c[1]['b_c'], p.c[2]['b_c']  
+        s.m['P'], s.c[1]['P'], s.c[2]['P'] = (s.s['P'],)*3
+        s.m['T'], s.c[1]['T'], s.c[2]['T'] = (s.s['T'],)*3
+        p.m['Plot binary'] = I['Plot binary']
+        s.c[1]['x'], s.c[2]['x']  = p.m['x1'][33], (1 - p.m['x1'][33])
+        s.c[1]['y'], s.c[2]['y']  = p.m['y1'][33], (1 - p.m['y1'][33])
+        #s, p = phase_split(s, p, est=[ p.m['x1'][33], p.m['P'][33] ])
+        #plot_dg_mix(s,p)
+        g_range(s, p, x_r=100)
 
-    
     
     
     

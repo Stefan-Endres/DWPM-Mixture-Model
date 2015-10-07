@@ -89,7 +89,7 @@ class VdW:
         """
         Calculates the volume roots of the van der Waals equation using the 
         analytic solution at specified values of P (or Psat), T, a(T) and b. If
-        an analytical solution does not exist a numerical solution is used.
+        an analytical solution does not exist a numerical estimate is used.
         
         Parameters
         ----------
