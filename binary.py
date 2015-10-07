@@ -23,9 +23,10 @@ except NameError:
 #%% Inputs (will be called if no input container "I" is defined before exec)
 def inputs():
     I = {# Model inputs
-#         'Compounds'    : ['benzene','cyclohexane'], # Compound to simulate.
-#         'Compounds'    : ['acetone','water'], # Compound to simulate.
-         'Compounds'    : ['carbon_dioxide','ethane'], # Compound to simulate.
+          # Compound to simulate.
+#         'Compounds'    : ['benzene','cyclohexane'], 
+#         'Compounds'    : ['acetone','water'], 
+         'Compounds'    : ['carbon_dioxide','ethane'], 
  #         'Compounds'    : ['ethane','carbon_dioxide'],
          #'Compounds'    : ['cyclohexane','benzene'], # TEST
          'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
@@ -38,18 +39,6 @@ def inputs():
          'T'           : 281.15,  # 281.15
          'P'           : 6278.150329,   # 
          
-                    # 6492.799322	x1 = 0.4535 y1= 0.4605
-                    # Psat 1 = 6071.500625 @ 283.15
-                    # Psat 2 = 6342.145033
-         
-         # NOTE: Using Psat_V_roots, @ T = 283.15:
-          # Psat 1 = 6174.7757144388343
-          # Psat 2 = 4759.7154146201701
-         
-         # NOTE: Using Psat_V_roots, @ T = 287.15:
-          # Psat 1 = 7524.4499990006861
-          # Psat 2 = 5842.1051091283525
-                  
 # datapoint = array([0.4535,0.4605]) # @ P = 6492.799322 T = 281.15  
 
                          #comp. 1  Psat = 5462.722077  

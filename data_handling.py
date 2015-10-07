@@ -35,7 +35,7 @@ class ImportData:
                 
     def load_VLE(self, Comps):
         """
-        Returns multicomponent VLE data from specified components.
+        Returns multicomponent VLE data from specified BINARY components.
         """
         from csvDict import load_csv_as_dict
         # Find file name path for specified components
@@ -46,6 +46,26 @@ class ImportData:
         filename +='{}'.format(Comps[len(Comps)-1])
         
         ldstr = 'Data/Binary_VLE/'+filename+'.csv'
+
+        try: # Load data from file path
+            Data  = load_csv_as_dict(ldstr)
+            self.VLE = Data
+        except IOError: # Raise error if not found
+            raise IOError('Phase data for system "{}" not found'.format(filename))
+     
+    def load_E(self, Comps):
+        """
+        Returns multicomponent equilibrium data from specified components.
+        """
+        from csvDict import load_csv_as_dict
+        # Find file name path for specified components
+        filename = '' 
+        for i in range(len(Comps)-1):
+            filename += '{}_'.format(Comps[i])
+
+        filename +='{}'.format(Comps[len(Comps)-1])
+        
+        ldstr = 'Data/nComp_E/'+filename+'.csv'
 
         try: # Load data from file path
             Data  = load_csv_as_dict(ldstr)

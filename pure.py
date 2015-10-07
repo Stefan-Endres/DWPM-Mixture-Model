@@ -18,18 +18,18 @@ except(NameError):
 #%% Inputs (will be called if no input container "I" is defined before exec)
 def inputs():
     I = {# Model inputs
-         'Compound'    : ['carbon_dioxide'], # Compound to simulate.
+         'Compound'    : ['phenol'], # Compound to simulate.
          'Model'       : 'Adachi-Lu' ,   # Model used in the simulation, 
                                      # options:
                                       # 'Soave'                   
                                       # 'Adachi-Lu'   
          
          # Optional inputs (Set to False for off)
-         'T'           : 287.15,  # Specify to find P_sat and volume roots at T
+         'T'           : 350.0,  # Specify to find P_sat and volume roots at T
                                    # set to False to skip
          'P'           : False,   # ToDO find T_sat and Volume roots at P
                                    # set to False to skip    
-         'Save results': False,
+         'Save results': True,
          'Plot pure'   : True,       
          'Plot options': {'text.usetex' : True, # Options for all plots
                           'font.size' : 12,            
@@ -278,6 +278,7 @@ if __name__ == '__main__':
     robust))
     """
     if I['Save results']:
+        from csvDict import save_dict_as_csv
         # Order of headings to save in .csv
         Order = ['T (K)', 'P (Pa)', 'T_c (K)', 'P_c (Pa)', 'V_c (m3 mol-1)', 
                  'Z_c', 'R (m3 Pa K-1 mol-1)' ,'w' ,'a_c (Pa m6 mol-2)', 
@@ -286,7 +287,7 @@ if __name__ == '__main__':
         # Save path string     
         sstr = 'Data/Pure_Component/{}.csv'.format(data.c[0]['name'][0])
         print 'Saving new results to {}'.format(sstr)
-        data_handling.save_dict_as_csv(data.c[0],sstr,Order)
+        save_dict_as_csv(data.c[0],sstr,Order)
         
     #%% Plotting if True
     try: 
