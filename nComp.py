@@ -22,7 +22,7 @@ def inputs():
     I = {# Model inputs
           # Compounds to simulate.
          'Compounds'    : ['acetone', 'water', 'phenol'], 
-         'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
+         'Mixture model': 'DWPM', #  'VdW standard' 'DWMP'
          'Model'        : 'Adachi-Lu',   # Model used in the simulation, 
                                      # options:
                                       # 'Soave'                   
@@ -72,14 +72,13 @@ class MixParameters:
         # Define equilibria for each component in phase    
         for j in range(1, M['n'] + 1): 
             for i in range(len(I['Valid phases'])):
-                exec 'M[ I[\'Valid phases\'][i] ]' + \
-                '.append(Data[ I[\'Valid phases\'][i] + \'{}\'])'.format(j)
+                M[ I['Valid phases'][i] ].append(Data[ I['Valid phases'][i] 
+                                                 + '{}'.format(j)])
 
                 # NOTE: This routine will change component strings the for the 
                 # equilibrium of each phase into a list simple list for each 
                 # phase ex. Data['x1'], Data['x2'] becomes M['x'][1], M['x'][2] 
 
-               
         # Define model paramters
         # Empty lists for model interaction paramters
         M['k'] = []
@@ -90,19 +89,18 @@ class MixParameters:
 #                M['k12'] = Data['k1_VdW']
 #                M['k21'] = Data['k2_VdW']
             
-        if I['Mixture model'] == 'DWMP':
+        if I['Mixture model'] == 'DWPM':
             # Find the interaction paramters between and put them into 
             # component lists (ex. Data['k12']  --> M['k'][1][2])
         
             for j in range(1, M['n'] + 1): 
                 for i in range(1, M['n'] + 1): 
                     # Define empty list
-                    exec 'M[\'k\'][{J}].append(\'nan\')'.format(J = j, I = i)
+                    M['k'][j].append('nan')
                     if i != j: # Define interaction paramter
-                        exec 'M[\'k\'][{J}][{I}] = '.format(J = j, I = i) + \
-                        'Data[\'k{J}{I}\']'.format(J = j, I = i)
-            
-            M['r'] =  Data['r'],
+                        M['k'][j][i] = Data['k{J}{I}'.format(J = j, I = i)]
+
+            M['r'] = Data['r']
             M['s'] = Data['s']
 
         for key, value in M.iteritems(): # Filter out '' values
@@ -209,7 +207,8 @@ if __name__ == '__main__':
 
     
     # %% Initialize state variables
-#    s = state()
-#    s.mixed() # Define mix state variable, call using s.m['key']
-#    # Define three component state variables (use index 1 and 2 for clarity)
-#    s.pure(), s.pure()  # Call using s.c[1]['key'] and s.c[2]['key']
+    s = state()
+    s.mixed() # Define mix state variable, call using s.m['key']
+    # Define three component state variables (use index 1 and 2 for clarity)
+    for i in range(p.m['n']):
+        s.pure() # Call using ex. s.c[1]['key']
