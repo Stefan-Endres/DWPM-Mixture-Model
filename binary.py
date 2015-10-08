@@ -29,7 +29,7 @@ def inputs():
          'Compounds'    : ['carbon_dioxide','ethane'], 
  #         'Compounds'    : ['ethane','carbon_dioxide'],
          #'Compounds'    : ['cyclohexane','benzene'], # TEST
-         'Mixture model': 'DWMP', #  'VdW standard' 'DWMP'
+         'Mixture model': 'DWMP', # Removed 'VdW standard', set r = s = 1
          'Model'       : 'Adachi-Lu',   # Model used in the simulation, 
                                      # options:
                                       # 'Soave'                   
@@ -194,7 +194,6 @@ def a_mix_partial_i(s,p, i = 1):
     """
     Return a_mix_partial of component i TO DO use for loops to exec sums from strings
     """
-    pass 
     if p.m['Model'] == 'VdW standard':
         amix = a_mix(s,p)
         
@@ -217,6 +216,7 @@ def a_mix_partial_i(s,p, i = 1):
                * akj(s,p,i=2,j=i)**p.m['s'])  \
                +(s.c[1]['x']*akj(s,p,i=i,j=1)**p.m['s']  \
                + s.c[2]['x']*akj(s,p,i=i,j=2)**p.m['s'])**(p.m['r']/p.m['s']))
+
 #%%
 def b_mix(s,p):
     return s.c[1]['x']*s.c[1]['b'] + s.c[2]['x']*s.c[2]['b']
