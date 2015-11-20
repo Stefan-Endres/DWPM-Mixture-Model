@@ -263,7 +263,7 @@ def a_mix(s, p, phase='x'):  # (Validated)
     return Sigma2**(1/p.m['r'])
 
 
-def a_mix_partial_i(s, p, k=1, phase='x'):  # (Validated)
+def a_mix_partial_k(s, p, k=1, phase='x'):  # (Validated)
     """
     Returns a_mix_partial of component k in the specified phase.
 
@@ -286,7 +286,7 @@ def a_mix_partial_i(s, p, k=1, phase='x'):  # (Validated)
 
     Returns
     -------
-    a_mix_partial_i : scalar output.
+    a_mix_partial_k : scalar output.
     """
     amix = a_mix(s, p, phase)
 
