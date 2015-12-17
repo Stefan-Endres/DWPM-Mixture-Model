@@ -350,6 +350,7 @@ def del_g_mix(s, p, x_1=None, update_pure=False, g_ref=None, derivative=None):
                          - s.c[2]['x']*g_R_l(s.c[2],p.c[2])
         else:
             g_Res_Pure = g_ref 
+
         s.m['del g_mix^R l'] = g_R_l(s.m,p.m) \
                                + g_Res_Pure
 #                               - s.c[1]['x']*g_R_l(s.c[1],p.c[1]) \
@@ -1430,13 +1431,13 @@ if __name__ == '__main__':
             s.m['T'], s.c[1]['T'], s.c[2]['T'] = (s.s['T'],)*3
             s.s['P'] = 24e5
             s.m['P'], s.c[1]['P'], s.c[2]['P'] = (s.s['P'],)*3
-            x_r = 1000
+            x_r = 500
             g_range(s, p, x_r)
             plot_dg_mix(s,p)
             
             #
             plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
-            
+#            
             g_T_surf(s,p)
             
             

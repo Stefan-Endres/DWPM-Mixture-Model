@@ -23,7 +23,8 @@ def inputs():
     I = {
          # Model inputs
           # Compounds to simulate.
-         'Compounds'    : ['acetone', 'water', 'phenol'], 
+         #'Compounds'    : ['acetone', 'water', 'phenol'], 
+         'Compounds'    : ['carbon_dioxide','ethane'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
          'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
                                         # the simulation, 
@@ -563,16 +564,16 @@ def g_R_mix_i(s, p, k='x'):  # (Validated)
     """
     from math import log
     if k == 'y':  # 'y' = Vapour phase standard
-        V = s.c[i]['V_v'] 
+        V = s.m['V_v'] 
     else:  # Assume all phases other than vapour are liquid, ex. 'x'
-        V = s.c[i]['V_l'] 
+        V = s.m['V_l'] 
         
     return (s.m['P'] * V / (p.m['R'] * s.m['T']) - 1.0
             - log(s.m['P'] / (p.m['R'] * s.m['T']))
             - log(V - s.m['b']) 
             - s.m['a'] / (p.m['R'] * s.m['T'] * V))
     
-def g_IG_k(s, k='x'):
+def g_IG_k(s, k='x'):  # (Validated)
     """
     Change in gibbs energy for mixing of ideal gasses.
     
@@ -593,18 +594,17 @@ def g_IG_k(s, k='x'):
     g_IG_k : scalar output.
     """
     from math import log
-    
-    for i in range(1, p.m['n']+1): # Prevent math errors from zero log call.
-        if s.c[i][k] == 0.0:
-            return 0.0 # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
-      
+          
     Sigma_g_IG_k = 0.0 # Sum of ideal gas terms
     for i in range(1, p.m['n']+1): 
-        Sigma_g_IG_k += s.c[i][k] * log(s.c[i][k])
+        if s.c[i][k] == 0.0:  # Prevent math errors from zero log call.
+            pass  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
+        else:
+            Sigma_g_IG_k += s.c[i][k] * log(s.c[i][k])
     return Sigma_g_IG_k
 
     
-def g_mix(s, p, k='x', ref='x', update_system=False): # To Do Validate
+def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
     """
     Returns the gibbs energy at specified composition relative to a reference
     phase pure component gibbs energy.
@@ -638,10 +638,10 @@ def g_mix(s, p, k='x', ref='x', update_system=False): # To Do Validate
     -------
     s : class output.
         Contains the following values (or more if more phases are chosen):
-          s.m['del g_mix']['t'] : scalar, Total Gibbs energy of mixing.
-          s.m['del g_mix']['x'] : scalar, Gibbs energy of mixing for liquid 
+          s.m['g_mix']['t'] : scalar, Total Gibbs energy of mixing.
+          s.m['g_mix']['x'] : scalar, Gibbs energy of mixing for liquid 
                                           phase.
-          s.m['del g_mix']['y'] : scalar, Gibbs energy of mixing for vapour 
+          s.m['g_mix']['y'] : scalar, Gibbs energy of mixing for vapour 
                                           phase.
           s.s['Math Error'] : boolean, if True a math error occured during
                                        calculations. All other values set to 0.
@@ -651,38 +651,93 @@ def g_mix(s, p, k='x', ref='x', update_system=False): # To Do Validate
         for i in range(1, p.m['n']): # for n-1 independent components
             Xvec[0].append(s.c[i][k])
         
-        s = s = s.update_state(s, p, P = s .m['P'], T = s.m['T'], phase = k,
+        s = s.update_state(s, p, P = s .m['P'], T = s.m['T'], phase = k,
                                X = Xvec)
+    
+    s = s.update_state(s, p) # Update Volumes and activity coeff.
     
     try:
         Sigma_g_ref = 0.0
         for i in range(1, p.m['n'] + 1): 
             Sigma_g_ref -= s.c[i][ref] * g_R_k_i(s, p, k = ref, i=i)
 
-        s.m['del g_mix^R'] = {}
+        s.m['g_mix^R'] = {}
         for ph in p.m['Valid phases']:
-                s.m['del g_mix^R'][ph] = g_R_mix_i(s, p, k = ph) + Sigma_g_ref
-        
-        s.m['del g_mix'] = {}
+                s.m['g_mix^R'][ph] = g_R_mix_i(s, p, k = ph) + Sigma_g_ref
+
+        s.m['g_mix'] = {}
         g_min = []
         for ph in p.m['Valid phases']:
-                s.m['del g_mix'][ph] = s.m['del g_mix^R'][ph] + g_IG_k(s, k=ph)
-                g_min.append(s.m['del g_mix'][ph])
-        
-        s.m['del g_mix']['m'] = min(g_min)
-        
+                s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, k=ph)
+                g_min.append(s.m['g_mix'][ph])
+
+        s.m['g_mix']['m'] = min(g_min)
+
         s.s['Math Error'] = False
-        
+
     except(ValueError, ZeroDivisionError):
         s.s['Math Error'] = True
         print 'WARNING: Math Domain error in g_mix(s,p)!'
-        s.m['del g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
-        s.m['del g_mix'] = 0.0
-                           
+        s.m['g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
+        s.m['g_mix'] = 0.0
+            
     return s
-    
+
+# %%
+
 
 # %% Define Gibbs energy plotting functions.
+def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
+    """
+    Formerly in phase_split func, solve g_mix(x) over x at a P, T
+    TO DO OPTIMIZE WITH MAP FUNCTION/ COMPILE IN C / def append etc."""
+    from numpy import linspace
+    #% Initialize
+    s.s['del g_mix l soln'], s.s['del g_mix v soln'] = [], []
+    s.s['del g_mix soln'], s.s['Math Error soln'] = [], []
+    s.c[1]['x_range'], s.c[2]['x_range'] = linspace(0,1,x_r), linspace(1,0,x_r)
+    #% Find pure component parameters at current s['P'], s['T']
+    s.c[1]['a'] = VdW.a_T(s.c[1],p.c[1])['a']
+    s.c[2]['a'] = VdW.a_T(s.c[2],p.c[2])['a']
+    s.c[1], s.c[2] = VdW.V_root(s.c[1], p.c[1]), VdW.V_root(s.c[2], p.c[2])
+    #% Solve for x_range 
+     # TO DO replace s.c[1]['x_range'] with generator function
+    for i in range(len(s.c[1]['x_range']-1)): 
+        s.c[1]['x'],s.c[2]['x'] = s.c[1]['x_range'][i],s.c[2]['x_range'][i]
+    # To avoid future confusions, we will set extra var y1 = x1, y2 = x2
+        s.c[1]['y'],s.c[2]['y'] = s.c[1]['x'],s.c[2]['x'] 
+        s = g_mix(s, p)   #.m['del g_mix l']
+        s.s['del g_mix l soln'].append(s.m['g_mix']['x'])
+        s.s['del g_mix v soln'].append(s.m['g_mix']['y'])
+        s.s['del g_mix soln'].append(s.m['g_mix']['m'])
+        s.s['Math Error soln'].append(s.s['Math Error'])
+   
+    return s
+    
+def plot_dg_mix(s,p):  # NOTE THESE ARE FOR BINARY FUNCS
+    '''TO DO: Update'''
+    from matplotlib import rc
+    from matplotlib import pyplot as plot
+    from numpy import array
+    
+    def plotprop(x, name, overall, liquid=None, vapour=None):
+    	if overall is not None:
+    		plot.plot(x, overall, 'g', label='Overall')
+    	if liquid is not None:
+    		plot.plot(x, liquid, 'b', label='Liquid')
+    	if vapour is not None:
+    		plot.plot(x, vapour, 'r', label='Vapour')
+    	plot.xlabel(r"$x_1$", fontsize=14)
+    	plot.ylabel(name, fontsize=14)
+    
+    valm, idx = max((valm, idx) for (idx, valm) in \
+    enumerate(array(s.s['del g_mix l soln']) - array(s.s['del g_mix v soln'])))
+    
+    plot.rcParams.update(I['Plot options'])
+    plot.figure(6)
+    plotprop(s.c[1]['x_range'], r"$\Delta$g", 
+             s.s['del g_mix soln'], s.s['del g_mix l soln'], 
+             s.s['del g_mix v soln'])
 
 
 # %%
@@ -722,14 +777,24 @@ if __name__ == '__main__':
     for i in range(1, p.m['n']+1):
         s.pure(p, i)  # Call using ex. s.c[1]['key']
 
+
+    #%% TESTS
     # Test State variable
     p.m['r'], p.m['s'] = 1.0, 1.0
     s = s.update_state(s, p, P=I['P'], T=I['T'], X=[[0.1,0.2],[0.2,0.2]])
 #    s = s.update_state(s, p, P=I['P'], T=I['T'], phase=['x','y'],X=[[0.5,0.2],[0.2,0.2]])
-    s = g_mix(s, p)
+#    s = g_mix(s, p)
     
     
     
+    if False: # Test Gibbs curves
+        p.m['r'], p.m['s'] = 1.0, 1.0
+        p.m['k'][1][2] = 0.124
+        p.m['k'][2][1] = p.m['k'][1][2]
+        s = s.update_state(s, p, P=24e5, T=263.1)
+        x_r = 500
+        g_range(s, p, x_r)
+        plot_dg_mix(s,p)
     
     
     
