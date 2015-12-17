@@ -279,7 +279,7 @@ def g_R_v(s,p):
     return s['P']*s['V_v']/(p['R']*s['T']) - 1.0 - log(s['P']/(p['R']*s['T']))\
     - log(s['V_v'] - s['b']) - s['a']/(p['R']*s['T']*s['V_v'])
     
-def g_R_l(s,p):
+def g_R_l(s, p):
     '''g_R_l(T,P) of a single component'''
     from math import log
     return s['P']*s['V_l']/(p['R']*s['T']) - 1.0 - log(s['P']/(p['R']*s['T']))\
@@ -313,7 +313,7 @@ def del_g_v_min_l0(s,p):
     + log((s['V_l'] - s['b'])/(s['V_v'] - s['b']))
             
 #%% dg_mix
-def del_g_mix(s, p, x_1=None, update_pure=False, derivative=None):
+def del_g_mix(s, p, x_1=None, update_pure=False, g_ref=None, derivative=None):
     """ 
     Returns the change in gibbs energy Gmix/RT at specified composition
     x1 = x[0], Pressure and Temperature
@@ -345,8 +345,11 @@ def del_g_mix(s, p, x_1=None, update_pure=False, derivative=None):
     try:
         # del g_mix^R =  g_mix^R(T,P) - SIGMA x_i * g_i^R(T,P)
          # del g_mix^R for each phases.
-        g_Res_Pure = - s.c[1]['x']*g_R_l(s.c[1],p.c[1]) \
-                     - s.c[2]['x']*g_R_l(s.c[2],p.c[2])
+        if g_ref == None:
+            g_Res_Pure = - s.c[1]['x']*g_R_l(s.c[1],p.c[1]) \
+                         - s.c[2]['x']*g_R_l(s.c[2],p.c[2])
+        else:
+            g_Res_Pure = g_ref 
         s.m['del g_mix^R l'] = g_R_l(s.m,p.m) \
                                + g_Res_Pure
 #                               - s.c[1]['x']*g_R_l(s.c[1],p.c[1]) \
@@ -377,6 +380,8 @@ def del_g_mix(s, p, x_1=None, update_pure=False, derivative=None):
         s.m['del g_mix'] = min(s.m['del g_mix l'], s.m['del g_mix v'])
 
         s.s['Math Error'] = False
+        
+        #%%
     except (ValueError, ZeroDivisionError):
         s.s['Math Error'] = True
         #print 'WARNING: Math Domain error in del_g_mix(s,p)!' """UNCOMMENT!!!
@@ -384,6 +389,37 @@ def del_g_mix(s, p, x_1=None, update_pure=False, derivative=None):
         s.m['del g_mix'] = 0.0
 
     return s
+#%% dg Total TEST
+def d_g_mix_T(s, p, x_1=None, y_1=None, update_pure=False, derivative=None):
+    
+    #%# FIND REFERENCE
+    if x_1 is not None:
+        s.c[1]['x'],s.c[2]['x'] = x_1, (1.0-x_1)
+        s.c[1]['y'],s.c[2]['y'] = s.c[1]['x'],s.c[2]['x']    
+    if update_pure:
+        s.c[1]['a'] = VdW.a_T(s.c[1],p.c[1])['a']
+        s.c[2]['a'] = VdW.a_T(s.c[2],p.c[2])['a']
+        
+    s.m['a12'] = a12(s,p)
+    s.m['a21'] = a21(s,p)
+    s.m['a']   = a_mix(s,p)
+    s.m['b']   = b_mix(s,p)
+    if update_pure:
+        s.c[1], s.c[2] = VdW.V_root(s.c[1], p.c[1]), VdW.V_root(s.c[2], p.c[2])
+    s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
+    
+    
+    g_Res_Pure_l = - s.c[1]['x']*g_R_l(s.c[1],p.c[1]) \
+             - s.c[2]['x']*g_R_l(s.c[2],p.c[2])
+    g_Res_Pure_v = - y_1*g_R_l(s.c[1],p.c[1]) \
+             - (1 - y_1)*g_R_l(s.c[2],p.c[2])   
+             
+             
+    return (min(del_g_mix(s, p, x_1, update_pure, 
+                      g_ref=g_Res_Pure_l).m['del g_mix l'],  # Sigma n_il g_il
+                del_g_mix(s, p, y_1, update_pure, 
+                      g_ref=g_Res_Pure_v).m['del g_mix v'])) # Sigma n_iv g_iv
+      
 #%% TEMPORARY (CENTRAL FD) DERIVATIVE ESTIMATE; replace with analyt-est. hybrid
 def d_del_g_mix_dx1(s, p, x_1, dx=1e-6):
     return (del_g_mix(s, p, x_1 + dx).m['del g_mix'] \
@@ -1036,13 +1072,13 @@ def plot_isotherm(s,p, T_plot=281.15, added_res= 5, SingleFig=False,
         plot.figure(9000)
     else:
         plot.figure()
-    plot.plot(Data['x1'], Data['P'], 'x--r', label='Liquid data points')
-    plot.plot(Data['y1'], Data['P'], 's--b', label='Vapour data points')
+    plot.plot(Data['x1'], Data['P'], 'x--b', label='Liquid data points')
+    plot.plot(Data['y1'], Data['P'], 's--r', label='Vapour data points')
 
-    x1pf, y1pf= '-r', '-b'
+    x1pf, y1pf= '-b', '-r'
     if model_plot_points:
-        x1pf = 'o-r'
-        y1pf ='^-b'  
+        x1pf = 'o-b'
+        y1pf ='^-r'  
         
     plot.plot(Model['x1'], Model['P'], x1pf, label='Liquid model')
     plot.plot(Model['y1'], Model['P'], y1pf, label='Vapour model')
@@ -1087,15 +1123,15 @@ def plot_dg_mix(s,p):
              s.s['del g_mix soln'], s.s['del g_mix l soln'], 
              s.s['del g_mix v soln'])
              
-    plot.plot([s.s['Data x1'],s.s['Data y1']], [s.s['Data gx1'],
-               s.s['Data gy1']],'k')
+#    plot.plot([s.s['Data x1'],s.s['Data y1']], [s.s['Data gx1'],
+#               s.s['Data gy1']],'k')
     #plot.figure(2)
     #plotprop(s.c[1]['x_range'], 'Volumes', None, stores['V_l_m'],
     #           stores['V_l_m'])
-    plot.figure(50)
-    plotprop(s.c[1]['x_range'], '$\Delta g_{mix}^l - \Delta g_{mix}^v $',  
-             array(s.s['del g_mix l soln']) - array(s.s['del g_mix v soln']) )
-    plot.text(s.c[1]['x_range'][idx], valm+0.000006, "%f" %round(p.m['k12'],6))
+#    plot.figure(50)
+#    plotprop(s.c[1]['x_range'], '$\Delta g_{mix}^l - \Delta g_{mix}^v $',  
+#             array(s.s['del g_mix l soln']) - array(s.s['del g_mix v soln']) )
+#    plot.text(s.c[1]['x_range'][idx], valm+0.000006, "%f" %round(p.m['k12'],6))
 
 def error_func(s,p):
     """Error function meshgrid plot for DWMP"""
@@ -1168,7 +1204,49 @@ def error_plot_VdW_standard(s,p): #% TEST PLOT DELETE
 
     return
     
+def g_T_surf(s,p):
+    """Surface of the total Gibbs energy relative to comp. 1 pure liquid"""
+    import numpy as np
+    from scipy import optimize
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+   
 
+    x_range = np.linspace(0.0, 1.0)
+    y_range = np.linspace(0.0, 1.0)
+    xg, yg = numpy.meshgrid(x_range, y_range)
+    gerr = numpy.zeros((50,50))
+
+    # Find error values
+    for i in range(xg.shape[0]):
+        for j in range(yg.shape[0]):
+            # Do stuff to find "z"
+            print 'i = {}'.format(i)
+            print 'j = {}'.format(j)
+#            p.m['r'] = xg[i, j]
+#            p.m['s'] = yg[i, j]
+            x = xg[i, j]
+            y = yg[i, j]
+            print 'Progress = {} %'.format(((i+1)/50.0)*100.0)
+            #try:
+            #zer = Py_error([p.m['k12'], p.m['k21'], p.m['r'], p.m['s']],s,p)
+            ger = d_g_mix_T(s, p, x_1=x, y_1=y, update_pure=True, 
+                            derivative=None)
+
+            gerr[i,j] = ger
+            
+    # Plot Meshgrid        
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    surf = ax.plot_surface(xg, yg, gerr, rstride=1, cstride=1,
+                           cmap=plt.cm.jet, linewidth=0, antialiased=False)
+    
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('$\Delta g$',rotation='vertical')
+    #ax.set_title('Six-hump Camelback function')
+    return xg, yg, gerr, surf 
+    
 #%%
 if __name__ == '__main__':
     #%% Load Data
@@ -1317,7 +1395,7 @@ if __name__ == '__main__':
             p.m['r'] = 1
             p.m['s']  = 1
             
-        if True: # Plot data from Kont. Graph for # CO2-Ethan
+        if False: # Plot data from Kont. Graph for # CO2-Ethan
             
             #p.m['k12'] = 0.0
             #plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
@@ -1343,8 +1421,26 @@ if __name__ == '__main__':
         if False: # DWMP ERROR FUNC
             error_func(s,p)
             
+        if True: # Test Gibbs curves
+            p.m['r'], p.m['s'] = 1.0, 1.0
+            p.m['k12'] = 0.124
+            p.m['k21'] = p.m['k12']
 
-        
+            s.s['T'] = 263.1
+            s.m['T'], s.c[1]['T'], s.c[2]['T'] = (s.s['T'],)*3
+            s.s['P'] = 24e5
+            s.m['P'], s.c[1]['P'], s.c[2]['P'] = (s.s['P'],)*3
+            x_r = 1000
+            g_range(s, p, x_r)
+            plot_dg_mix(s,p)
+            
+            #
+            plot_isotherm(s, p, T_plot = 263.1, SingleFig=True)
+            
+            g_T_surf(s,p)
+            
+            
+            
     if False:
     #if I['Mixture model'] == 'VdW standard':
         #if p.m['k12'] == '':

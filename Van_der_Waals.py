@@ -134,7 +134,7 @@ class VdW:
                         2*q_s*sqrt(-w/3.0)*cos(phi/3.0 + 4*pi/3.0) - C[0]/3.0 
                       ]
             # Find physical volume roots
-            s['V_v'],s['V_l'] = max(V_roots), min(V_roots) 
+            s['V_v'], s['V_l'] = max(V_roots), min(V_roots) 
     
         except(ValueError):
             from numpy import roots
@@ -146,7 +146,7 @@ class VdW:
                 ]
                 
             V_roots = roots(C) 
-            s['V_v'],s['V_l']  = max(V_roots.real), min(V_roots.real) 
+            s['V_v'], s['V_l']  = max(V_roots.real), min(V_roots.real) 
         
         if abs(V_roots[0].imag) > 0.1 or abs(V_roots[1].imag) > 0.1 \
                                       or abs(V_roots[2].imag) > 0.1:

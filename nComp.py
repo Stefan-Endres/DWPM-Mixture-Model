@@ -25,13 +25,16 @@ def inputs():
           # Compounds to simulate.
          'Compounds'    : ['acetone', 'water', 'phenol'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
-         'Model'        : 'Adachi-Lu',   # Model used in the simulation, 
-                                     # options:
-                                      # 'Adachi-Lu' 
-                                      # 'Soave'
+         'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
+                                        # the simulation, 
+                                         # options:
+                                          # 'Adachi-Lu' 
+                                          # 'Soave'
 
          'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
+                                       # Speciification does not preclude
+                                       # LLE detection and calculation.
 
          # Optional inputs
          'T'           : 281.15,  # 281.15
@@ -72,7 +75,8 @@ class MixParameters:
              'P'      : Data['P (Pa)'],
              'n'      : len(I['Compounds']),
              'phases' : len(I['Valid phases']),
-             'Model'  : I['Mixture model']
+             'Model'  : I['Mixture model'],
+             'Valid phases' : I['Valid phases']
              }
 
         # Define phases
@@ -108,7 +112,7 @@ class MixParameters:
                     # Define empty list
                     M['k'][j].append('nan')
                     if i != j:  # Define interaction paramter
-                        M['k'][j][i] = Data['k{J}{I}'.format(J=j, I=i)]
+                        M['k'][j][i] = Data['k{J}{I}'.format(J=j, I=i)][0]
 
             M['r'] = Data['r']
             M['s'] = Data['s']
@@ -171,18 +175,166 @@ class MixParameters:
 
 # %% Define state variable class
 class state:
-    """Class defining state vars """
+    """Class defining state variables """
     def __init__(self):
         self.s = {}  # System state vars
         self.c = []  # creates a new empty list for components
         self.c.append('nan')  # Define an empty set in index 0
+       
 
     def mixed(self):
         self.m = {}  # Mixture states
+        self.m['a_mix'] = {}  # Mixture activity coefficient states
+        self.m['b_mix'] = {}  # Mixture co-volume coefficient states
 
-    def pure(self):
+    def pure(self, p, i):
         self.c.append({})  # Pure component states
+        self.c[i]['b'] = p.c[i]['b_c']  # Invariant co volume parameter.
+        
+    # % Calculate state at P, T, {composition} for all phases
+        
+    def update_state(self, s, p, P=None, T=None, phase=['All'], X=None):
+        """
+        This function calculates the new state variables of the system at the 
+        specified pressure, temperature and composition vector.
+        
+        Parameters
+        ----------
+        s : class
+            Contains the dictionaries with the state of each component.
+    
+        p : class
+            Contains the dictionary describing the mixture parameters.
+            
+        P : scalar, optional
+            Pressure (Pa), if None the current state pressure will be used.
+    
+        T : scalar, optional
+            Temperature (K), if None the current state temperature will be 
+            used.
+            
+        phase : string inside a list, optional
+                Phase to be updated, if the default value 'All' is used then
+                all viable phases will be updated.
+            
+        X : vectors embedded inside a list, optional
+            Entries of list conaint the compositon vector with n - 1 components
+            List must be in correct phase order specified in 
+            p.m['Valid phases'] and components in correct component number as 
+            specified in the data. If None the current state composition will 
+            be used.
+            
+            Example specification with 4 independent components:
+                    #     x_1  x_2  x_3    y_1  y_2  y_3
+                    X = [[0.1, 0.3, 0.6], [0.3, 0.4, 0.3]]
+                    
+            If only less than 'All' phases are being updated, specify only the
+            needed composition vector.
+            
+            Example for phase='x' with 4 independent components:
+                    #     x_1  x_2  x_3
+                    X = [[0.1, 0.3, 0.6]]
+            
+        Returns
+        -------
+        s : class output.
+            Contains the new updated state. Values changed:
+                s.c[i]['a'] for all components p.m['n']
+                s.m['a']
+                s.b['a']
+                if P: 
+                    s.c[n]['P'] for all components p.m['n']
+                if T: 
+                    s.c[n]['T'] for all components p.m['n']  
+                if X: 
+                    s.c[i][ph] for all components p.m['n'] for all phases.
+                    
+        Examples
+        --------
+        s = s.update_state(s, p, 
+                           P=I['P'], 
+                           T=I['T'], 
+                           phase=['x','y'], 
+                           X=[[0.5,0.2],[0.2,0.2]])
+            
+        """
+        # Independent updates
+        if P is not None:  # Update pressure
+            s.m['P'] = P
+            for i in range(1, p.m['n'] + 1): 
+                s.c[i]['P'] = P
 
+        if T is not None:  # Update temperature
+            s.m['T'] = T
+            for i in range(1, p.m['n'] + 1): 
+                s.c[i]['T'] = T
+
+        if X is not None: # Update new compositions
+            if phase[0] is 'All':
+                if len(X) != len(p.m['Valid phases']): # Check for dimensions
+                    raise IOError('The array of X specified does not match'
+                                   +' the number of phases expected')
+                                   
+                for xp, ph in zip(X, p.m['Valid phases']):
+                    Sigma_x_dep = 0.0 # Sum of dependent components
+                    for i in range(1, p.m['n']): #  Independent components
+                        s.c[i][ph] = xp[i-1] 
+                        Sigma_x_dep += xp[i-1] 
+                        
+                    #  Dependent component
+                    s.c[p.m['n']][ph] = 1.0 - Sigma_x_dep
+                    
+            elif phase is not None:
+                if len(X) != len(phase): # Check for dimensions
+                    raise IOError('The array of X specified does not match'
+                                   +' the number of phases expected')
+                                   
+                for xp, ph in zip(X, phase):
+                    Sigma_x_dep = 0.0 # Sum of dependent components
+                    for i in range(1, p.m['n']): #  Independent components
+                        s.c[i][ph] = xp[i-1] 
+                        Sigma_x_dep += xp[i-1] 
+                        
+                    #  Dependent component
+                    s.c[p.m['n']][ph] = 1.0 - Sigma_x_dep
+                    
+        # Dependent updates
+        for i in range(1, p.m['n']+1): # Update pure activity coefficents
+            s.c[i]['a'] = VdW.a_T(s.c[i],p.c[i])['a'] # a(T)
+        
+        try:  # Note: Highly non-linear models
+            if phase[0] is 'All':
+                for ph in p.m['Valid phases']:
+                    s.m['a_mix'][ph] = a_mix(s, p, phase=ph)
+                    s.m['b_mix'][ph] = b_mix(s, p, phase=ph)
+                
+            elif phase is not None:
+                for ph in phase:
+                    s.m['a_mix'][ph] = a_mix(s, p, phase=ph)
+                    s.m['b_mix'][ph] = b_mix(s, p, phase=ph)
+                    
+        except(ValueError, ZeroDivisionError): # DO NOT RAISE, SET PENALTY
+            s.s['Math Error'] = True
+            print('WARNING: Math Domain error in s.update_state'
+                  +'at %s Pa %s K' %(s.s['P'],s.s['T']) )
+        
+        try: # Default optimization state z
+            s.m['a'] = a_mix(s, p, phase='x') 
+            s.m['b'] = b_mix(s, p, phase='x')   
+            
+        except(KeyError):
+            raise IOError('Specify at least one viable phase as \'x\' for' 
+                           'optimization routines')
+            
+        # Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for all components
+        # and phases
+        for i in range(1, p.m['n']+1): 
+            s.c[i]= VdW.V_root(s.c[i], p.c[i])
+            
+        s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
+  
+        return s
+            
 
 # %% Define mixture models
 def a_ij(s, p, i=1, j=1):  # (Validated)
@@ -330,14 +482,10 @@ def b_mix(s, p, phase='x'):  # (Validated)
         Contains the dictionaries with the state of each component.
 
     p : class
-        Contains the dictionary describing the mixture parameters.
+        Contains the dictionary describing the parameters.
 
     phase : string, optional
             Phase to be calculated, ex. liquid phase 'x'.
-
-    Dependencies
-    ------------
-    nComp.a_ij
 
     Returns
     -------
@@ -347,6 +495,194 @@ def b_mix(s, p, phase='x'):  # (Validated)
     for i in range(1, p.m['n']+1):
         b_mix += s.c[i][phase]*s.c[i]['b']
     return b_mix
+
+
+# %% Define Gibbs energy functions for VdW EoS (cubic with 2 volume roots)
+def g_R_k_i(s, p, k='x', i=1):  # (Validated)
+    """
+    Residual Gibbs energy g_R_k_i((T,P) of a single component where k is the 
+    specified phase and i is the component in phase k. 
+    
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the state of the specified component.
+
+    p : class
+        Contains the dictionary describing the component parameters.
+
+    k : string, optional
+        Phase to be calculated, ex. liquid phase 'x'.
+        
+    i : integer, optional
+        The component number in phase k to calculate. ex. 1
+
+    Dependencies
+    ------------
+    math
+    
+    Returns
+    -------
+    g_R_k_i : scalar output.
+    """
+    from math import log
+    if k == 'y':  # 'y' = Vapour phase standard
+        V = s.c[i]['V_v'] 
+    else:  # Assume all phases other than vapour are liquid, ex. 'x'
+        V = s.c[i]['V_l'] 
+        
+    return (s.c[i]['P'] * V / (p.c[i]['R'] * s.c[i]['T']) - 1.0
+            - log(s.c[i]['P'] / (p.c[i]['R'] * s.c[i]['T']))
+            - log(V - s.c[i]['b']) 
+            - s.c[i]['a'] / (p.c[i]['R'] * s.c[i]['T'] * V))
+            
+def g_R_mix_i(s, p, k='x'):  # (Validated)
+    """
+    Residual Gibbs energy g_R_mix_i((T,P) of a mixture where k is the specified 
+    phase.
+
+    
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the state of the specified component.
+
+    p : class
+        Contains the dictionary describing the component parameters.
+
+    k : string, optional
+        Phase to be calculated, ex. liquid phase 'x'.
+        
+    Dependencies
+    ------------
+    math
+    
+    Returns
+    -------
+    g_R_k_i : scalar output.
+    """
+    from math import log
+    if k == 'y':  # 'y' = Vapour phase standard
+        V = s.c[i]['V_v'] 
+    else:  # Assume all phases other than vapour are liquid, ex. 'x'
+        V = s.c[i]['V_l'] 
+        
+    return (s.m['P'] * V / (p.m['R'] * s.m['T']) - 1.0
+            - log(s.m['P'] / (p.m['R'] * s.m['T']))
+            - log(V - s.m['b']) 
+            - s.m['a'] / (p.m['R'] * s.m['T'] * V))
+    
+def g_IG_k(s, k='x'):
+    """
+    Change in gibbs energy for mixing of ideal gasses.
+    
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+
+    k : string, optional
+        Phase to be calculated, ex. liquid phase 'x'. 
+            
+    Dependencies
+    ------------
+    math
+    
+    Returns
+    -------
+    g_IG_k : scalar output.
+    """
+    from math import log
+    
+    for i in range(1, p.m['n']+1): # Prevent math errors from zero log call.
+        if s.c[i][k] == 0.0:
+            return 0.0 # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
+      
+    Sigma_g_IG_k = 0.0 # Sum of ideal gas terms
+    for i in range(1, p.m['n']+1): 
+        Sigma_g_IG_k += s.c[i][k] * log(s.c[i][k])
+    return Sigma_g_IG_k
+
+    
+def g_mix(s, p, k='x', ref='x', update_system=False): # To Do Validate
+    """
+    Returns the gibbs energy at specified composition relative to a reference
+    phase pure component gibbs energy.
+    
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    k : string, optional
+        Phase to be calculated, ex. liquid phase 'x'. 
+        
+    ref : string, optional
+          Selected reference phase. Note that is common practice to choose a
+          liquid phase 'x' as the reference phase.
+          
+    update_system : boolean, optional
+                    This updates the system state to the current P, T and 
+                    composition conditions. Only use if the system dictionary 
+                    has not been updated to the current independent variables.
+
+    Dependencies
+    ------------
+    math
+    
+    Returns
+    -------
+    s : class output.
+        Contains the following values (or more if more phases are chosen):
+          s.m['del g_mix']['t'] : scalar, Total Gibbs energy of mixing.
+          s.m['del g_mix']['x'] : scalar, Gibbs energy of mixing for liquid 
+                                          phase.
+          s.m['del g_mix']['y'] : scalar, Gibbs energy of mixing for vapour 
+                                          phase.
+          s.s['Math Error'] : boolean, if True a math error occured during
+                                       calculations. All other values set to 0.
+    """
+    if update_system: # TO DO TEST
+        Xvec = [[]]
+        for i in range(1, p.m['n']): # for n-1 independent components
+            Xvec[0].append(s.c[i][k])
+        
+        s = s = s.update_state(s, p, P = s .m['P'], T = s.m['T'], phase = k,
+                               X = Xvec)
+    
+    try:
+        Sigma_g_ref = 0.0
+        for i in range(1, p.m['n'] + 1): 
+            Sigma_g_ref -= s.c[i][ref] * g_R_k_i(s, p, k = ref, i=i)
+
+        s.m['del g_mix^R'] = {}
+        for ph in p.m['Valid phases']:
+                s.m['del g_mix^R'][ph] = g_R_mix_i(s, p, k = ph) + Sigma_g_ref
+        
+        s.m['del g_mix'] = {}
+        g_min = []
+        for ph in p.m['Valid phases']:
+                s.m['del g_mix'][ph] = s.m['del g_mix^R'][ph] + g_IG_k(s, k=ph)
+                g_min.append(s.m['del g_mix'][ph])
+        
+        s.m['del g_mix']['m'] = min(g_min)
+        
+        s.s['Math Error'] = False
+        
+    except(ValueError, ZeroDivisionError):
+        s.s['Math Error'] = True
+        print 'WARNING: Math Domain error in g_mix(s,p)!'
+        s.m['del g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
+        s.m['del g_mix'] = 0.0
+                           
+    return s
+    
+
+# %% Define Gibbs energy plotting functions.
 
 
 # %%
@@ -361,7 +697,7 @@ if __name__ == '__main__':
         data = data_handling.ImportData()
         data.load_pure_data(I['Compounds'])
         data.load_E(I['Compounds'])
-    #    execfile('data_handling.py') # Load data
+#        execfile('data_handling.py') # Load data
 
     # %% Find pure component model parameters if not defined
     for compound in I['Compounds']:
@@ -383,5 +719,27 @@ if __name__ == '__main__':
     s = state()
     s.mixed()  # Define mix state variable, call using s.m['key']
     # Define three component state variables (use index 1 and 2 for clarity)
-    for i in range(p.m['n']):
-        s.pure()  # Call using ex. s.c[1]['key']
+    for i in range(1, p.m['n']+1):
+        s.pure(p, i)  # Call using ex. s.c[1]['key']
+
+    # Test State variable
+    p.m['r'], p.m['s'] = 1.0, 1.0
+    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[[0.1,0.2],[0.2,0.2]])
+#    s = s.update_state(s, p, P=I['P'], T=I['T'], phase=['x','y'],X=[[0.5,0.2],[0.2,0.2]])
+    s = g_mix(s, p)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
