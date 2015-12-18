@@ -23,8 +23,8 @@ def inputs():
     I = {
          # Model inputs
           # Compounds to simulate.
-         #'Compounds'    : ['acetone', 'water', 'phenol'], 
-         'Compounds'    : ['carbon_dioxide','ethane'], 
+         'Compounds'    : ['acetone', 'water', 'phenol'], 
+         #'Compounds'    : ['carbon_dioxide','ethane'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
          'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
                                         # the simulation, 
@@ -647,7 +647,7 @@ def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
                                        calculations. All other values set to 0.
     """
     if update_system: # TO DO TEST
-        Xvec = [[]]
+        Xvec = [[]] # Construct update vector
         for i in range(1, p.m['n']): # for n-1 independent components
             Xvec[0].append(s.c[i][k])
         
@@ -671,21 +671,162 @@ def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
                 s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, k=ph)
                 g_min.append(s.m['g_mix'][ph])
 
-        s.m['g_mix']['m'] = min(g_min)
+        s.m['g_mix']['t'] = min(g_min)
 
         s.s['Math Error'] = False
 
     except(ValueError, ZeroDivisionError):
+        s.m['g_mix'] = {}
+        g_min = []
         s.s['Math Error'] = True
         print 'WARNING: Math Domain error in g_mix(s,p)!'
         s.m['g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
-        s.m['g_mix'] = 0.0
+        s.m['g_mix']['t'] = 0.0
             
     return s
 
-# %%
+# %% Duality formulation
+def ubd(Lambda, g_x_func, X_d, Z_0, s, p): # TODO subject to G^p
+    """
+    Returns the upper bounding problem of the dual extremum. 
+    Return is negative to change to minimization problem.
+    
+    Parameters
+    ----------
+    Lambda : vector (1xn array)
+             Contains the langrange (or diality) multipliers Lambda \in R^m
+             to be optimised to the maximum value of the ubd.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['m']
+               
+    X_d : vector (1xn array)
+          Contains the current composition point in the overall dual 
+          optimisation. Constant for the upper bounding problem.
+                
+    Z_0 : vector (1xn array)
+          Feed composition. Constant.
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    Dependencies
+    ------------
+    numpy.array
+
+    Returns
+    -------
+    ubd : scalar
+          Value of the upper bounding problem at Lamda.
+    """
+    # MOVE THIS OUTSIDE
+    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
+    s.update_state(s, p,  X = Xn)  # Update system to new composition.
+    
+    return - g_x_func(s, p).m['g_mix']['t'] - sum(Lambda * (Z_0 - X_d)) 
 
 
+
+def lbd(X, g_x_func, Lambda_d, Z_0, s, p):
+    """
+    Returns the lower bounding problem of the dual extremum.
+    
+    Parameters
+    ----------
+    X_d : vector (1xn array)
+          Contains the current composition point in the overall dual 
+          optimisation to be optimised to the minimum value of the lbd.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['m']
+                        
+    Lambda_d : vector (1xn array)
+               Contains the langrange (or diality) multipliers Lambda \in R^m.
+               Constant for the lower bounding problem.
+             
+    Z_0 : vector (1xn array)
+          Feed composition. Constant.
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    Dependencies
+    ------------
+    numpy.array
+
+    Returns
+    -------
+    lbd : scalar
+          Value of the lower bounding problem at X.
+    """
+    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
+    s.update_state(s, p,  X = Xn)  # Update system to new composition.
+    
+    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X)) 
+    
+
+def dual_equal(s, p, g_x_func, P=s.m['P'], T=s.m['P'], Z_0, X_guess, tol=1e-3):
+    """
+    TO DO: Add valid phases option.
+    
+    Find the phase equilibrium solution using the daul optimization algorithm.
+    Ref. Mitsos and Barton (2007)
+
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['m']
+               
+    P : scalar, optional
+        Pressure (Pa), if unspecified the current state pressure will be used.
+
+    T : scalar, optional
+        Temperature (K), if unspecified  the current state temperature will be 
+        used.
+            
+    Z_0 : vector
+          Contains the feed composition point (must be and unstable point to 
+          find multiphase equilibria).
+          
+    tol : scalar, optional
+          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+          
+    Dependencies
+    ------------
+    numpy.array
+    
+    Returns
+    -------
+    X_eq : vector
+           Contains the optimised equilibrium point. 
+    """
+    # initialize
+    s.update_state(s, p, P, T, X = Xn) 
+
+    # 
+    while UBD - LBD <= tol:
+        pass
 # %% Define Gibbs energy plotting functions.
 def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
     """
@@ -709,7 +850,7 @@ def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
         s = g_mix(s, p)   #.m['del g_mix l']
         s.s['del g_mix l soln'].append(s.m['g_mix']['x'])
         s.s['del g_mix v soln'].append(s.m['g_mix']['y'])
-        s.s['del g_mix soln'].append(s.m['g_mix']['m'])
+        s.s['del g_mix soln'].append(s.m['g_mix']['t'])
         s.s['Math Error soln'].append(s.s['Math Error'])
    
     return s
@@ -784,7 +925,7 @@ if __name__ == '__main__':
     s = s.update_state(s, p, P=I['P'], T=I['T'], X=[[0.1,0.2],[0.2,0.2]])
 #    s = s.update_state(s, p, P=I['P'], T=I['T'], phase=['x','y'],X=[[0.5,0.2],[0.2,0.2]])
 #    s = g_mix(s, p)
-    
+        
     
     
     if False: # Test Gibbs curves
@@ -795,6 +936,14 @@ if __name__ == '__main__':
         x_r = 500
         g_range(s, p, x_r)
         plot_dg_mix(s,p)
+        
+        
+    from numpy import array
+    Lambda = array([1, 2])
+    X_d = array([0.4, 0.3]) 
+    Z_0 = array([0.5, 0.5]) 
+    ubd(Lambda, g_mix, X_d, Z_0, s, p)
+    lbd(X_d, g_mix, Lambda, Z_0, s, p)
     
     
     
