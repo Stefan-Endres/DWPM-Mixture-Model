@@ -23,8 +23,8 @@ def inputs():
     I = {
          # Model inputs
           # Compounds to simulate.
-         'Compounds'    : ['acetone', 'water', 'phenol'], 
-         #'Compounds'    : ['carbon_dioxide','ethane'], 
+         #'Compounds'    : ['acetone', 'water', 'phenol'], 
+         'Compounds'    : ['carbon_dioxide','ethane'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
          'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
                                         # the simulation, 
@@ -235,7 +235,11 @@ class state:
             Example for phase='x' with 4 independent components:
                     #     x_1  x_2  x_3
                     X = [[0.1, 0.3, 0.6]]
-            
+
+        Dependencies
+        ------------
+        numpy.array
+    
         Returns
         -------
         s : class output.
@@ -259,6 +263,7 @@ class state:
                            X=[[0.5,0.2],[0.2,0.2]])
             
         """
+        from numpy import array, size
         # Independent updates
         if P is not None:  # Update pressure
             s.m['P'] = P
@@ -274,7 +279,10 @@ class state:
             if phase[0] is 'All':
                 if len(X) != len(p.m['Valid phases']): # Check for dimensions
                     raise IOError('The array of X specified does not match'
-                                   +' the number of phases expected')
+                                   +' the number of phases expected. len(X) = '
+                                   '{} .'.format(len(X))
+                                   +'len(p.m[\'Valid phases\']) = {}'
+                                    .format(len(p.m['Valid phases'])))
                                    
                 for xp, ph in zip(X, p.m['Valid phases']):
                     Sigma_x_dep = 0.0 # Sum of dependent components
@@ -288,11 +296,16 @@ class state:
             elif phase is not None:
                 if len(X) != len(phase): # Check for dimensions
                     raise IOError('The array of X specified does not match'
-                                   +' the number of phases expected')
-                                   
+                                   +' the number of phases expected. len(X) = '
+                                   '{} .'.format(len(X))
+                                   +'len(phase) = {}'
+                                    .format(len(phase)))
                 for xp, ph in zip(X, phase):
                     Sigma_x_dep = 0.0 # Sum of dependent components
                     for i in range(1, p.m['n']): #  Independent components
+                        if size(xp) == 1:   # Ugly fix because of the zip 
+                            xp = array([xp])  # conversion to float
+                        
                         s.c[i][ph] = xp[i-1] 
                         Sigma_x_dep += xp[i-1] 
                         
@@ -330,7 +343,7 @@ class state:
         # Find Volume Roots ('V_v' and 'V_l') at P, T, a, b for all components
         # and phases
         for i in range(1, p.m['n']+1): 
-            s.c[i]= VdW.V_root(s.c[i], p.c[i])
+            s.c[i] = VdW.V_root(s.c[i], p.c[i])
             
         s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
   
@@ -686,7 +699,7 @@ def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
     return s
 
 # %% Duality formulation
-def ubd(Lambda, g_x_func, X_d, Z_0, s, p): # TODO subject to G^p
+def ubd(Lambda, g_x_func, X_d, Z_0, s, p, k=['All']): # TODO subject to G^p
     """
     Returns the upper bounding problem of the dual extremum. 
     Return is negative to change to minimization problem.
@@ -726,14 +739,27 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p): # TODO subject to G^p
           Value of the upper bounding problem at Lamda.
     """
     # MOVE THIS OUTSIDE
-    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
-    s.update_state(s, p,  X = Xn)  # Update system to new composition.
+#    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
+    Xn = X_d
+     # Update system to new composition.
+    s.update_state(s, p,  X = Xn, phase = k) 
     
-    return - g_x_func(s, p).m['g_mix']['t'] - sum(Lambda * (Z_0 - X_d)) 
+    UBD = - g_x_func(s, p).m['g_mix']['t'] - sum(Lambda * (Z_0 - X_d)) 
+    
+    # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
+    #       must strictly be added as a constraint to this problem.
+    # TO DO FIND BETTER WAYS TO IMPLEMENT BOUND
+    s.update_state(s, p,  X = Z_0, phase = k)  
+    G_P = g_x_func(s,p)  # G_p (Primal problem Z_0_i - x_i = 0 for all i)
+    if G_P > UBD:
+        print "WARNING: Primal problem > UBD"
+        P = abs(G_P - UBD)*1e3
+    
+    return UBD
 
 
 
-def lbd(X, g_x_func, Lambda_d, Z_0, s, p):
+def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     """
     Returns the lower bounding problem of the dual extremum.
     
@@ -771,15 +797,18 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p):
     lbd : scalar
           Value of the lower bounding problem at X.
     """
-    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
-    s.update_state(s, p,  X = Xn)  # Update system to new composition.
+#    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
+    Xn = X
+    s.update_state(s, p,  X = Xn, phase=k)  # Update system to new composition.
     
     return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X)) 
     
 
-def dual_equal(s, p, g_x_func, P=s.m['P'], T=s.m['P'], Z_0, X_guess, tol=1e-3):
+def dual_equal(s, p, g_x_func, Z_0, tol=1e-3):#P=s.m['P'], T=s.m['P'], tol=1e-3):
     """
-    TO DO: Add valid phases option.
+    TO DO: -Add valid phases option.
+           -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
+            hyperplanes.
     
     Find the phase equilibrium solution using the daul optimization algorithm.
     Ref. Mitsos and Barton (2007)
@@ -821,12 +850,79 @@ def dual_equal(s, p, g_x_func, P=s.m['P'], T=s.m['P'], Z_0, X_guess, tol=1e-3):
     X_eq : vector
            Contains the optimised equilibrium point. 
     """
+    from numpy import array
     # initialize
-    s.update_state(s, p, P, T, X = Xn) 
-
-    # 
+    Z_0 = array(Z_0)
+    #s.update_state(s, p, P, T, X = Xn) 
+    LBD = - 1e300  # -inf
+    s.update_state(s, p,  X = Z_0) 
+    UBD = g_x_func(s, p)  # G_p (Primal problem Z_0_i - x_i = 0 for all i)
+    Lambda = zeros_like(Z_0)
+    X_d = Z_0
     while UBD - LBD <= tol:
-        pass
+        Lambda_sol = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p) # Optimize result
+        Lambda_d = Lambda_sol  # Unneeded, use _d in func
+        UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p)
+        X_sol = lbd(X_d, g_x_func, Lambda_d, Z_0, s, p)  # Optimize result
+        #differential_evolution(Py_error, bounds, args=(s, p))
+        LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p) 
+        X_d = X_sol  # Unneeded, use _d in func
+        
+    return s
+
+#%% TEST FUNCTION  Binary NRTL 
+def g_x_test_func(s, p):
+    """
+    This is the test function of a binary NRTL Model from Misos et. al. (2007)
+    using the parameters referenced in the paper.
+    
+    x_1^0 is an unstable point.
+    """
+    from math import log, e 
+    t_12 = 3.00498# tau paramters
+    t_21 = 4.69071
+    a_12 = 0.391965 # Alpha paramter
+    a_21 = 0.391965#**(-1.0) # Checked. Should be a_12 in Mitsos, see SvA p 448
+    
+    for i in range(1, p.m['n']+1): 
+        if s.c[i]['x'] == 0.0:  # Prevent math errors from zero log call.
+            return 0.0  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
+    s.m['g_mix'] = {}
+    s.m['g_mix']['t'] = ( s.c[1]['x'] * log(s.c[1]['x']) 
+                        + s.c[2]['x'] * log(s.c[2]['x']) 
+                        + s.c[1]['x'] * (s.c[2]['x']) 
+                        * ((t_12 * e**(-a_12 * t_12)) 
+                        / (s.c[2]['x'] + s.c[1]['x'] * e**(- a_12 * t_12))  
+                        + (t_21 * e**(-a_21 * t_21)) 
+                        / (s.c[1]['x'] + s.c[2]['x'] * e**(- a_21 * t_21))))
+    return s
+                                             
+#%%
+#def g_range_test(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
+#    from numpy import linspace
+#    #% Initialize
+#    s.s['del g_mix l soln'] = []
+#    s.c[1]['x_range'], s.c[2]['x_range'] = linspace(0,1,x_r), linspace(1,0,x_r)
+#    for i in range(len(s.c[1]['x_range']-1)): 
+#        s.c[1]['x'],s.c[2]['x'] = s.c[1]['x_range'][i],s.c[2]['x_range'][i]
+#
+#        s.s['del g_mix l soln'].append(g_x_test_func(s, p).m['g_mix']['t'])
+#
+#   
+#def plot_dg_mix_test(s,p):  # NOTE THESE ARE FOR BINARY FUNCS
+#    '''TO DO: Update'''
+#    from matplotlib import rc
+#    from matplotlib import pyplot as plot
+#    from numpy import array
+#    
+#    plot.rcParams.update(I['Plot options'])
+#    plot.figure(100)
+#    plot.plot(s.c[1]['x_range'], 
+#             s.s['del g_mix l soln'])
+#    plot.xlabel(r"$x_1$", fontsize=14)
+#    plot.ylabel(r"$\Delta$g", fontsize=14)
+
+        
 # %% Define Gibbs energy plotting functions.
 def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
     """
@@ -928,26 +1024,39 @@ if __name__ == '__main__':
         
     
     
-    if False: # Test Gibbs curves
-        p.m['r'], p.m['s'] = 1.0, 1.0
-        p.m['k'][1][2] = 0.124
-        p.m['k'][2][1] = p.m['k'][1][2]
-        s = s.update_state(s, p, P=24e5, T=263.1)
-        x_r = 500
-        g_range(s, p, x_r)
-        plot_dg_mix(s,p)
-        
+#    if False: # Test Gibbs curves
+#        p.m['r'], p.m['s'] = 1.0, 1.0
+#        p.m['k'][1][2] = 0.124
+#        p.m['k'][2][1] = p.m['k'][1][2]
+#        s = s.update_state(s, p, P=24e5, T=263.1)
+#        x_r = 500
+#        g_range(s, p, x_r)
+#        plot_dg_mix(s,p)
+#        
         
     from numpy import array
-    Lambda = array([1, 2])
-    X_d = array([0.4, 0.3]) 
-    Z_0 = array([0.5, 0.5]) 
-    ubd(Lambda, g_mix, X_d, Z_0, s, p)
-    lbd(X_d, g_mix, Lambda, Z_0, s, p)
+#    if False: # Test Duality funcs
+#        Lambda = array([1, 2])
+#        X_d = array([0.4, 0.3]) 
+#        Z_0 = array([0.5, 0.5]) 
+#        ubd(Lambda, g_mix, X_d, Z_0, s, p)
+#        lbd(X_d, g_mix, Lambda, Z_0, s, p)
+#        
+#    if False: # Test Binary NRTL Mitsos et al 
+#        g_range_test(s, p, x_r=1000)
+#        plot_dg_mix_test(s,p)
     
-    
-    
-    
+    if True: # Optimization test 
+        Lambda = array([1])
+        X_d = array([0.4]) 
+        Z_0 = array([0.5]) 
+        # Approx. Solution
+        Lambda = array([-0.03244])
+        X_d = array([0.004557]) 
+#        print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x')
+#        print lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
+#        print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x') - lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
+        s = dual_equal
     
     
     
