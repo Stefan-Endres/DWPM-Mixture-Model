@@ -194,7 +194,8 @@ class state:
         
     # % Calculate state at P, T, {composition} for all phases
         
-    def update_state(self, s, p, P=None, T=None, phase=['All'], X=None):
+    def update_state(self, s, p, P=None, T=None, phase=['All'], X=None,
+                     Force_Update=False):
         """
         This function calculates the new state variables of the system at the 
         specified pressure, temperature and composition vector.
@@ -235,6 +236,12 @@ class state:
             Example for phase='x' with 4 independent components:
                     #     x_1  x_2  x_3
                     X = [[0.1, 0.3, 0.6]]
+                    
+        Force_Update : booleean, optional
+                       If True this will force an update of a single vector
+                       input for X for all phases regardless of the number
+                       of phases specified with "phase". X must be a single
+                       vector/list to avoid failure.
 
         Dependencies
         ------------
@@ -276,7 +283,19 @@ class state:
                 s.c[i]['T'] = T
 
         if X is not None: # Update new compositions
-            if phase[0] is 'All':
+            if Force_Update:
+                for ph in p.m['Valid phases']:
+                    Sigma_x_dep = 0.0 # Sum of dependent components
+                    for i in range(1, p.m['n']):
+                        if size(X) == 1:   # Ugly fix because of the zip 
+                            X = array([X])  # conversion to float or list
+                            
+                        s.c[i][ph] = X[i-1] 
+                        Sigma_x_dep += X[i-1]
+                    #  Dependent component
+                    s.c[p.m['n']][ph] = 1.0 - Sigma_x_dep
+                        
+            elif phase[0] is 'All':
                 if len(X) != len(p.m['Valid phases']): # Check for dimensions
                     raise IOError('The array of X specified does not match'
                                    +' the number of phases expected. len(X) = '
@@ -288,7 +307,8 @@ class state:
                     Sigma_x_dep = 0.0 # Sum of dependent components
                     for i in range(1, p.m['n']): #  Independent components
                         if size(xp) == 1:   # Ugly fix because of the zip 
-                            xp = array([xp])  # conversion to float
+                            xp = array([xp])  # conversion to float or list
+
                         s.c[i][ph] = xp[i-1] 
                         Sigma_x_dep += xp[i-1] 
                         
@@ -302,6 +322,7 @@ class state:
                                    '{} .'.format(len(X))
                                    +'len(phase) = {}'
                                     .format(len(phase)))
+                                    
                 for xp, ph in zip(X, phase):
                     Sigma_x_dep = 0.0 # Sum of dependent components
                     for i in range(1, p.m['n']): #  Independent components
@@ -619,8 +640,12 @@ def g_IG_k(s, k='x'):  # (Validated)
     return Sigma_g_IG_k
 
     
-def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
+def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     """
+    TO DO: -Add float conversion for 1x1 arrays.
+           -Force 'k' lowest phase
+           -
+    
     Returns the gibbs energy at specified composition relative to a reference
     phase pure component gibbs energy.
     
@@ -633,14 +658,14 @@ def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
     p : class
         Contains the dictionary describing the parameters.
         
-    k : string, optional
-        Phase to be calculated, ex. liquid phase 'x'. 
+    k : string, optional # TO DO UNFINISHED
+        Force phase to be calculated, ex. liquid phase 'x'. 
         
     ref : string, optional
           Selected reference phase. Note that is common practice to choose a
           liquid phase 'x' as the reference phase.
           
-    update_system : boolean, optional
+    update_system : boolean, optional # TO DO UNFINISHED
                     This updates the system state to the current P, T and 
                     composition conditions. Only use if the system dictionary 
                     has not been updated to the current independent variables.
@@ -695,7 +720,9 @@ def g_mix(s, p, k='x', ref='x', update_system=False):  # (Validated)
         g_min = []
         s.s['Math Error'] = True
         print 'WARNING: Math Domain error in g_mix(s,p)!'
-        s.m['g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
+        for ph in p.m['Valid phases']:
+                s.m['g_mix'][ph] = 0.0
+#        s.m['g_mix l'], s.m['del g_mix v'] = 0.0, 0.0
         s.m['g_mix']['t'] = 0.0
             
     return s
@@ -745,15 +772,16 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     """
     from math import e
     from numpy import array
-   # X_d = array(X_d)  # Prevent float converstion of 1x1 arrays
+    X_d = array(X_d)  # Prevent float converstion of 1x1 arrays
     # Reset system from changed composition in bound calculation each call
-    s = s.update_state(s, p,  X = X_d , phase = k)  # Comp. invariant in UBD
+    # Comp. invariant in UBD
+    s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
     UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d)) 
     
     # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
     #       must strictly be added as a constraint to this problem.
     # TO DO FIND BETTER WAYS TO IMPLEMENT BOUND
-    s = s.update_state(s, p, phase = k,  X = Z_0)  
+    s = s.update_state(s, p, phase = k,  X = Z_0, Force_Update=True)  
     # G_p (Primal problem Z_0_i - x_i = 0 for all i)
     P = 0
     G_P = g_x_func(s,p).m['g_mix']['t']  
@@ -766,10 +794,10 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     # Lamda bounds
     # Upper
     #s.update_state(s, p,  X = X_bounds[0][:len(X_bounds[0])-1], phase = k)  
-    s = s.update_state(s, p,  X = X_bounds[0], phase = k)  
+    s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)  
     G_upper = g_x_func(s, p).m['g_mix']['t']
     # Lower
-    s = s.update_state(s, p,  X = X_bounds[1], phase = k)  
+    s = s.update_state(s, p,  X = X_bounds[1], phase = k, Force_Update=True) 
     G_lower = g_x_func(s, p).m['g_mix']['t']
     for i in range(p.m['n']-1):
         UB = ((UBD - G_upper)/(Z_0[i] - X_bounds[0][i]))
@@ -780,7 +808,7 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
         if Lambda[i] < LB:
             P +=  e**abs(Lambda[i] - LB)*1e2
 
-    s = s.update_state(s, p,  X = Z_0) 
+    s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
 
 
@@ -826,17 +854,18 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All'], Lambda_Sol=False):
     """
     from math import e
     
-    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
+#    Xn = [X_d, X_d]  # Construct composition container from X_d for all phases.
     Xn = X
-    s.update_state(s, p,  X = Xn, phase=k)  # Update system to new composition.
+    # Update system to new composition.
+    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
     
-    P = 0 # NOT WORKING
-    if Lambda_Sol:  # Penalty to remove known equilibrium point
-        dx = abs(X[0] - Z_0[0])
-        if dx.any() < 0.02:   ######### LOWER FOR SMALL dx SYSTEMS
-            P += e**(sum(dx)*1e2)
+#    P = 0 # NOT WORKING
+#    if Lambda_Sol:  # Penalty to remove known equilibrium point
+#        dx = abs(X[0] - Z_0[0])
+#        if dx.any() < 0.02:   ######### LOWER FOR SMALL dx SYSTEMS
+#            P += e**(sum(dx)*1e2)
     
-    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X)) + P
+    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X)) #+ P
     
 
 def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
@@ -849,6 +878,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
            -UBD X_d[0] --> X_d
            -Lambda_Sol: Allow for multiple solutions and impliment bounds to
                         find any other solutions if they exist.
+           -Lambda_Sol bounds method: The current implementation is only viable
+                                      for binary systems. Improve.
     
     Find the phase equilibrium solution using the daul optimization algorithm.
     Ref. Mitsos and Barton (2007)
@@ -887,10 +918,10 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
           Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
           
     Lambda_Sol : boolean or vector, optional
-                Used to force a single calculation for finding the equilibrium
-                point corresponding to another known feed equilibrium 
-                solution. If calculating a solution, the vector s.m['Lambda_d'] 
-                from the previous calculation should be inputted.
+                 Used to force a single calculation for finding the equilibrium
+                 point corresponding to another known feed equilibrium 
+                 solution. If calculating a solution the vector s.m['Lambda_d'] 
+                 from the previous calculation should be inputted.
 
     Dependencies
     ------------
@@ -906,36 +937,41 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     """
     from numpy import array, zeros_like, zeros
     from scipy.optimize import minimize, brute, differential_evolution
+    
+    if k == None:
+        k = p.m['Valid phases']
+        
     # initialize
     Z_0 = array(Z_0)
-    #s.update_state(s, p, P, T, X = Xn) 
-    
     LBD = - 1e300  # -inf
-    s.update_state(s, p,  X = Z_0) 
-    
+    s.update_state(s, p,  X = Z_0, phase = k, Force_Update=True) 
+        
     # G_p (Primal problem Z_0_i - x_i = 0 for all i):
     UBD = g_x_func(s, p).m['g_mix']['t']  
     Lambda_d = zeros_like(Z_0)
 #    Lambda_d = array([-0.03244]) #### DELETE
     
-    if k == None:
-        k = p.m['Valid phases']
-        
+
     # X bounds used in UBD optimization
     X_bounds = [zeros(shape=(p.m['n']-1)), # Upper bound
                 zeros(shape=(p.m['n']-1))  # Lower bound
                 ]  
-
-    for i in range(p.m['n']-1):  # TO DO
+    
+    for i in range(p.m['n']-1): 
         Sigma_ind = 0.0  # Sum of independent components excluding i
                          # (lever rule) 
         for j in range(p.m['n']-1):
             if j != i:
                 Sigma_ind += Z_0[j]
-                
-        X_bounds[0][i] = 1.0 - Sigma_ind 
 
-   
+        X_bounds[0][i] = 1.0 - Sigma_ind 
+        
+    # Construct physical bounds x \in [0, 1] for all independent components
+    # (used in differential_evolution)
+    Bounds = []
+    for i in range(p.m['n'] - 1):  # TO DO
+        Bounds.append((0, 1))
+        
     # Construct composition container from X_d for all phases.
     X_d = []
     for ph in k:
@@ -943,44 +979,65 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         
     print UBD
     print LBD
-#    X_d = array([0.004557])
     
-    # Define s
-    if Lambda_Sol:
+    if Lambda_Sol:  # If Lambda_Sol is specified, find corresponding equil.
         Lambda_d = Lambda_Sol
-        
+        Bounds = []
+        for i in range(p.m['n'] - 1):  # Search before equil point
+            Bounds.append((0.0, Z_0[i] - 0.01))
+
+        # BOUNDS TEST FOR 2nd EQUIL. POINT DELETE / GENERALIZE
+        X_sol = differential_evolution(lbd, Bounds,
+                                            args=(g_x_func, 
+                                                  Lambda_d, 
+                                                  Z_0, s, p, k, 
+                                                  Lambda_Sol))['x']
+        Bounds = []
+        for i in range(p.m['n'] - 1):  # Search before equil point
+            Bounds.append((Z_0[i] + 0.01, 1.0))                                 
+            
+        X_sol2 = differential_evolution(lbd, Bounds,
+                                            args=(g_x_func, 
+                                                  Lambda_d, 
+                                                  Z_0, s, p, k, 
+                                                  Lambda_Sol))['x']
+        # TO DO: ADD STABILITY CHECK TO FIND CORRECT SOL
+        s.m['Z_eq1'] = X_sol
+        s.m['Z_eq2'] = X_sol2
+        return s
+                                                  
+    # Normal calculation of daul problem if Z_0 is unstable.
     while abs(UBD - LBD) >= tol:
         # break
         # Update system to new composition.
-        s = s.update_state(s, p,  X = X_d[0] , phase = k)  # Comp. invariant in UBD
+        s = s.update_state(s, p,  X = X_d , phase = k) # Comp. invariant in UBD
         
     #    Lambda_sol = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p) # Optimize result
-        
-        if not Lambda_Sol:
-            Lambda_sol = minimize(ubd, Lambda_d, method='Nelder-Mead', 
-                                  args=(g_x_func,X_d[0], Z_0, s, p, X_bounds,
-                                        k))['x']
-            Lambda_d = array(Lambda_sol)  # Convert float back to 1x1 array
+        print X_d
+
+        Lambda_sol = minimize(ubd, Lambda_d, method='Nelder-Mead', 
+                              args=(g_x_func, X_d[0], Z_0, s, p, X_bounds,
+                                    k))['x']
+        Lambda_d = array(Lambda_sol)  # Convert float back to 1x1 array
             
         if False:                  
             print minimize(ubd, Lambda_d, method='Nelder-Mead', 
                                   args=(g_x_func,
                                         X_d[0], Z_0, s, p, X_bounds, k))
                               
-            
-            
+    
         # NOTE: NEGATIVE THE MAX DEFINED PROBLEM:
         UBD = -ubd(Lambda_d, g_x_func, X_d[0], Z_0, s, p, X_bounds, k)
 #        UBD = ubd(Lambda_d, g_x_func, X_d[0], Z_0, s, p, X_bounds, k) # TEST
 
-
-
     #    X_sol = lbd(X_d, g_x_func, Lambda_d, Z_0, s, p)  # Optimize result
-        X_sol = differential_evolution(lbd, [(0.0, 1.0)], 
+        X_sol = differential_evolution(lbd, Bounds, 
                                        args=(g_x_func, 
                                              Lambda_d, 
                                              Z_0, s, p, k, 
                                              Lambda_Sol))['x']
+
+            
         if False:
             print differential_evolution(lbd, [(0.0, 1.0)], 
                                            args=(g_x_func, 
@@ -1014,16 +1071,100 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     print 'Final Lambda_d = {}'.format(Lambda_d)
     s.m['Z_eq'] = X_d
     s.m['Lambda_d'] = Lambda_d
-    
-    
             
     return s
 
 
+# %% Goal Functions
 
+# %% Plots
+    
+def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
+    """
+    Plots the surface of the Gibbs energy of mixing function. Binary and 
+    Trenary plots only.
+    
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
 
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['m']
+               
+    x_r : int, optional
+          Number of composition points to plot.
+    
+    Tie : list of vectors, optional
+          Equilibrium tie lines (of n - 1 independent components) to be added 
+          to the plots.
 
+    Dependencies
+    ------------
+    numpy
+    matplotlib
 
+    """
+    from matplotlib import rc
+    from matplotlib import pyplot as plot
+    from numpy import array, linspace, float64 
+    #% Binary
+    if p.m['n'] == 2:
+        #% Initialize
+        s.m['g_mix range'] = {} # Contains solutions for all phases
+        s.m['g_mix range']['t'] = []
+        for ph in p.m['Valid phases']:
+            s.m['g_mix range'][ph] = []
+            
+        s.c[1]['x_range'] = linspace(0, 1, x_r)
+        for i in range(len(s.c[1]['x_range']-1)):  # Calculate range of G_mix
+            X = [s.c[1]['x_range'][i]]
+            s = s.update_state(s, p, X = X, Force_Update=True)
+            s = g_x_func(s, p)
+            s.m['g_mix range']['t'].append(float64(s.m['g_mix']['t']))
+            for ph in p.m['Valid phases']:
+                s.m['g_mix range'][ph].append(float64(s.m['g_mix'][ph]))
+
+        plot.figure()
+
+        for ph in p.m['Valid phases']:
+            plot.plot(s.c[1]['x_range'], s.m['g_mix range'][ph], label=ph)
+
+        plot.plot(s.c[1]['x_range'], s.m['g_mix range']['t'])
+        if Tie is not None: # Add tie lines
+            for point in Tie:
+                X = [point[0]]
+                s = s.update_state(s, p, X = X, Force_Update=True)
+                s = g_x_func(s, p)
+                G1 = float64(s.m['g_mix']['t'])
+                X = [point[1]]
+                s = s.update_state(s, p, X = X, Force_Update=True)
+                s = g_x_func(s, p)
+                G2 = float64(s.m['g_mix']['t'])
+                plot.plot(point,[G1, G2])
+                
+        plot.xlabel(r"$x_1$", fontsize=14)
+        plot.ylabel(r"$\Delta$g", fontsize=14)
+        plot.title("{}-{} Gibbs energy of mixing at T = {}, P = {}".format(
+                    p.c[1]['name'][0],
+                    p.c[2]['name'][0],
+                    s.m['T'],
+                    s.m['P']))
+        plot.legend()
+        return
+    
+    #% Trenary
+    if p.m['n'] == 3:
+        pass
+    else:
+        raise IOError('Too many independent components to plot hypersurface'
+                      +'in R^3.')
 
 #%% TEST FUNCTION  Binary NRTL 
 def g_x_test_func(s, p):
@@ -1043,7 +1184,9 @@ def g_x_test_func(s, p):
         if s.c[i]['x'] == 0.0:  # Prevent math errors from zero log call.
             s.m['g_mix'] = {}
             s.m['g_mix']['t'] = 0.0
+            s.m['g_mix']['x'] = s.m['g_mix']['t']
             return s  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
+            
     s.m['g_mix'] = {}
     s.m['g_mix']['t'] = ( s.c[1]['x'] * log(s.c[1]['x']) 
                         + s.c[2]['x'] * log(s.c[2]['x']) 
@@ -1052,6 +1195,8 @@ def g_x_test_func(s, p):
                         / (s.c[2]['x'] + s.c[1]['x'] * e**(- a_12 * t_12))  
                         + (t_21 * e**(-a_21 * t_21)) 
                         / (s.c[1]['x'] + s.c[2]['x'] * e**(- a_21 * t_21))))
+                        
+    s.m['g_mix']['x'] = s.m['g_mix']['t']
     return s
                                              
 #%
@@ -1064,20 +1209,6 @@ def g_range_test(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
         s.c[1]['x'],s.c[2]['x'] = s.c[1]['x_range'][i],s.c[2]['x_range'][i]
 
         s.s['del g_mix l soln'].append(g_x_test_func(s, p).m['g_mix']['t'])
-
-   
-def plot_dg_mix_test(s,p):  # NOTE THESE ARE FOR BINARY FUNCS
-    '''TO DO: Update'''
-    from matplotlib import rc
-    from matplotlib import pyplot as plot
-    from numpy import array
-    
-    plot.rcParams.update(I['Plot options'])
-    plot.figure(100)
-    plot.plot(s.c[1]['x_range'], 
-             s.s['del g_mix l soln'])
-    plot.xlabel(r"$x_1$", fontsize=14)
-    plot.ylabel(r"$\Delta$g", fontsize=14)
 
         
 # %% Define Gibbs energy plotting functions.
@@ -1107,31 +1238,6 @@ def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
         s.s['Math Error soln'].append(s.s['Math Error'])
    
     return s
-    
-def plot_dg_mix(s,p):  # NOTE THESE ARE FOR BINARY FUNCS
-    '''TO DO: Update'''
-    from matplotlib import rc
-    from matplotlib import pyplot as plot
-    from numpy import array
-    
-    def plotprop(x, name, overall, liquid=None, vapour=None):
-    	if overall is not None:
-    		plot.plot(x, overall, 'g', label='Overall')
-    	if liquid is not None:
-    		plot.plot(x, liquid, 'b', label='Liquid')
-    	if vapour is not None:
-    		plot.plot(x, vapour, 'r', label='Vapour')
-    	plot.xlabel(r"$x_1$", fontsize=14)
-    	plot.ylabel(name, fontsize=14)
-    
-    valm, idx = max((valm, idx) for (idx, valm) in \
-    enumerate(array(s.s['del g_mix l soln']) - array(s.s['del g_mix v soln'])))
-    
-    plot.rcParams.update(I['Plot options'])
-    plot.figure(6)
-    plotprop(s.c[1]['x_range'], r"$\Delta$g", 
-             s.s['del g_mix soln'], s.s['del g_mix l soln'], 
-             s.s['del g_mix v soln'])
 
 
 # %%
@@ -1175,13 +1281,13 @@ if __name__ == '__main__':
     #%% TESTS
     # Test State variable
     p.m['r'], p.m['s'] = 1.0, 1.0
-    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[0.1])
+#    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[0.1])
 #    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[[0.1,0.2],[0.2,0.2]])
 #    s = s.update_state(s, p, P=I['P'], T=I['T'], phase=['x','y'],X=[[0.5,0.2],[0.2,0.2]])
 #    s = g_mix(s, p)
         
     
-    
+    #%   
 #    if False: # Test Gibbs curves
 #        p.m['r'], p.m['s'] = 1.0, 1.0
 #        p.m['k'][1][2] = 0.124
@@ -1191,7 +1297,7 @@ if __name__ == '__main__':
 #        g_range(s, p, x_r)
 #        plot_dg_mix(s,p)
 #        
-        
+    #%    
     from numpy import array
 #    if False: # Test Duality funcs
 #        Lambda = array([1, 2])
@@ -1204,26 +1310,48 @@ if __name__ == '__main__':
 #        g_range_test(s, p, x_r=1000)
 #        plot_dg_mix_test(s,p)
     
-    if True:  # Optimization test 
-        Lambda = array([1])
-        X_d = array([0.4]) 
-        Z_0 = array([0.5]) 
-        
-        # Approx. Solution
-        Lambda = array([-0.03244])
-        X_d = array([0.004557]) 
-        s = s.update_state(s, p,  X = [X_d])  # Comp. invariant in UBD
-#        print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x')
-#        print lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
-#        print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x') - lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
-        s = dual_equal(s, p, g_x_test_func, Z_0, tol=1e-3)
-        print 'EQUILIBRIUM SOLUTION I: {}'.format(s.m['Z_eq'])
-        Z_0 = s.m['Z_eq']
-        s = dual_equal(s, p, g_x_test_func, Z_0, tol=1e-3, 
-                       Lambda_Sol=s.m['Lambda_d'])
-    
-    
-    
+    #%%
+    if True: # Equilibrium Optimization tests           
+        if True: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
+            # Single phase test
+            X_d = array([0.4]) 
+            Z_0 = array([0.5]) 
+            # Approx. Solution  Lambda = array([-0.03244]) X_d = array([0.004557])      
+            s = s.update_state(s, p, P=101e3, T=300.0,  X = X_d) 
+            #print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x')
+            #print lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
+            #print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x') 
+                # - lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
+            s = dual_equal(s, p, g_x_test_func, Z_0 , tol=1e-9)
+            print 'EQUILIBRIUM SOLUTION I: {}'.format(s.m['Z_eq'])
+            Z_0 = s.m['Z_eq']
+            s = dual_equal(s, p, g_x_test_func, Z_0, tol=1e-3, 
+                           Lambda_Sol=s.m['Lambda_d'])
+            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(s.m['Z_eq1'])
+            print '                     II: {}'.format(s.m['Z_eq2'])
+            plot_g_mix(s, p, g_x_test_func,
+                        Tie =[[s.m['Z_eq1'], s.m['Z_eq2']]])
+
+        #% CO2-Ethane test 
+        if False: 
+            X_d = [array([0.4, 0.2]), array([0.4, 0.2])]
+            Z_0 = array([0.4, 0.2]) # Must be vector
+            
+            p.m['r'], p.m['s'] = 1.0, 1.0
+            p.m['k'][1][2] = 0.124
+            p.m['k'][2][1] = p.m['k'][1][2]
+            s = s.update_state(s, p, P=24e5, T=263.1,  X = [[0.128],[0.229]]) 
+            Z_0 = [0.3]
+
+            s = dual_equal(s, p, g_mix, Z_0, tol=1e-3)
+            print 'EQUILIBRIUM SOLUTION I: {}'.format(s.m['Z_eq'])
+            Z_0 = s.m['Z_eq']
+            s = dual_equal(s, p, g_mix, Z_0, tol=1e-3, 
+                           Lambda_Sol=s.m['Lambda_d'])
+            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(s.m['Z_eq1'])
+            print '                     II: {}'.format(s.m['Z_eq2'])  
+            
+            plot_g_mix(s, p, g_mix, Tie =[[s.m['Z_eq1'], s.m['Z_eq2']]])
     
     
     
