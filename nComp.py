@@ -32,7 +32,7 @@ def inputs():
                                           # 'Adachi-Lu' 
                                           # 'Soave'
 
-         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
+         'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
                                        # Speciification does not preclude
                                        # LLE detection and calculation.
@@ -533,7 +533,43 @@ def b_mix(s, p, phase='x'):  # (Validated)
         b_mix += s.c[i][phase]*s.c[i]['b']
     return b_mix
 
+def d_b_mix_d_x(s, p, d=1, z=1, m=1, phase='x'):  # (Validated)
+    """
+    Returns the calculated differential of the volume mixture parameter at 
+    current system state for the specified component phase.
 
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the state of each component.
+
+    p : class
+        Contains the dictionary describing the parameters.
+
+    d : int, optional
+        The differential order. Should be 1 for Jacobian entires and 2 for 
+        Hessian entires.
+
+    z : int, optional
+        The n - 1 independent component number of the first differential.
+
+    m : int, optional
+        The n - 1 independent component number of the second differential.
+
+    phase : string, optional
+            Phase to be calculated, ex. liquid phase 'x'.
+            
+    Returns
+    -------
+    d_b_mix_dx : scalar output.
+    """
+    if d == 1: 
+        return s.c[z]['b'] -  s.c[p.m['n']]['b']
+        #  Note s.c[p.m['n']]['b'] refers to the volume parameter of the 
+        #       independent component
+    if d == 2:
+        return 0.0  # For all x_z
+    
 # %% Define Gibbs energy functions for VdW EoS (cubic with 2 volume roots)
 def g_R_k_i(s, p, k='x', i=1):  # (Validated)
     """
@@ -1239,7 +1275,95 @@ def g_range(s, p, x_r):  # NOTE THESE ARE FOR BINARY FUNCS
    
     return s
 
+#  Numerical FD estimates for validation
+def CDM(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):  
+    """"
+    Central difference estimate of a function f(s, p) used to validate the
+    symbolic expressions.
 
+    Parameters
+    ----------
+    f : function
+        Function to differentiate
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    d : int. optional
+        Differential order (1-2)
+        
+    z : int, optional
+        First component to differentiate to.
+        
+    m : int, optional
+        Second component to differentiate to.
+        
+    dx : float, optional
+         Spatial discretization size.
+         
+    fmix : booleaan, optional
+           Specify True when using a Gibbs surface function with a class return
+           and _.m['g_mix']['t'] float return.
+    """
+    if d == 1:
+        s.c[z]['x'] += 0.5*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f1 = f(x,p).m['g_mix']['t']
+        else:
+            f1 = f(s, p)
+            
+        s.c[z]['x'] -= 1.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f2 = f(x,p).m['g_mix']['t']
+        else:
+            f2 = f(s, p)
+        
+        return (f1 - f2)/dx
+        
+    if d == 2:
+        if gmix:
+            f1 = f(x,p).m['g_mix']['t']
+        else:
+            f1 = f(s, p)
+            
+        s.c[z]['x'] += 1.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f2 = f(x,p).m['g_mix']['t']
+        else:
+            f2 = f(s, p)
+            
+        s.c[z]['x'] -= 2.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f3 = f(x,p).m['g_mix']['t']
+        else:
+            f3 = f(s, p)
+        
+        return (f2 - 2 * f1 + f3)/(dx*dx)
+                
 # %%
 if __name__ == '__main__':
     # %% Load Data
@@ -1310,9 +1434,9 @@ if __name__ == '__main__':
 #        g_range_test(s, p, x_r=1000)
 #        plot_dg_mix_test(s,p)
     
-    #%%
-    if True: # Equilibrium Optimization tests           
-        if True: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
+    #%% Equilibrium Optimization tests   
+    if False: # Equilibrium Optimization tests           
+        if False: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
             # Single phase test
             X_d = array([0.4]) 
             Z_0 = array([0.5]) 
@@ -1333,7 +1457,7 @@ if __name__ == '__main__':
                         Tie =[[s.m['Z_eq1'], s.m['Z_eq2']]])
 
         #% CO2-Ethane test 
-        if False: 
+        if True: 
             X_d = [array([0.4, 0.2]), array([0.4, 0.2])]
             Z_0 = array([0.4, 0.2]) # Must be vector
             
@@ -1352,9 +1476,23 @@ if __name__ == '__main__':
             print '                     II: {}'.format(s.m['Z_eq2'])  
             
             plot_g_mix(s, p, g_mix, Tie =[[s.m['Z_eq1'], s.m['Z_eq2']]])
+            
+            
+#            plot_g_mix(s, p, g_mix, Tie =[[0.19421213, 0.3257834]])
+    #%% Jacobian and Hessian tests.
+    if True: # Binary
+        # b_mix
+
+        X_d = [[0.6], [0.6]]#array([0.6, 0.6]) 
+        s = s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
+        
+
+                
+        print 'd_b_mix_d_x = {}'.format(d_b_mix_d_x(s, p))
+        print 'FDM est. = {}'.format( d1(b_mix, s, p, dx=1e-1))
     
-    
-    
+        print 'd2_b_mix_d_x2 = {}'.format(d_b_mix_d_x(s, p, d=2))
+        print 'FDM est. = {}'.format( d1(b_mix, s, p, d=2, dx=1e-1))
     
     
     
