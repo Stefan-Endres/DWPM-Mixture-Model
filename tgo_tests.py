@@ -18,12 +18,24 @@ Bounds1 = [(-1, 6), (-1, 6)]
 Bounds2 = [(0, 1), (0, 1)]
 
 def g_test_1(C):
-    return numpy.sum(C, axis=1) - 6.0# 
+    return numpy.sum(C, axis=1) - 6.0 <= 0.0# 
 
 
-def f_test_3(x, r, s): # Test function, bounds: -1 =< x_i =< 6
-    return x[0]**2 + x[1]**2
+def f_test_3(x): # Test function, bounds: -1 =< x_i =< 6
+    """
+    Hock and Schittkowski 19 problem (HS19). Hoch and Schittkowski (1991)
     
+    Approx. Answer:
+        f_test_3([14.095, 0.84296]) = -6961.814744487831
+    """
+    return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
+    
+Bounds3 = [(13.0, 100.0), (0.0, 100.0)]
+
+def g_test_3(C):
+     return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
+             & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+
 def plot_2D_sequance(B):
     """Plot the generated sequence to visualize uniformity of distrubtion."""
     from matplotlib import pyplot as plot
@@ -43,11 +55,17 @@ if __name__ == '__main__':
         
     r = [1, 2, 3] # random args for test func tuple
     s = True
-    x = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=50, 
+    x1 = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=500, 
             skip=1, k=None, 
         callback=None, minimizer_kwargs=None, disp=False)
     
-    #plot_2D_sequance(C)
+    # OverflowError: Python int too large to convert to C long
+    # Why?
+    # To do implement bounds in local search function
+#    x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500, 
+#            skip=1, k=None, 
+#        callback=None, minimizer_kwargs=None, disp=False)
+    
     
     pass
     

@@ -42,14 +42,21 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k=None,
     g_func : callable, optional
         Function used to define a limited subset to defining the feasible set 
         of solutions in R^n in the form g(x) <= 0 applied as g : R^n -> R^m
-        ex. To impose the constraint  x[0] + x[1] + x[2] - 1 <= 0
-            Use the function definition
+        ex 1. To impose the constraint  x[0] + x[1] + x[2] - 1 <= 0
+              Use the function definition
             
-            def g_func(A):
-                return numpy.sum(A, axis=1) - 1.0# 
+              def g_func(A):  # A is an input array of sample points in R^m*n
+                  return numpy.sum(A, axis=1) - 1.0# 
+                
+        ex 2. To impose the constraints:
+              -(x[0] - 5)**2 - (x[1] - 5)**2  - 100 <= 0
+              (x[0] - 6)**2 - (x[1] - 5)**2  - 82.81 <= 0
+              Use the function definition
+            
+              def g_func(A):
+                  return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0) 
+                          & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
 
-TODO: Improve the g_func usage to allow for numpy manipulations of scalar
-      functional definitiions.
 
     g_args : tuple, optional
         Any additional fixed parameters needed to completely specify the 
@@ -175,7 +182,7 @@ TODO:    minimizer_kwargs : dict, optional
         C[:,i] = C[:,i] * (bounds[i][1] - bounds[i][0]) + bounds[i][0]
     
     if g_func is not None: # TO DO: Improve
-        C =  C[g_func(C)<= 0.0]  # Subspace of usable points.
+        C =  C[g_func(C)]  # Subspace of usable points.
     
     Y = scipy.spatial.distance.cdist(C, C, 'euclidean')
     Z = numpy.argsort(Y, axis=-1)
@@ -193,7 +200,6 @@ TODO:    minimizer_kwargs : dict, optional
     T = t_matrix(H, F)  # Topograph with Boolean entries
     # %% Find the optimial k+ topograph
     # Find epsilon_i parameter for current system
-    K1 = k_t_matrix(T, 1)  # 1-t topograph
     K_opt = K_optimal(T)
     
     # %% Local Search: Find the minimzer float values and 
@@ -205,10 +211,12 @@ TODO:    minimizer_kwargs : dict, optional
     Func_min = numpy.zeros_like(Min_ind)
     for i, ind in zip(range(len(Min_ind)), Min_ind):
         # Find minimum x vals
+        print C[ind,:]
         x_min = scipy.optimize.minimize(func, C[ind,:], method='L-BFGS-B', 
                               args=args)['x']
         x_vals.append(x_min)
         # Find func float vals
+        print x_min
         Func_min[i] = func(x_min, *args)
     
     # Find global of all minimizers
