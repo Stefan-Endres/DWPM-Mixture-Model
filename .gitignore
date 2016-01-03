@@ -1,6 +1,9 @@
 # Compiled files 
 *.pyc
 
+# Test scripts
+Sobol_Tests.py
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
