@@ -10,7 +10,7 @@ import scipy.spatial
 #import numpy as np
 #from scipy.optimize import minimize
 
-def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k=None, 
+def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False):
     """
     Global optimization using the Topographical Global Optimization (TGO)
@@ -201,8 +201,10 @@ TODO:    minimizer_kwargs : dict, optional
     T = t_matrix(H, F)  # Topograph with Boolean entries
     # %% Find the optimial k+ topograph
     # Find epsilon_i parameter for current system
-    K_opt = K_optimal(T)
-    
+    if k_t is None:
+        K_opt = K_optimal(T)
+    else: 
+        K_opt = k_t
     # %% Local Search: Find the minimzer float values and 
     """
     TO DO IMPROVE
