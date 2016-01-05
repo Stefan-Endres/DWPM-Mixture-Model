@@ -6,6 +6,7 @@
 from sobol_lib import i4_sobol_generate
 import numpy
 import scipy
+import scipy.spatial
 #import numpy as np
 #from scipy.optimize import minimize
 
@@ -175,7 +176,7 @@ TODO:    minimizer_kwargs : dict, optional
     #print m
     B = i4_sobol_generate(m, n, skip)  # Generate uniform sample points in R^m
     C = numpy.column_stack([B[i] for i in range(m)])
-    
+
     # Distribute over bounds
     # TO DO: Find a better way to do this
     for i in range(len(bounds)):
@@ -211,12 +212,13 @@ TODO:    minimizer_kwargs : dict, optional
     Func_min = numpy.zeros_like(Min_ind)
     for i, ind in zip(range(len(Min_ind)), Min_ind):
         # Find minimum x vals
-        print C[ind,:]
-        x_min = scipy.optimize.minimize(func, C[ind,:], method='L-BFGS-B', 
-                              args=args)['x']
+        x_min = scipy.optimize.minimize(func, C[ind,:], 
+                                        method='L-BFGS-B', 
+                                        #method='Nelder-Mead', 
+                                        bounds=bounds,
+                                        args=args)['x']
         x_vals.append(x_min)
         # Find func float vals
-        print x_min
         Func_min[i] = func(x_min, *args)
     
     # Find global of all minimizers

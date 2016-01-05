@@ -35,6 +35,11 @@ Bounds3 = [(13.0, 100.0), (0.0, 100.0)]
 def g_test_3(C):
      return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
              & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+             
+def Rosen(x): # Rosenbrock's function # Ans x1 = 1, x2 = 2, f = 0
+        return (1.0 - x[0])**2.0 + 100.0 * (x[1] - x[0]**2.0)**2.0 
+        
+BoundsR = [(-3.0, 3.0), (-3.0, 3.0)]
 
 def plot_2D_sequance(B):
     """Plot the generated sequence to visualize uniformity of distrubtion."""
@@ -59,14 +64,23 @@ if __name__ == '__main__':
             skip=1, k=None, 
         callback=None, minimizer_kwargs=None, disp=False)
     
-    # OverflowError: Python int too large to convert to C long
-    # Why?
-    # To do implement bounds in local search function
+
 #    x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500, 
 #            skip=1, k=None, 
 #        callback=None, minimizer_kwargs=None, disp=False)
-    
-    
+
+    # OverflowError: Python int too large to convert to C long
+    #   Func_min[i] = func(x_min, *args)
+    # Why?
+    # To do implement bounds in local search function  
+    # >>> f_test_3([ -1.04572783e+08,-3.42296527e+08])
+    # -4.12493867624096e+25
+
+    xR = tgo(Rosen, BoundsR, args=(), g_func=None, n=500, 
+            skip=1, k=None, 
+        callback=None, minimizer_kwargs=None, disp=False)
+
+    #%% Old
     pass
     
     if False: # (Old practice funcs an alternatives)
