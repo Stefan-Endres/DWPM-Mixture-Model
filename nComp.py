@@ -32,7 +32,7 @@ def inputs():
                                           # 'Adachi-Lu' 
                                           # 'Soave'
 
-         'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
+         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
                                        # Speciification does not preclude
                                        # LLE detection and calculation.
@@ -1476,40 +1476,36 @@ if __name__ == '__main__':
     
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests           
-        if False: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
+        if True: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
             # Single phase test
             X_d = array([0.4]) 
             Z_0 = array([0.5]) 
             # Approx. Solution  Lambda = array([-0.03244]) X_d = array([0.004557])      
             s = s.update_state(s, p, P=101e3, T=300.0,  X = X_d) 
-            #print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x')
-            #print lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
-            #print ubd(Lambda, g_x_test_func, X_d, Z_0, s, p, k = 'x') 
-                # - lbd(X_d, g_x_test_func, Lambda, Z_0, s, p, k = 'x')
             s = dual_equal(s, p, g_x_test_func, Z_0 , tol=1e-9)
-            print 'EQUILIBRIUM SOLUTION I: {}'.format(s.m['Z_eq'])
-            Z_0 = s.m['Z_eq']
-#            s = dual_equal(s, p, g_x_test_func, Z_0, tol=1e-3)
-#            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(s.m['Z_eq1'])
-#            print '                     II: {}'.format(s.m['Z_eq2'])
-            #plot_g_mix(s, p, g_x_test_func,
-            #            Tie =[[s.m['Z_eq1'], s.m['Z_eq2']]])
-#            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(s.m['Z_eq_sol'])
-#            print '                     II: {}'.format(Z_0[0])
+            X_I = s.m['Z_eq']
             
-#            plot_g_mix(s, p, g_x_test_func,
-#                        Tie =[[s.m['Z_eq_sol'], Z_0[0]]])         
+            Args= (g_x_test_func, s.m['Lambda_d'], X_I, s, p, ['All'])
+            from tgo import tgo
+            X_II = tgo(Eq_sol, [(1e-5, 0.99999)], args=Args, n=10)
+            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
+            print '                     II: {}'.format(X_II)  
 
+            Z_0 = s.m['Z_eq']
 
             # Plot error func
             from scipy import linspace
             X_r = linspace(1e-5, 0.9999, 1000)
-            print 'Feeding Lamda_d = {}'.format(s.m['Lambda_d'])
-            Args= (g_x_test_func, s.m['Lambda_d'], Z_0, s, p, ['x'])
-            plot_ep(lbd, X_r, s, p, args=Args)
+            #Args= (g_x_test_func, s.m['Lambda_d'], Z_0, s, p, ['x'])
 
+            print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
+
+            plot_g_mix(s, p, g_x_test_func,
+                        Tie =[[X_II, X_I]])     
+            plot_ep(Eq_sol, X_r, s, p, args=Args)
+            
         #% CO2-Ethane test 
-        if True: 
+        if False: 
             X_d = [array([0.4, 0.2]), array([0.4, 0.2])]
             Z_0 = array([0.4, 0.2]) # Must be vector
             
@@ -1520,7 +1516,7 @@ if __name__ == '__main__':
             #Z_0 = [0.3]
             Z_0 = [0.25]
             s = dual_equal(s, p, g_mix, Z_0, tol=1e-3)
-            X_I = s.m['Z_eq'][0]
+            X_I = s.m['Z_eq']
             
             Args= (g_mix, s.m['Lambda_d'], X_I, s, p, ['All'])
             from tgo import tgo
@@ -1533,12 +1529,6 @@ if __name__ == '__main__':
             X_r = linspace(0, 1, 1000)
             print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
 
-            #plot_ep(lbd_sol, X_r, s, p, args=Args)
-            
-
-            #X_I = X_I[0]
-
-            
             plot_g_mix(s, p, g_mix,
                         Tie =[[X_II, X_I]])     
             plot_ep(Eq_sol, X_r, s, p, args=Args)
