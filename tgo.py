@@ -169,8 +169,7 @@ TODO:    minimizer_kwargs : dict, optional
         
         K_opt = k_t_matrix(T, k_opt) 
         return K_opt
-        
-        
+              
     # %% Generate sampling points.
     m = len(bounds)  # Dimensions # TO DO Assert if func output matches dims.
     #print m

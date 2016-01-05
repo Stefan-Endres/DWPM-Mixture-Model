@@ -1487,7 +1487,7 @@ if __name__ == '__main__':
             
             Args= (g_x_test_func, s.m['Lambda_d'], X_I, s, p, ['All'])
             from tgo import tgo
-            X_II = tgo(Eq_sol, [(1e-5, 0.99999)], args=Args, n=10)
+            X_II = tgo(Eq_sol, [(1e-5, 0.99999)], args=Args, n=100, k_t = 5)
             print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
             print '                     II: {}'.format(X_II)  
 
