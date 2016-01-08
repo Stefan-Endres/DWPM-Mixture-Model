@@ -1244,7 +1244,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
 # %%  Numerical FD estimates for validation
-def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):  
+def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):  
     """"
     Central difference estimate of a function f(s, p) used to validate the
     symbolic expressions.
@@ -1277,6 +1277,12 @@ def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):
            Specify True when using a Gibbs surface function with a class return
            and _.m['g_mix']['t'] float return.
            
+    k : list, optional
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x']
+        If default value ['All'] is used, the minimum Gibbs phse ['t'] is used.
+        And the composition values are assumed to be in ['x']
+        
     Dependencies
     ------------
     numpy
@@ -1287,82 +1293,89 @@ def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):
          Output of CFD estimate of f(s, p).
     
     """
+    if k == ['All']:
+        ph = 't'
+        cph = 'x'
+    else:
+        ph = k[0]
+        cph = k[0]
+        
     if d == 1:
-        s.c[z]['x'] += 0.5*dx
+        s.c[z][cph] += 0.5*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f1 = f(s, p).m['g_mix']['t']
+            f1 = f(s, p).m['g_mix'][ph]
         else:
             f1 = f(s, p)
             
-        s.c[z]['x'] -= 1.0*dx
+        s.c[z][cph] -= 1.0*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f2 = f(s, p).m['g_mix']['t']
+            f2 = f(s, p).m['g_mix'][ph]
         else:
             f2 = f(s, p)
         
         return (f1 - f2)/dx
         
     if d == 2:
-        s.c[z]['x'] += 1.0*dx
-        s.c[m]['x'] += 1.0*dx
+        s.c[z][cph] += 1.0*dx
+        s.c[m][cph] += 1.0*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f1 = f(s, p).m['g_mix']['t']
+            f1 = f(s, p).m['g_mix'][ph]
         else:
             f1 = f(s, p)
             
-        s.c[m]['x'] -= 2.0*dx
+        s.c[m][cph] -= 2.0*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f2 = f(s, p).m['g_mix']['t']
+            f2 = f(s, p).m['g_mix'][ph]
         else:
             f2 = f(s, p)
             
-        s.c[z]['x'] -= 2.0*dx
-        s.c[m]['x'] += 2.0*dx
+        s.c[z][cph] -= 2.0*dx
+        s.c[m][cph] += 2.0*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f3 = f(s, p).m['g_mix']['t']
+            f3 = f(s, p).m['g_mix'][ph]
         else:
             f3 = f(s, p)
             
-        s.c[m]['x'] -= 2.0*dx
+        s.c[m][cph] -= 2.0*dx
         X_d = []
         for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
+            X_d.append(s.c[i][cph])
             
         s = s.update_state(s, p, X = X_d, Force_Update=True) 
         if gmix:
-            f4 = f(s, p).m['g_mix']['t']
+            f4 = f(s, p).m['g_mix'][ph]
         else:
             f4 = f(s, p)
             
         return (f1 - f2 - f3 + f4)/(4.0*dx*dx)
 
 
-def hessian(f, s, p, dx=1e-6, gmix=False):
+def hessian(f, s, p, dx=1e-6, gmix=False, k =['All']):
     """
     Returns the Hessian of the function as a numpy array.
     
@@ -1405,7 +1418,7 @@ def hessian(f, s, p, dx=1e-6, gmix=False):
     #FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False)
     for m in range(1, N + 1):
         for z in range(1, N + 1):
-            H[m - 1, z - 1] = FD(f, s, p, 2, z, m, dx, gmix)
+            H[m - 1, z - 1] = FD(f, s, p, 2, z, m, dx, gmix, k)
     return H
     
 # %% Stability and phase seperation
@@ -1441,27 +1454,145 @@ def stability(X, g_x_func, s, p, k):
     """
     import numpy
     s.update_state(s, p, X = X, phase = k)#, Force_Update=True) 
-    H = hessian(g_x_func, s, p, dx=1e-6, gmix=True)
+    H = hessian(g_x_func, s, p, dx=1e-6, gmix=True, k=k)
     Heig = numpy.linalg.eig(H)[0]
     HBeig = (Heig > 0.0)
     #return (numpy.all(numpy.linalg.eig(H)[0]) > numpy.array([0.0]))
     return numpy.all(HBeig)
 
-def phase_seperation_detection(n=100):
+def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
+                               VLE_only=False):
     """
+    Detect and calculate phase seperations in hte composition space at the 
+    current thermodynamic state.
+    
+    Parameters
+    ----------
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+
+    P : scalar  # TODO: Add optional specification or update
+        Pressure (Pa), if unspecified the current state pressure will be used.
+
+    T : scalar
+        Temperature (K), if unspecified  the current state temperature will be 
+        used.
+        
     n : int, optional
         Number of sampling points to be tested for in the R^(p.m['n'] - 1)
         Note. For higher component systesm higher numbers of n are recommended.
+        
+    LLE_only : boolean, optional
+               If True then only phase seperation of same volume root 
+               instability will be calculated.
+               
+    LLE_only : boolean, optional
+               If True then phase seperation of same volume root instability 
+               will be ignored.
+        
+    Dependencies
+    ------------
+    numpy
+    tgo
+    
+    Returns
+    -------
+    s.m['ph equil R'][ph] : list containing 2 composition vectors
+                       Contains a list of equilibrium points of phase 
+                       seperations in the same volume root of the EOS (ex. LLE)
+                       
+    s.m['mph equil R'] : list containing 2 composition vectors
+                        Contains a list of equilibrium points of phase 
+                        seperations in different volume root of the EOS 
+                        (ex. VLE)
     """ 
     pass
-#    import numpy
-#    from sobol_lib import i4_sobol_generate
-#    m = p.m['n'] - 1
-#    skip = 1
-#    Points = i4_sobol_generate(m, n, skip)
-#    P = numpy.column_stack([Points[i] for i in range(m)])
-#    P = P[numpy.sum(P, axis=1) <= 1.0]
+    import numpy
+    from sobol_lib import i4_sobol_generate
+    m = p.m['n'] - 1
+    skip = 4
+    Points = i4_sobol_generate(m, n, skip)
+    Points = numpy.column_stack([Points[i] for i in range(m)])
+    Points = Points[numpy.sum(Points, axis=1) <= 1.0]
+    S = numpy.empty(n, dtype=bool)
+    
+    # Detect instability in a same volume root phase:
+    def instability_point_calc(Points, g_x_func, s, p, n, k, P=P, T=T):
+        #  Find an instability point, calculated equilibrium and return
+        #  new feasible subset.
+        Stop = False
+        for i, X in zip(range(n), Points):
+            S[i] = stability(X, g_x_func, s, p, k=ph )
+            if not S[i]:
+                s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
+                                          P=P, T=T, 
+                                          tol=1e-9, 
+                                          Print_Results=True, 
+                                          Plot_Results=True) 
+                
+                s.m['Ph Equil P'] = [s.m['X_I'], s.m['X_II']]
+                
+                # TODO: Improve finding feasible subspace of points.
+                P_new = Points[(i+1):]
+                for i in range(p.m['n']-1):
+                    P_new_low = P_new[P_new[:,i] < 
+                                    min(s.m['X_I'][i], s.m['X_II'][i])]
+                    
+                    P_new_high = P_new[P_new[:,i] > 
+                                    max(s.m['X_I'][i], s.m['X_II'][i])]                                         
+                
+                P_new = numpy.append(P_new_low, P_new_high, axis=0)
+                
+                print P_new
+                
+                if numpy.shape(P_new)[0] == 0: # Stop if no values in subset
+                    Stop = True
+                    
+                return P_new, s.m['Ph Equil P'], Stop
+            
+        s.m['Ph Equil P'] = None
+        Stop = True
+        return Points, s.m['Ph Equil P'], Stop
+    
+    s.m['Ph Equil'] = {}
+    for ph in p.m['Valid phases']:
+        Stop = False
+        s.m['Ph Equil'][ph] = []
+        while not Stop:
+            Points, s.m['Ph Equil P'], Stop = instability_point_calc(Points, 
+                                                                 g_x_func, 
+                                                                 s, p, n, ph)
+            
+            if s.m['Ph Equil P'] is not None:                                   
+                s.m['Ph Equil'][ph].append(s.m['Ph Equil P'])
+        
 
+            
+            
+        
+            
+#        for i, X in zip(range(n), P):
+#            S[i] = stability(X, g_x_func, s, p, k=ph )
+#            if not S[i]:
+#                s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
+#                                          P=101e3, T=300.0, 
+#                   tol=1e-9, Print_Results=True, Plot_Results=True) 
+#                   P[(i+1):]
+    
+    # Detect phase seperation accross volume root phases:
+    
+    return s
+    
+    
 # %% Plots
 def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
     """

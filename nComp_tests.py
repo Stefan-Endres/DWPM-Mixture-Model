@@ -72,7 +72,7 @@ def g_x_test_func(s, p):
     a_21 = 0.391965#**(-1.0) # Checked. Should be a_12 in Mitsos, see SvA p 448
     
     for i in range(1, p.m['n']+1): 
-        if s.c[i]['x'] == 0.0:  # Prevent math errors from zero log call.
+        if s.c[i]['x'] <= 1e-9:  # Prevent math errors from zero log call.
             s.m['g_mix'] = {}
             s.m['g_mix']['t'] = 0.0
             s.m['g_mix']['x'] = s.m['g_mix']['t']
@@ -163,9 +163,9 @@ if __name__ == '__main__':
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests   
          
-        if True: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  True: Validated 
+        if False: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  True: Validated 
             Z_0 = array([0.13])
-            #Z_0 = array([0.5])
+            Z_0 = array([0.5])
             s = phase_equilibrium_calculation(s, p, g_x_test_func, Z_0, k=None,
                                       P=101e3, T=300.0, 
                tol=1e-9, Print_Results=True, Plot_Results=True)   
@@ -182,18 +182,19 @@ if __name__ == '__main__':
 
 
     #%% Isotherm tests
-        if True:
-            # Acetone-Water
-            p.m['k'][1][2] = 0.623384831942
-            p.m['k'][2][1] = 0.0528180441074
-            p.m['r'] = 7.53330786789
-            p.m['s'] = 0.107160035705
-            
+    if True:
+        # Acetone-Water
+        p.m['k'][1][2] = 0.623384831942
+        p.m['k'][2][1] = 0.0528180441074
+        p.m['r'] = 7.53330786789
+        p.m['s'] = 0.107160035705
+        
 #            T_isos =  p.m['T']   
 #            from  more_itertools import unique_everseen
 #            T_isos = list(unique_everseen(T_isos))
 #            for T_i in T_isos:
 #                plot_isotherm(s, p, T_plot = T_i, added_res= 50) 
+        
     #%% Jacobian and Hessian tests.
     if False: # Generic tests.  ## (Successfully validated against anal. sol.
         def f_x(s, p):  # Simple test func
@@ -225,7 +226,7 @@ if __name__ == '__main__':
         print hessian(f_x, s, p, dx=1e-6, gmix=False)
         print '='*25
         
-        
+    #%% Jacobian and Hessian tests.
     if True: # Binary
         if False: # b_mix tests
             #X_d = [[0.6, 0.4], [0.6, 0.4]]#array([0.6, 0.6]) 
@@ -242,20 +243,41 @@ if __name__ == '__main__':
             H2 = numpy.linalg.eig(H)[0]
             
         
-        if False: # Test func stability tests.
+        if True: # Test func stability tests.
             X_d = [0.13]
             s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
             H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
+
+
+    #%% phase_seperation_detection tests.
+    if True: # Binary
+        if True: # Test an unstable and stable point
+            X_d = [0.13]
+            s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
+            H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
+
             Stable = stability(X_d, g_x_test_func, s, p, k=['x'])
             print Stable
+            
+            X_d = [0.57]
+            H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
 
-        #H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
+            Stable = stability(X_d, g_x_test_func, s, p, k=['x'])
+            print Stable
+            
+        if True: # Test detection 
+            s = phase_seperation_detection(g_x_test_func, s, p, 
+                                           P=101e3, T=300.0,
+                                           n=100)
+        
+        
+        
+        
+        
+        
 
-        
-        
-        
-        
-        
+        # P_new = P_new[(P_new[:,i] < min(s.m['X_I'][i], s.m['X_II'][i])) 
+                     #&  (P_new[:,i] >  max(s.m['X_I'][i], s.m['X_II'][i]))]
         
         
         
