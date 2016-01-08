@@ -197,7 +197,7 @@ class state:
                        If True this will force an update of a single vector
                        input for X for all phases regardless of the number
                        of phases specified with "phase". X must be a single
-                       vector/list to avoid failure.
+                       vector/list to avoid failure. Use conservatively.
 
         Dependencies
         ------------
@@ -239,6 +239,13 @@ class state:
                 s.c[i]['T'] = T
 
         if X is not None: # Update new compositions
+#            X = array(X)
+#            if len(X[0]) != (p.m['n'] - 1):  # Check for dimensions
+#                raise IOError('The array of X specified does not match'
+#                               +' the number of components expected. '
+#                               +'len(X) = {} .'.format(len(X))
+#                               +'len(p.m[\'n\']) = {}'.format(len(p.m['n'])))
+                                   
             if Force_Update:
                 for ph in p.m['Valid phases']:
                     Sigma_x_dep = 0.0 # Sum of dependent components
@@ -683,10 +690,10 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
         for i in range(1, p.m['n']): # for n-1 independent components
             Xvec[0].append(s.c[i][k])
         
-        s = s.update_state(s, p, P = s .m['P'], T = s.m['T'], phase = k,
+        s.update_state(s, p, P = s .m['P'], T = s.m['T'], phase = k,
                                X = Xvec)
     
-    s = s.update_state(s, p) # Update Volumes and activity coeff.
+    s.update_state(s, p) # Update Volumes and activity coeff.
     
     try:
         Sigma_g_ref = 0.0
@@ -921,12 +928,13 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     Returns
     -------
-    s.m['Z_eq'] : vector
-                  Contains the optimised equilibrium point. 
-    s.m['Lambda_d'] : vector
-                      Contains the langrange (or diality) multipliers Lambda at
-                      the equilibrium solution.
-                      
+        
+    s.m['X_I'] : vector
+                 Contains the first optimised equilibrium point. 
+    s.m['X_II'] : vector
+                  Contains the second optimised equilibrium poin. 
+
+              
     """
     from numpy import array, zeros_like, zeros
     from scipy.optimize import minimize, differential_evolution
@@ -979,15 +987,15 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Solve UBD
          # Update system to new composition.
          # (Comp. invariant in UBD)
-        s = s.update_state(s, p,  X = X_d , phase = k, Force_Update=True) 
+        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True) 
         Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B', 
-                              args=(g_x_func, X_d[0], Z_0, s, p, X_bounds,
+                              args=(g_x_func, X_d, Z_0, s, p, X_bounds,
                                     k))['x']
                                     
         Lambda_d = array(Lambda_sol)  # If float convert back to 1x1 array
     
         # NOTE: NEGATIVE THE MAX DEFINED PROBLEM:
-        UBD = -ubd(Lambda_d, g_x_func, X_d[0], Z_0, s, p, X_bounds, k)
+        UBD = -ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
 
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                                  g_func=x_lim,
@@ -1013,7 +1021,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
 
-def Eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
+def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     """
     
     TO DO WRITE THIS
@@ -1021,6 +1029,10 @@ def Eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
 TO DO, Why does returning the natiove present an objective function with the
     second minimizer of the equilibrium problem as the global minima?
     Is this true for all systems?
+
+TO DO, Check method for changing lambda to change goal func to a global minima
+       of corressponding solution.
+
 
     Returns the lower bounding problem of the dual extremum.
     
@@ -1066,6 +1078,8 @@ TO DO, Why does returning the natiove present an objective function with the
     """
     import numpy
     Xn = X_I
+    #Xn = [0.58953878]
+    #Lambda_d = [-0.03375225]
     # Update system to new composition.
     s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
     G_I = g_x_func(s, p).m['g_mix']['t'] 
@@ -1076,13 +1090,364 @@ TO DO, Why does returning the natiove present an objective function with the
 #    return abs(G_I + sum(Lambda_d * (X - X_I))  # Root prblem
 #               - g_x_func(s, p).m['g_mix']['t'] ) 
 
-    return -(G_I + Lambda_d * (X - X_I)
+    return -(G_I + sum(Lambda_d * (X - X_I))
                - g_x_func(s, p).m['g_mix']['t'] )
+
+def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
+               tol=1e-9, Print_Results=False, Plot_Results=False):
+    """
+    This function uses the duality formulation to caculate two equilibrium
+    points from an unstable feed point Z_0.
+
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state before call at P, T, {x}, {y} 
+              if "P" and "T "are not specified.
+    
+    p : class
+        Contains the dictionary describing the parameters.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+
+    Z_0 : 1xn vector
+          Contains the feed composition point (must be and unstable point to 
+          find multiphase equilibria).
           
+    k : list, optional
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.  
+
+    P : scalar, optional
+        Pressure (Pa), if unspecified the current state pressure will be used.
+
+    T : scalar, optional
+        Temperature (K), if unspecified  the current state temperature will be 
+        used.
+
+    tol : scalar, optional
+          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+          
+    Print_Results : boolean, optional
+                    If True the results of the calculation will be printed in 
+                    the console.
+                    
+    Plot_Results : boolean, optional
+                   If True the g_mix curve with tie lines will be plotted for 
+                   binary and trenary systems.
+    """
+    # Calculate first minimizer
+    from tgo import tgo
+    import numpy
+    s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)  
+    s = dual_equal(s, p, g_x_func, Z_0 , tol=tol)
+    X_I = s.m['Z_eq']
+    Lambda_d = s.m['Lambda_d']
+    
+    # Calculate second minimizer
+    if True:  # TEST LAMBDA MAINUPATION IN FEED TO DEFINE GLOB. MIN PROBLEM
+        if k == None:
+            k = p.m['Valid phases']
+            
+        from scipy.optimize import minimize
+        if Print_Results:  # Tests
+            print '='*20
+            print 'First X_I = {}'.format(X_I)
+            print 'First Lamda = {}'.format(s.m['Lambda_d'])
+            
+            
+        X_d = numpy.zeros_like(Z_0)
+        for i in range(len(Z_0)):
+            if Z_0[i] < X_I[i]:
+                X_d[i] = (X_I[i] - Z_0[i])/2.0
+            if Z_0[i] > X_I[i]:
+                X_d[i] = (Z_0[i]- X_I[i])/2.0  
+        
+        Z_0 = X_I
+        
+        # X bounds used in second UBD optimization
+        X_bounds = [numpy.zeros(shape=(p.m['n']-1)), # Upper bound
+                    numpy.zeros(shape=(p.m['n']-1))  # Lower bound
+                    ]  
+        for i in range(p.m['n']-1): 
+            Sigma_ind = 0.0  # Sum of independent components
+                             # excluding i lever rule) 
+            for j in range(p.m['n']-1):
+                if j != i:
+                    Sigma_ind += Z_0[j]
+    
+            X_bounds[0][i] = 1.0 - Sigma_ind 
+            
+            
+        Lambda_d = minimize(ubd, s.m['Lambda_d'], 
+                                    method='L-BFGS-B', 
+                                    args=(g_x_func, X_d, Z_0, 
+                                          s, p, X_bounds,
+                                          k))['x']
+       
+        s.m['Lambda_d'] = Lambda_d 
+        if Print_Results:  # Tests
+            print 'Second X_I = {}'.format(s.m['Z_eq'])
+            print 'Second Lamda = {}'.format(s.m['Lambda_d'])
+            print '='*20
+
+    # Calculate second point from redifined gobal func. 
+    Args= (g_x_func, Lambda_d, X_I, s, p, ['All'])
+
+    X_II = tgo(eq_sol, [(1e-5, 0.99999)], args=Args, n=100, k_t = 5)
+    print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
+    print '                     II: {}'.format(X_II)  
+
+
+    
+    if Plot_Results:
+        Z_0 = s.m['Z_eq']
+
+        # Gibbs mix func with Tie lines
+        from scipy import linspace
+  
+        print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
+        plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)    
+                
+        # Error func
+        s.m['Lambda_d'] = Lambda_d 
+        s.m['Z_eq'] = X_I
+                X_r = linspace(1e-5, 0.9999, 1000)    
+        plot_ep(eq_sol, X_r, s, p, args=Args)
+    
+    # Save returns in state dictionary.
+    s.m['X_I'] = X_I
+    s.m['X_II'] = X_II
+    
+    return s
 # %% Parameter goal Functions
 
-# %% Plots
+
+# %%  Numerical FD estimates for validation
+def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):  
+    """"
+    Central difference estimate of a function f(s, p) used to validate the
+    symbolic expressions.
+
+    Parameters
+    ----------
+    f : function
+        Function to differentiate
     
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    d : int. optional
+        Differential order (1-2)
+        
+    z : int, optional
+        First component to differentiate to.
+        
+    m : int, optional
+        Second component to differentiate to.
+        
+    dx : float, optional
+         Spatial discretization size.
+         
+    fmix : booleaan, optional
+           Specify True when using a Gibbs surface function with a class return
+           and _.m['g_mix']['t'] float return.
+           
+    Dependencies
+    ------------
+    numpy
+
+    Returns
+    -------
+    FD : float
+         Output of CFD estimate of f(s, p).
+    
+    """
+    if d == 1:
+        s.c[z]['x'] += 0.5*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f1 = f(s, p).m['g_mix']['t']
+        else:
+            f1 = f(s, p)
+            
+        s.c[z]['x'] -= 1.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f2 = f(s, p).m['g_mix']['t']
+        else:
+            f2 = f(s, p)
+        
+        return (f1 - f2)/dx
+        
+    if d == 2:
+        s.c[z]['x'] += 1.0*dx
+        s.c[m]['x'] += 1.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f1 = f(s, p).m['g_mix']['t']
+        else:
+            f1 = f(s, p)
+            
+        s.c[m]['x'] -= 2.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f2 = f(s, p).m['g_mix']['t']
+        else:
+            f2 = f(s, p)
+            
+        s.c[z]['x'] -= 2.0*dx
+        s.c[m]['x'] += 2.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f3 = f(s, p).m['g_mix']['t']
+        else:
+            f3 = f(s, p)
+            
+        s.c[m]['x'] -= 2.0*dx
+        X_d = []
+        for i in range(1, p.m['n']):
+            X_d.append(s.c[i]['x'])
+            
+        s = s.update_state(s, p, X = X_d, Force_Update=True) 
+        if gmix:
+            f4 = f(s, p).m['g_mix']['t']
+        else:
+            f4 = f(s, p)
+            
+        return (f1 - f2 - f3 + f4)/(4.0*dx*dx)
+
+
+def hessian(f, s, p, dx=1e-6, gmix=False):
+    """
+    Returns the Hessian of the function as a numpy array.
+    
+    Parameters
+    ----------
+    f : function
+        Input function used to calculate Hessian.
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    d : int. optional
+        Differential order (1-2)
+
+    dx : float, optional
+         Spatial discretization size.
+         
+    fmix : booleaan, optional
+           Specify True when using a Gibbs surface function with a class return
+           and _.m['g_mix']['t'] float return.
+           
+    Dependencies
+    ------------
+    numpy
+    
+    Returns
+    -------
+    H : array
+        Ouput hessian matrix.
+
+    """
+    import numpy
+    N = (p.m['n'] - 1)
+    H = numpy.zeros(shape=(N,N))
+    #H[1, 1] = 3
+    #FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False)
+    for m in range(1, N + 1):
+        for z in range(1, N + 1):
+            H[m - 1, z - 1] = FD(f, s, p, 2, z, m, dx, gmix)
+    return H
+    
+# %% Stability and phase seperation
+def stability(X, g_x_func, s, p, k):
+    """
+    Tests a specified point "X" in phase "k", returns True if stable.
+    
+    Parameters
+    ----------
+    X : vector (1xn array)
+        Contains the current composition point to test for stability.
+    
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+    
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+    
+    p : class
+        Contains the dictionary describing the parameters.
+        
+    Dependencies
+    ------------
+    numpy
+    
+    Returns
+    -------
+    SB : boolean
+         A True boolean is return if the point is stable, else False.
+    """
+    import numpy
+    s.update_state(s, p, X = X, phase = k)#, Force_Update=True) 
+    H = hessian(g_x_func, s, p, dx=1e-6, gmix=True)
+    Heig = numpy.linalg.eig(H)[0]
+    HBeig = (Heig > 0.0)
+    #return (numpy.all(numpy.linalg.eig(H)[0]) > numpy.array([0.0]))
+    return numpy.all(HBeig)
+
+def phase_seperation_detection(n=100):
+    """
+    n : int, optional
+        Number of sampling points to be tested for in the R^(p.m['n'] - 1)
+        Note. For higher component systesm higher numbers of n are recommended.
+    """ 
+    pass
+#    import numpy
+#    from sobol_lib import i4_sobol_generate
+#    m = p.m['n'] - 1
+#    skip = 1
+#    Points = i4_sobol_generate(m, n, skip)
+#    P = numpy.column_stack([Points[i] for i in range(m)])
+#    P = P[numpy.sum(P, axis=1) <= 1.0]
+
+# %% Plots
 def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
     """
     Plots the surface of the Gibbs energy of mixing function. Binary and 
@@ -1185,7 +1550,8 @@ def plot_ep(func, X_r, s, p, args=()):
         ep = []
         for X in X_r:
             s.update_state(s, p,  X = X, phase = ['All'], Force_Update=True) 
-            ep.append(func(X, *args))
+            ep.append(func(X, *args)[0])
+            #ep.append(func(X, *args))
             
         plot.figure()
         plot.plot(X_r, ep)
@@ -1200,102 +1566,6 @@ def plot_ep(func, X_r, s, p, args=()):
     
 
 
-# %%  Numerical FD estimates for validation
-def CDM(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):  
-    """"
-    Central difference estimate of a function f(s, p) used to validate the
-    symbolic expressions.
-
-    Parameters
-    ----------
-    f : function
-        Function to differentiate
-    
-    s : class
-        Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
-    
-    p : class
-        Contains the dictionary describing the parameters.
-        
-    d : int. optional
-        Differential order (1-2)
-        
-    z : int, optional
-        First component to differentiate to.
-        
-    m : int, optional
-        Second component to differentiate to.
-        
-    dx : float, optional
-         Spatial discretization size.
-         
-    fmix : booleaan, optional
-           Specify True when using a Gibbs surface function with a class return
-           and _.m['g_mix']['t'] float return.
-    """
-    if d == 1:
-        s.c[z]['x'] += 0.5*dx
-        X_d = []
-        for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
-            
-        s = s.update_state(s, p, X = X_d, Force_Update=True) 
-        if gmix:
-            f1 = f(s, p).m['g_mix']['t']
-        else:
-            f1 = f(s, p)
-            
-        s.c[z]['x'] -= 1.0*dx
-        X_d = []
-        for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
-            
-        s = s.update_state(s, p, X = X_d, Force_Update=True) 
-        if gmix:
-            f2 = f(s, p).m['g_mix']['t']
-        else:
-            f2 = f(s, p)
-        
-        return (f1 - f2)/dx
-        
-    if d == 2:
-        if gmix:
-            f1 = f(s, p).m['g_mix']['t']
-        else:
-            f1 = f(s, p)
-            
-        s.c[z]['x'] += 1.0*dx
-        X_d = []
-        for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
-            
-        s = s.update_state(s, p, X = X_d, Force_Update=True) 
-        if gmix:
-            f2 = f(s, p).m['g_mix']['t']
-        else:
-            f2 = f(s, p)
-            
-        s.c[z]['x'] -= 2.0*dx
-        X_d = []
-        for i in range(1, p.m['n']):
-            X_d.append(s.c[i]['x'])
-            
-        s = s.update_state(s, p, X = X_d, Force_Update=True) 
-        if gmix:
-            f3 = f(s, p).m['g_mix']['t']
-        else:
-            f3 = f(s, p)
-        
-        return (f2 - 2 * f1 + f3)/(dx*dx)
-
-
-def hessian(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False):
-    """
-    Returns the Hessian of the function as a numpy array.
-    """
-    pass
-     
 # %%
 if __name__ == '__main__':
     # %% Load Data

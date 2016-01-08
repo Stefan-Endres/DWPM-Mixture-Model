@@ -56,7 +56,7 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
             
               def g_func(A):
                   return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0) 
-                          & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+                         & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
 
 
     g_args : tuple, optional
@@ -134,7 +134,7 @@ TODO:    minimizer_kwargs : dict, optional
         
         return H2
         
-    def k_t_matrix(T, k):
+    def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
         """Returns the k-t topograph matrix""" 
         return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
     
@@ -205,9 +205,9 @@ TODO:    minimizer_kwargs : dict, optional
     else: 
         K_opt = k_t
     # %% Local Search: Find the minimzer float values and 
-    """
-    TO DO IMPROVE
-    """
+
+#TODO IMPROVE
+
     Min_ind = Minimizers(K_opt)
     x_vals = []
     Func_min = numpy.zeros_like(Min_ind)

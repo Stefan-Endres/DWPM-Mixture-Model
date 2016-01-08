@@ -26,6 +26,7 @@ def inputs():
           # Compounds to simulate.
          #'Compounds'    : ['acetone', 'water', 'phenol'], 
          'Compounds'    : ['carbon_dioxide','ethane'], 
+        # 'Compounds'    : ['acetone', 'benzene', 'water'], 
          #'Compounds'    : ['acetone','water'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
          'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
@@ -160,63 +161,25 @@ if __name__ == '__main__':
 #        plot_dg_mix_test(s,p)
     
     #%% Equilibrium Optimization tests   
-    if True: # Equilibrium Optimization tests           
+    if True: # Equilibrium Optimization tests   
+         
         if False: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
-            # Single phase test
-            X_d = array([0.4]) 
-            Z_0 = array([0.5]) 
-            # Approx. Solution  Lambda = array([-0.03244]) X_d = array([0.004557])      
-            s = s.update_state(s, p, P=101e3, T=300.0,  X = X_d) 
-            s = dual_equal(s, p, g_x_test_func, Z_0 , tol=1e-9)
-            X_I = s.m['Z_eq']
-            
-            Args= (g_x_test_func, s.m['Lambda_d'], X_I, s, p, ['All'])
-            from tgo import tgo
-            X_II = tgo(Eq_sol, [(1e-5, 0.99999)], args=Args, n=100, k_t = 5)
-            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
-            print '                     II: {}'.format(X_II)  
-
-            Z_0 = s.m['Z_eq']
-
-            # Plot error func
-            from scipy import linspace
-            X_r = linspace(1e-5, 0.9999, 1000)
-            #Args= (g_x_test_func, s.m['Lambda_d'], Z_0, s, p, ['x'])
-
-            print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
-
-            plot_g_mix(s, p, g_x_test_func,
-                        Tie =[[X_II, X_I]])     
-            plot_ep(Eq_sol, X_r, s, p, args=Args)
+            Z_0 = array([0.13])
+            s = phase_equilibrium_calculation(s, p, g_x_test_func, Z_0, k=None,
+                                      P=101e3, T=300.0, 
+               tol=1e-9, Print_Results=True, Plot_Results=True)   
             
         #% CO2-Ethane test 
-        if True: 
-            X_d = [array([0.4, 0.2]), array([0.4, 0.2])]
-            Z_0 = array([0.4, 0.2]) # Must be vector
-            
+        if True:
             p.m['r'], p.m['s'] = 1.0, 1.0
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = p.m['k'][1][2]
-            s = s.update_state(s, p, P=24e5, T=263.1,  X = [[0.128],[0.229]]) 
-            #Z_0 = [0.3]
             Z_0 = [0.25]
-            s = dual_equal(s, p, g_mix, Z_0, tol=1e-3)
-            X_I = s.m['Z_eq']
-            
-            Args= (g_mix, s.m['Lambda_d'], X_I, s, p, ['All'])
-            from tgo import tgo
-            X_II = tgo(Eq_sol, [(1e-5, 0.99999)], args=Args, n=10)
-            print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
-            print '                     II: {}'.format(X_II)  
+            s = phase_equilibrium_calculation(s, p, g_mix, Z_0, k=None,
+                                      P=24e5, T=263.1, 
+               tol=1e-9, Print_Results=True, Plot_Results=True) 
 
-            # Plot error func
-            from scipy import linspace
-            X_r = linspace(0, 1, 1000)
-            print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
 
-            plot_g_mix(s, p, g_mix,
-                        Tie =[[X_II, X_I]])     
-            plot_ep(Eq_sol, X_r, s, p, args=Args)
     #%% Isotherm tests
         if True:
             # Acetone-Water
@@ -231,19 +194,70 @@ if __name__ == '__main__':
 #            for T_i in T_isos:
 #                plot_isotherm(s, p, T_plot = T_i, added_res= 50) 
     #%% Jacobian and Hessian tests.
-    if False: # Binary
-        # b_mix
-
-        X_d = [[0.6], [0.6]]#array([0.6, 0.6]) 
-        s = s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
+    if False: # Generic tests.  ## (Successfully validated against anal. sol.
+        def f_x(s, p):  # Simple test func
+            return s.c[1]['x']**3.0 - s.c[1]['x']**2.0 + s.c[2]['x']**4.0
+            
+        X_d = [2.0, 3.0]
+        s.update_state(s, p, P=24e5, T=263.1,  X = X_d, Force_Update=True) 
+        print '='*25
+        print 'Point  X_d = [2.0, 3.0] ' 
+        print '='*25
+        print 'd=1, z=1, m=1 = {}'.format(FD(f_x, s, p, d=1, z=1, m=1))
+        print 'd=1, z=2, m=1 = {}'.format(FD(f_x, s, p, d=1, z=2, m=1))
+        print 'd=2, z=1, m=2 = {}'.format(FD(f_x, s, p, d=2, z=1, m=2))
+        print 'd=2, z=1, m=1 = {}'.format(FD(f_x, s, p, d=2, z=1, m=1))
+        print 'd=2, z=2, m=2 = {}'.format(FD(f_x, s, p, d=2, z=2, m=2))
+        print 'Hessian = '
+        print hessian(f_x, s, p, dx=1e-6, gmix=False)
+        print '='*25
+        X_d = [-1.0, -6.0]
+        s.update_state(s, p, P=24e5, T=263.1,  X = X_d, Force_Update=True) 
+        print 'Point  X_d = [-1.0, -6.0] ' 
+        print '='*25
+        print 'd=1, z=1, m=1 = {}'.format(FD(f_x, s, p, d=1, z=1, m=1))
+        print 'd=1, z=2, m=1 = {}'.format(FD(f_x, s, p, d=1, z=2, m=1))
+        print 'd=2, z=1, m=2 = {}'.format(FD(f_x, s, p, d=2, z=1, m=2))
+        print 'd=2, z=1, m=1 = {}'.format(FD(f_x, s, p, d=2, z=1, m=1))
+        print 'd=2, z=2, m=2 = {}'.format(FD(f_x, s, p, d=2, z=2, m=2))
+        print 'Hessian = '
+        print hessian(f_x, s, p, dx=1e-6, gmix=False)
+        print '='*25
         
+        
+    if True: # Binary
+        if False: # b_mix tests
+            #X_d = [[0.6, 0.4], [0.6, 0.4]]#array([0.6, 0.6]) 
+            X_d = [0.5]
+            s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
+            print 'd_b_mix_d_x = {}'.format(d_b_mix_d_x(s, p))
+            print 'FDM est. = {}'.format( FD(b_mix, s, p, dx=1e-1))
+    
+            print 'd2_b_mix_d_x2 = {}'.format(d_b_mix_d_x(s, p, d=2))
+            print 'FDM est. = {}'.format( FD(b_mix, s, p, d=2, dx=1e-1))
+            H = hessian(b_mix, s, p, gmix=False)
+            import numpy
+            numpy.linalg.det(H)
+            H2 = numpy.linalg.eig(H)[0]
+            
+        
+        if False: # Test func stability tests.
+            X_d = [0.13]
+            s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
+            H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
+            Stable = stability(X_d, g_x_test_func, s, p, k=['x'])
+            print Stable
 
-                
-        print 'd_b_mix_d_x = {}'.format(d_b_mix_d_x(s, p))
-        print 'FDM est. = {}'.format( d1(b_mix, s, p, dx=1e-1))
-    
-        print 'd2_b_mix_d_x2 = {}'.format(d_b_mix_d_x(s, p, d=2))
-        print 'FDM est. = {}'.format( d1(b_mix, s, p, d=2, dx=1e-1))
-    
-    
-    
+        #H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

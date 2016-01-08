@@ -8,7 +8,7 @@ import numpy
 import scipy
 from tgo import tgo
 import scipy.spatial
-
+import scipy.optimize
 
 def f_test_1(x, r, s): # Test function, bounds: -1 =< x_i =< 6
     return x[0]**2 + x[1]**2
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     r = [1, 2, 3] # random args for test func tuple
     s = True
     x1 = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=500, 
-            skip=1, k=None, 
+            skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False)
     
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     # -4.12493867624096e+25
 
     xR = tgo(Rosen, BoundsR, args=(), g_func=None, n=500, 
-            skip=1, k=None, 
+            skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False)
 
     #%% Old
@@ -85,14 +85,11 @@ if __name__ == '__main__':
     
     if False: # (Old practice funcs an alternatives)
         m = 3 # dimensions
-    #    n = 1000 # points
-    #    skip = 1 # skip to this point in the sequence
-    #
-    #    B = i4_sobol_generate(m, n, skip)
-    
-        #C = numpy.column_stack((B[0],B[1],B[2]))
-        #C = numpy.column_stack((B[0],B[1]))
-    #    C = numpy.column_stack([B[i] for i in range(m)])
+        n = 1000 # points
+        skip = 1 # skip to this point in the sequence
+        B = i4_sobol_generate(m, n, skip)  # Generate uniform sample points in R^m
+        C = numpy.column_stack([B[i] for i in range(m)])
+
         # = numpy.hstack((B[0],B[1],B[2]))
         
         condition = sum(C) >=1
@@ -154,6 +151,8 @@ if __name__ == '__main__':
                                                               # for loop
         # according to docs
         
+        func = f_test_1
+        args=(1,2)
         #p = 3
         #B = vfunc(T)
         # Obj. function returns to be used as reference table.:
@@ -177,4 +176,45 @@ if __name__ == '__main__':
         Minimizers_indices = numpy.where(Minimizers)[0]
     #    for i in Minimizers_indices:
     #        print i
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
