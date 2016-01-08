@@ -1081,18 +1081,24 @@ TO DO, Check method for changing lambda to change goal func to a global minima
     #Xn = [0.58953878]
     #Lambda_d = [-0.03375225]
     # Update system to new composition.
-    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
-    G_I = g_x_func(s, p).m['g_mix']['t'] 
-
+#    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
+#    G_I = g_x_func(s, p).m['g_mix']['t'] 
+ 
     Xn = numpy.array(X)
     s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
 
 #    return abs(G_I + sum(Lambda_d * (X - X_I))  # Root prblem
-#               - g_x_func(s, p).m['g_mix']['t'] ) 
+#              - g_x_func(s, p).m['g_mix']['t'] ) 
 
-    return -(G_I + sum(Lambda_d * (X - X_I))
-               - g_x_func(s, p).m['g_mix']['t'] )
+#    return -(G_I + sum(Lambda_d * (X - X_I))
+#               - g_x_func(s, p).m['g_mix']['t'] )
 
+#    return (G_I + sum(Lambda_d * (X - X_I)) 
+#               - g_x_func(s, p).m['g_mix']['t'] )
+
+    return numpy.array([-(sum(Lambda_d * (X - X_I))
+               - g_x_func(s, p).m['g_mix']['t'] )])
+               
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
                tol=1e-9, Print_Results=False, Plot_Results=False):
     """
@@ -1150,59 +1156,69 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     Lambda_d = s.m['Lambda_d']
     
     # Calculate second minimizer
-    if True:  # TEST LAMBDA MAINUPATION IN FEED TO DEFINE GLOB. MIN PROBLEM
-        if k == None:
-            k = p.m['Valid phases']
-            
-        from scipy.optimize import minimize
-        if Print_Results:  # Tests
-            print '='*20
-            print 'First X_I = {}'.format(X_I)
-            print 'First Lamda = {}'.format(s.m['Lambda_d'])
-            
-            
-        X_d = numpy.zeros_like(Z_0)
-        for i in range(len(Z_0)):
-            if Z_0[i] < X_I[i]:
-                X_d[i] = (X_I[i] - Z_0[i])/2.0
-            if Z_0[i] > X_I[i]:
-                X_d[i] = (Z_0[i]- X_I[i])/2.0  
-        
-        Z_0 = X_I
-        
-        # X bounds used in second UBD optimization
-        X_bounds = [numpy.zeros(shape=(p.m['n']-1)), # Upper bound
-                    numpy.zeros(shape=(p.m['n']-1))  # Lower bound
-                    ]  
-        for i in range(p.m['n']-1): 
-            Sigma_ind = 0.0  # Sum of independent components
-                             # excluding i lever rule) 
-            for j in range(p.m['n']-1):
-                if j != i:
-                    Sigma_ind += Z_0[j]
-    
-            X_bounds[0][i] = 1.0 - Sigma_ind 
-            
-            
-        Lambda_d = minimize(ubd, s.m['Lambda_d'], 
-                                    method='L-BFGS-B', 
-                                    args=(g_x_func, X_d, Z_0, 
-                                          s, p, X_bounds,
-                                          k))['x']
-       
-        s.m['Lambda_d'] = Lambda_d 
-        if Print_Results:  # Tests
-            print 'Second X_I = {}'.format(s.m['Z_eq'])
-            print 'Second Lamda = {}'.format(s.m['Lambda_d'])
-            print '='*20
+    #--------------------------------------------------------------------
+#    if False:  # TEST LAMBDA MAINUPATION IN FEED TO DEFINE GLOB. MIN PROBLEM
+#        if k == None:
+#            k = p.m['Valid phases']
+#            
+#        from scipy.optimize import minimize
+#        if Print_Results:  # Tests
+#            print '='*20
+#            print 'First X_I = {}'.format(X_I)
+#            print 'First Lamda = {}'.format(s.m['Lambda_d'])
+#            
+#            
+#        X_d = numpy.zeros_like(Z_0)
+#        for i in range(len(Z_0)):
+#            if Z_0[i] < X_I[i]:
+#                X_d[i] = (X_I[i] - Z_0[i])/2.0
+#            if Z_0[i] > X_I[i]:
+#                X_d[i] = (Z_0[i]- X_I[i])/2.0  
+#
+#        Z_0 = X_I
+#        
+#        # X bounds used in second UBD optimization
+#        X_bounds = [numpy.zeros(shape=(p.m['n']-1)), # Upper bound
+#                    numpy.zeros(shape=(p.m['n']-1))  # Lower bound
+#                    ]  
+#                    
+#        for i in range(p.m['n']-1): 
+#            Sigma_ind = 0.0  # Sum of independent components
+#                             # excluding i lever rule) 
+#            for j in range(p.m['n']-1):
+#                if j != i:
+#                    Sigma_ind += Z_0[j]
+#    
+#            X_bounds[0][i] = 1.0 - Sigma_ind 
+#            
+#            
+#        Lambda_d = minimize(ubd, s.m['Lambda_d'], 
+#                                    method='L-BFGS-B', 
+#                                    args=(g_x_func, X_d, Z_0, 
+#                                          s, p, X_bounds,
+#                                          k))['x']
+#       
+#        s.m['Lambda_d'] = Lambda_d 
+#        if Print_Results:  # Tests
+#            print 'Second X_I = {}'.format(s.m['Z_eq'])
+#            print 'Second Lamda = {}'.format(s.m['Lambda_d'])
+#            print '='*20
+#    
+    #--------------------------------------------------------------------
+    Bounds = []
+    for i in range(len(Z_0)):
+        if Z_0[i] <= X_I[i]:
+            Bounds.append((1e-6, Z_0))
+        if Z_0[i] > X_I[i]:
+            Bounds.append((Z_0, 0.99999))
 
     # Calculate second point from redifined gobal func. 
     Args= (g_x_func, Lambda_d, X_I, s, p, ['All'])
 
-    X_II = tgo(eq_sol, [(1e-5, 0.99999)], args=Args, n=100, k_t = 5)
+    X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5)
     print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
     print '                     II: {}'.format(X_II)  
-
+    
 
     
     if Plot_Results:
@@ -1210,14 +1226,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
         # Gibbs mix func with Tie lines
         from scipy import linspace
-  
         print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
         plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)    
                 
         # Error func
         s.m['Lambda_d'] = Lambda_d 
         s.m['Z_eq'] = X_I
-                X_r = linspace(1e-5, 0.9999, 1000)    
+        X_r = linspace(1e-5, 0.9999, 1000)    
         plot_ep(eq_sol, X_r, s, p, args=Args)
     
     # Save returns in state dictionary.

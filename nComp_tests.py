@@ -35,7 +35,7 @@ def inputs():
                                           # 'Adachi-Lu' 
                                           # 'Soave'
 
-         'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
+         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
                                        # Speciification does not preclude
                                        # LLE detection and calculation.
@@ -163,18 +163,19 @@ if __name__ == '__main__':
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests   
          
-        if False: #%% TEST CURVE Mitsos et al. (2007)  ##  True: Validated 
+        if True: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  True: Validated 
             Z_0 = array([0.13])
+            #Z_0 = array([0.5])
             s = phase_equilibrium_calculation(s, p, g_x_test_func, Z_0, k=None,
                                       P=101e3, T=300.0, 
                tol=1e-9, Print_Results=True, Plot_Results=True)   
             
         #% CO2-Ethane test 
-        if True:
+        if False:
             p.m['r'], p.m['s'] = 1.0, 1.0
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = p.m['k'][1][2]
-            Z_0 = [0.25]
+            Z_0 = array([0.25])
             s = phase_equilibrium_calculation(s, p, g_mix, Z_0, k=None,
                                       P=24e5, T=263.1, 
                tol=1e-9, Print_Results=True, Plot_Results=True) 
