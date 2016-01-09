@@ -1024,13 +1024,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     """
     
-    TO DO WRITE THIS
-    
-TO DO, Why does returning the natiove present an objective function with the
+TODO, Why does returning the natiove present an objective function with the
     second minimizer of the equilibrium problem as the global minima?
     Is this true for all systems?
 
-TO DO, Check method for changing lambda to change goal func to a global minima
+TODO, Check method for changing lambda to change goal func to a global minima
        of corressponding solution.
 
 
@@ -1460,7 +1458,7 @@ def stability(X, g_x_func, s, p, k):
     #return (numpy.all(numpy.linalg.eig(H)[0]) > numpy.array([0.0]))
     return numpy.all(HBeig)
 
-def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
+def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                VLE_only=False):
     """
     Detect and calculate phase seperations in hte composition space at the 
@@ -1495,7 +1493,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
                If True then only phase seperation of same volume root 
                instability will be calculated.
                
-    LLE_only : boolean, optional
+    VLE_only : boolean, optional
                If True then phase seperation of same volume root instability 
                will be ignored.
         
@@ -1506,6 +1504,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
     
     Returns
     -------
+    s : class instance output.
+        Contains the following values:
     s.m['ph equil R'][ph] : list containing 2 composition vectors
                        Contains a list of equilibrium points of phase 
                        seperations in the same volume root of the EOS (ex. LLE)
@@ -1515,71 +1515,83 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
                         seperations in different volume root of the EOS 
                         (ex. VLE)
     """ 
-    pass
+
+    
+    # Generate sampling points.
     import numpy
     from sobol_lib import i4_sobol_generate
+    from tgo import tgo
     m = p.m['n'] - 1
     skip = 4
     Points = i4_sobol_generate(m, n, skip)
     Points = numpy.column_stack([Points[i] for i in range(m)])
     Points = Points[numpy.sum(Points, axis=1) <= 1.0]
     S = numpy.empty(n, dtype=bool)
-    
-    # Detect instability in a same volume root phase:
-    def instability_point_calc(Points, g_x_func, s, p, n, k, P=P, T=T):
-        #  Find an instability point, calculated equilibrium and return
-        #  new feasible subset.
-        Stop = False
-        for i, X in zip(range(n), Points):
-            S[i] = stability(X, g_x_func, s, p, k=ph )
-            if not S[i]:
-                s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
-                                          P=P, T=T, 
-                                          tol=1e-9, 
-                                          Print_Results=True, 
-                                          Plot_Results=True) 
-                
-                s.m['Ph Equil P'] = [s.m['X_I'], s.m['X_II']]
-                
-                # TODO: Improve finding feasible subspace of points.
-                P_new = Points[(i+1):]
-                for i in range(p.m['n']-1):
-                    P_new_low = P_new[P_new[:,i] < 
-                                    min(s.m['X_I'][i], s.m['X_II'][i])]
-                    
-                    P_new_high = P_new[P_new[:,i] > 
-                                    max(s.m['X_I'][i], s.m['X_II'][i])]                                         
-                
-                P_new = numpy.append(P_new_low, P_new_high, axis=0)
-                
-                print P_new
-                
-                if numpy.shape(P_new)[0] == 0: # Stop if no values in subset
-                    Stop = True
-                    
-                return P_new, s.m['Ph Equil P'], Stop
-            
-        s.m['Ph Equil P'] = None
-        Stop = True
-        return Points, s.m['Ph Equil P'], Stop
-    
-    s.m['Ph Equil'] = {}
-    for ph in p.m['Valid phases']:
-        Stop = False
-        s.m['Ph Equil'][ph] = []
-        while not Stop:
-            Points, s.m['Ph Equil P'], Stop = instability_point_calc(Points, 
-                                                                 g_x_func, 
-                                                                 s, p, n, ph)
-            
-            if s.m['Ph Equil P'] is not None:                                   
-                s.m['Ph Equil'][ph].append(s.m['Ph Equil P'])
-        
 
+    # Update P, T to specified value
+    s = s.update_state(s, p,  P=P, T=T, X = Points[0], Force_Update=True)
+    
+    def subset_eqp(Points, X_I, X_II):
+        # Retunrs a subset of "Points" outside EQP
+        import numpy
+        for i in range(p.m['n']-1):
+            P_new_low = Points[Points[:,i] < 
+                            min(X_I[i], X_II[i])]
+            
+            P_new_high = Points[Points[:,i] > 
+                            max(X_I[i], X_II[i])] 
+            
+            return numpy.append(P_new_low, P_new_high, axis=0)
             
             
+    # Detect instability in a same volume root phase:
+    if not VLE_only:
+        # define LLE instability func
+        def instability_point_calc(Points, g_x_func, s, p, n, k, P=P, T=T):
+            #  Find an instability point, calculated equilibrium and return
+            #  new feasible subset.
+            Stop = False
+            for i, X in zip(range(n), Points):
+                S[i] = stability(X, g_x_func, s, p, k=ph )
+                if not S[i]:
+                    s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
+                                              P=P, T=T, 
+                                              tol=1e-9, 
+                                              Print_Results=True, 
+                                              Plot_Results=True) 
+                    
+                    s.m['Ph Equil P'] = [s.m['X_I'], s.m['X_II']]
+                    
+                    # TODO: Improve finding feasible subspace of points.
+                    P_new = Points[(i+1):]
+
+                    P_new = subset_eqp(P_new, s.m['X_I'], s.m['X_II'])
+                    
+                    # Stop if no values in subset
+                    if numpy.shape(P_new)[0] == 0: 
+                        Stop = True
+                        
+                    return P_new, s.m['Ph Equil P'], Stop
+                    
+                
+            s.m['Ph Equil P'] = None
+            Stop = True
+            return Points, s.m['Ph Equil P'], Stop
         
-            
+        # Main looping
+        s.m['Ph Equil'] = {}
+        for ph in p.m['Valid phases']:
+            Stop = False
+            s.m['Ph Equil'][ph] = []
+            while not Stop:
+                Points, s.m['Ph Equil P'], Stop = instability_point_calc(
+                                                      Points, 
+                                                      g_x_func, 
+                                                      s, p, n, ph)
+                
+                if s.m['Ph Equil P'] is not None:                                   
+                    s.m['Ph Equil'][ph].append(s.m['Ph Equil P'])
+          
 #        for i, X in zip(range(n), P):
 #            S[i] = stability(X, g_x_func, s, p, k=ph )
 #            if not S[i]:
@@ -1589,7 +1601,56 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False
 #                   P[(i+1):]
     
     # Detect phase seperation accross volume root phases:
-    
+    if not LLE_only:
+        # Define difference function
+        def g_diff(X, g_x_func, s, p, ph1, ph2, ref):
+            # Returns difference between Gibbs energy of phases 'ph1' & 'ph2'
+            # Note, all phases must be at same composition for meaningful 
+            # comparison
+            s = s.update_state(s, p,  X = X, Force_Update=True)
+            return (g_x_func(s, p, k=ph1, ref=ref).m['g_mix'][ph1]
+                    - g_x_func(s, p, k=ph2, ref=ref).m['g_mix'][ph2])
+                    
+                    
+        # Define objective function for feed search
+        def g_diff_obj(X, g_x_func, s, p, ph1, ph2, ref):
+            # Returns difference between Gibbs energy of phases 'ph1' & 'ph2'
+            # Note, all phases must be at same composition for meaningful 
+            # comparison
+            s = s.update_state(s, p,  X = X, Force_Update=True)
+            return abs(g_x_func(s, p, k=ph1, ref=ref).m['g_mix'][ph1]
+                       - g_x_func(s, p, k=ph2, ref=ref).m['g_mix'][ph2])
+                    
+        # Calculated difference of Gibbs energies between all phases at all
+        # sampling points.
+#        Ref = p.m['Valid phases'][0] # Reference phase (Use ph1 safer?)
+        s.m['mph equil R'] = []
+        for i in range(len(p.m['Valid phases'])):
+            for j in range(i + 1, len(p.m['Valid phases'])):
+                ph1 = p.m['Valid phases'][i]
+                ph2 = p.m['Valid phases'][j]
+                print ph1
+                print ph2
+                Fd = numpy.empty(n)
+                for l, X in zip(range(n), Points):
+                    Fd[l] = g_diff(X, g_x_func, s, p, ph1, ph2, ph1)
+                
+                # Look for sign cross phase seperation
+                if not numpy.all(Fd > 0) or numpy.all(Fd < 0):
+                    # (if all values are not greater than or less than zero)
+                    Bounds = [(1e-6, 0.99999)]
+                    Args=(g_x_func, s, p, ph1, ph2, ph1)
+                    Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5)
+                    print Z_0
+                    
+                    s = phase_equilibrium_calculation(s, p, g_x_func, Z_0,
+                          P=P, T=T, 
+                          tol=1e-12, 
+                          Print_Results=True, 
+                          Plot_Results=True) 
+                          
+                    s.m['mph Equil P'] = [s.m['X_I'], s.m['X_II']]
+                    s.m['mph equil R'].append(s.m['mph Equil P'])
     return s
     
     
@@ -1686,7 +1747,7 @@ def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
 
 def plot_ep(func, X_r, s, p, args=()):
     """
-    Plot the speficied error function over a range X_r
+    Plot the speficied single var input error function over a range X_r
     """
     from matplotlib import rc
     from matplotlib import pyplot as plot

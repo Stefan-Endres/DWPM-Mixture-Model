@@ -35,7 +35,7 @@ def inputs():
                                           # 'Adachi-Lu' 
                                           # 'Soave'
 
-         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
+         'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
                                        # Speciification does not preclude
                                        # LLE detection and calculation.
@@ -58,7 +58,7 @@ def inputs():
 
 
 #%% TEST FUNCTION  Binary NRTL 
-def g_x_test_func(s, p):
+def g_x_test_func(s, p, k=None, ref='x'):
     """
     This is the test function of a binary NRTL Model from Misos et. al. (2007)
     using the parameters referenced in the paper.
@@ -243,15 +243,15 @@ if __name__ == '__main__':
             H2 = numpy.linalg.eig(H)[0]
             
         
-        if True: # Test func stability tests.
+        if False: # Test func stability tests. Test func Mitsos et al. 1
             X_d = [0.13]
             s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
             H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
 
 
     #%% phase_seperation_detection tests.
-    if True: # Binary
-        if True: # Test an unstable and stable point
+    if True: # Binary test func Mitsos et al. 1
+        if False: # Test an unstable and stable point
             X_d = [0.13]
             s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
             H = hessian(g_x_test_func, s, p, dx=1e-6, gmix=True)
@@ -266,11 +266,21 @@ if __name__ == '__main__':
             print Stable
             
         if True: # Test detection 
-            s = phase_seperation_detection(g_x_test_func, s, p, 
-                                           P=101e3, T=300.0,
-                                           n=100)
+            if False: # Test func 1 LLE
+                s = phase_seperation_detection(g_x_test_func, s, p, 
+                                               P=101e3, T=300.0,
+                                               n=100,
+                                               LLE_only=True)
         
-        
+            if True: # Test CO2-ethane VLE
+                p.m['r'], p.m['s'] = 1.0, 1.0
+                p.m['k'][1][2] = 0.124
+                p.m['k'][2][1] = p.m['k'][1][2]
+                Z_0 = array([0.25])
+                Fd = phase_seperation_detection(g_mix, s, p, 
+                                               P=24e5, T=263.1,
+                                               n=100,
+                                               VLE_only=True)
         
         
         
@@ -279,8 +289,38 @@ if __name__ == '__main__':
         # P_new = P_new[(P_new[:,i] < min(s.m['X_I'][i], s.m['X_II'][i])) 
                      #&  (P_new[:,i] >  max(s.m['X_I'][i], s.m['X_II'][i]))]
         
-        
-        
-        
+#%%
+#A = ['x', 'y', 'a', 'b']
+#len(A)
+#for i in range(len(A)):
+#    for j in range(i + 1, len(A)):
+#        print '{} and {}'.format(A[i], A[j])
+#%%
+#import numpy
+#import scipy
+#A = numpy.array([1.0, 1, 2, 3.0, 4, 5])
+#B = numpy.array([-1.0, -1, -2, -3.0, -4, -5])
+#C = numpy.array([1.0, -1, 2, -3.0, 4, -5])
+##print scipy.alltrue(A > 0.0, axis=-1) or scipy.alltrue(A < 0.0, axis=-1)
+##print scipy.alltrue(B > 0.0, axis=-1) or scipy.alltrue(B < 0.0, axis=-1)
+##print scipy.alltrue(C > 0.0, axis=-1) or scipy.alltrue(C < 0.0, axis=-1)
+#
+#numpy.all(A > 0) or numpy.all(A < 0)
+#numpy.all(B > 0) or numpy.all(B < 0)
+#numpy.all(C > 0) or numpy.all(C < 0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         

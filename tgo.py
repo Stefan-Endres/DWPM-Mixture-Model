@@ -7,6 +7,7 @@ from sobol_lib import i4_sobol_generate
 import numpy
 import scipy
 import scipy.spatial
+import scipy.optimize
 #import numpy as np
 #from scipy.optimize import minimize
 
