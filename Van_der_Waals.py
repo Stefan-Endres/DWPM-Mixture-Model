@@ -22,7 +22,7 @@ class VdW:
             Contains the current temperature 'T' and attraction paramter 'a'.
         
         p : dictionary
-            Contains the critical paramters 'T_c', 'a_c'.
+            Contains the critical parameters 'T_c', 'a_c'.
     
         Dependencies
         ------------

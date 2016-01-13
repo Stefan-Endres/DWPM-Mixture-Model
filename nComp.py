@@ -678,10 +678,10 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     s : class output.
         Contains the following values (or more if more phases are chosen):
           s.m['g_mix']['t'] : scalar, Total Gibbs energy of mixing.
-          s.m['g_mix']['x'] : scalar, Gibbs energy of mixing for liquid 
-                                          phase.
-          s.m['g_mix']['y'] : scalar, Gibbs energy of mixing for vapour 
-                                          phase.
+          s.m['g_mix']['x'] : scalar, Gibbs energy of mixing for liquid phase.
+          s.m['g_mix']['y'] : scalar, Gibbs energy of mixing for vapour phase.
+          s.m['g_mix']['ph min'] : string, contains the phase/volume root of 
+                                           with lowest Gibbs energy.
           s.s['Math Error'] : boolean, if True a math error occured during
                                        calculations. All other values set to 0.
     """
@@ -706,9 +706,14 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
 
         s.m['g_mix'] = {}
         g_min = []
+        g_abs_min = long  # "inf" large int
         for ph in p.m['Valid phases']:
                 s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, p, k=ph)
                 g_min.append(s.m['g_mix'][ph])
+                if s.m['g_mix'][ph] < g_abs_min: # Find lowest phase string
+                    s.m['g_mix']['ph min'] = ph
+                    g_abs_min = s.m['g_mix'][ph]
+
 
         s.m['g_mix']['t'] = min(g_min)
 
@@ -806,11 +811,13 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
         UB = ((UBD - G_upper)/(Z_0[i] - X_bounds[0][i]))
         LB = ((UBD - G_lower)/(Z_0[i] - X_bounds[1][i]))
         if Lambda[i] > UB:
-            P +=  e**abs(Lambda[i] - UB)*1e2
-        
+            #P +=  e**abs(Lambda[i] - UB)*1e2
+            P +=  e**(abs(Lambda[i] - UB)*1e-5)
+            
         if Lambda[i] < LB:
-            P +=  e**abs(Lambda[i] - LB)*1e2
-
+            #P +=  e**abs(Lambda[i] - LB)*1e2
+            P +=  e**(abs(Lambda[i] - LB)*1e-5)
+            
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
 
@@ -975,7 +982,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     for i in range(p.m['n'] - 1):
         #Bounds.append((0, 1))
         Bounds.append((1e-5, 0.99999))
-    
+        
     # Construct composition container from X_d for all phases. (REMOVED)
     X_d = Z_0
 #    X_d = []
@@ -1013,12 +1020,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         print 'Final UBD - LBD = {}'.format(UBD - LBD)
         print 'Final Z_eq = {}'.format(X_d)
         print 'Final Lambda_d = {}'.format(Lambda_d)
+        
     # Returns
     s.m['Z_eq'] = X_d
     s.m['Lambda_d'] = Lambda_d
-            
     return s
-
 
 
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
@@ -1093,9 +1099,11 @@ TODO, Check method for changing lambda to change goal func to a global minima
 
 #    return (G_I + sum(Lambda_d * (X - X_I)) 
 #               - g_x_func(s, p).m['g_mix']['t'] )
-
+    
+    # Note that G_I is constant for all X and does not need to be calculated.
     return numpy.array([-(sum(Lambda_d * (X - X_I))
                - g_x_func(s, p).m['g_mix']['t'] )])
+               
                
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
                tol=1e-9, Print_Results=False, Plot_Results=False):
@@ -1144,15 +1152,24 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     Plot_Results : boolean, optional
                    If True the g_mix curve with tie lines will be plotted for 
                    binary and trenary systems.
+                   
+    Returns  # TODO
+    -------
+    
+    
+    
     """
     # Calculate first minimizer
     from tgo import tgo
-    import numpy
     s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)  
     s = dual_equal(s, p, g_x_func, Z_0 , tol=tol)
     X_I = s.m['Z_eq']
     Lambda_d = s.m['Lambda_d']
     
+    # Find phase of eq. point I
+    s.update_state(s, p, X = X_I, Force_Update=True)  
+    s.m['Phase eq. I'] = g_x_func(s, p).m['g_mix']['ph min']
+
     # Calculate second minimizer
     #--------------------------------------------------------------------
 #    if False:  # TEST LAMBDA MAINUPATION IN FEED TO DEFINE GLOB. MIN PROBLEM
@@ -1214,10 +1231,16 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     Args= (g_x_func, Lambda_d, X_I, s, p, ['All'])
 
     X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5)
-    print 'EQUILIBRIUM SOLUTIONS I: {}'.format(X_I)
-    print '                     II: {}'.format(X_II)  
     
-
+    # Find phase of eq. point II
+    s.update_state(s, p, X = X_II, Force_Update=True)  
+    s.m['Phase eq. II'] = g_x_func(s, p).m['g_mix']['ph min']
+    
+    if Print_Results:
+        print 'EQUILIBRIUM SOLUTIONS I: {} (phase = {})'.format(X_I, 
+                                                            s.m['Phase eq. I'])
+        print '                     II: {}  (phase = {})'.format(X_II, 
+                                                           s.m['Phase eq. II'])  
     
     if Plot_Results:
         Z_0 = s.m['Z_eq']
@@ -1232,13 +1255,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         s.m['Z_eq'] = X_I
         X_r = linspace(1e-5, 0.9999, 1000)    
         plot_ep(eq_sol, X_r, s, p, args=Args)
+
     
     # Save returns in state dictionary.
     s.m['X_I'] = X_I
     s.m['X_II'] = X_II
     
     return s
-# %% Parameter goal Functions
 
 
 # %%  Numerical FD estimates for validation
@@ -1487,7 +1510,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         
     n : int, optional
         Number of sampling points to be tested for in the R^(p.m['n'] - 1)
-        Note. For higher component systesm higher numbers of n are recommended.
+        Note. For higher component systems higher numbers of n are recommended.
         
     LLE_only : boolean, optional
                If True then only phase seperation of same volume root 
@@ -1550,18 +1573,18 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         def instability_point_calc(Points, g_x_func, s, p, n, k, P=P, T=T):
             #  Find an instability point, calculated equilibrium and return
             #  new feasible subset.
-            Stop = False
+            Stop = False # Boolean to run main while loop
             for i, X in zip(range(n), Points):
-                S[i] = stability(X, g_x_func, s, p, k=ph )
-                if not S[i]:
+                # Test for instability at current equilibrium point.
+                S[i] = stability(X, g_x_func, s, p, k=ph)
+                if not S[i]: # If point is unstable find equilibrium point.
                     s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
                                               P=P, T=T, 
                                               tol=1e-9, 
-                                              Print_Results=True, 
-                                              Plot_Results=True) 
+                                              Print_Results=False, 
+                                              Plot_Results=False) 
                     
-                    s.m['Ph Equil P'] = [s.m['X_I'], s.m['X_II']]
-                    
+                    s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
                     # TODO: Improve finding feasible subspace of points.
                     P_new = Points[(i+1):]
 
@@ -1571,26 +1594,29 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     if numpy.shape(P_new)[0] == 0: 
                         Stop = True
                         
-                    return P_new, s.m['Ph Equil P'], Stop
+                    return P_new, s.m['ph equil P'], Stop
                     
-                
-            s.m['Ph Equil P'] = None
+            # If no instability was found, stop the main for loop and set eq.
+            #  point to None.
+            s.m['ph equil P'] = None
             Stop = True
-            return Points, s.m['Ph Equil P'], Stop
+            return Points, s.m['ph equil P'], Stop
         
         # Main looping
-        s.m['Ph Equil'] = {}
+        s.m['ph equil'] = {} # Range of equilibrium points.
         for ph in p.m['Valid phases']:
             Stop = False
-            s.m['Ph Equil'][ph] = []
+            s.m['ph equil'][ph] = []
             while not Stop:
-                Points, s.m['Ph Equil P'], Stop = instability_point_calc(
+                Points, s.m['ph equil P'], Stop = instability_point_calc(
                                                       Points, 
                                                       g_x_func, 
                                                       s, p, n, ph)
                 
-                if s.m['Ph Equil P'] is not None:                                   
-                    s.m['Ph Equil'][ph].append(s.m['Ph Equil P'])
+                # Save an equilibrium point to the range of points in the
+                # current phase if found.
+                if s.m['ph equil P'] is not None:                               
+                    s.m['ph equil'][ph].append(s.m['ph equil P'])
           
 #        for i, X in zip(range(n), P):
 #            S[i] = stability(X, g_x_func, s, p, k=ph )
@@ -1624,7 +1650,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         # Calculated difference of Gibbs energies between all phases at all
         # sampling points.
 #        Ref = p.m['Valid phases'][0] # Reference phase (Use ph1 safer?)
-        s.m['mph equil R'] = []
+        s.m['mph equil'] = []
+        s.m['mph phase'] = []
         for i in range(len(p.m['Valid phases'])):
             for j in range(i + 1, len(p.m['Valid phases'])):
                 ph1 = p.m['Valid phases'][i]
@@ -1645,17 +1672,67 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     
                     s = phase_equilibrium_calculation(s, p, g_x_func, Z_0,
                           P=P, T=T, 
-                          tol=1e-12, 
+                          tol=1e-2, 
                           Print_Results=True, 
                           Plot_Results=True) 
                           
-                    s.m['mph Equil P'] = [s.m['X_I'], s.m['X_II']]
-                    s.m['mph equil R'].append(s.m['mph Equil P'])
+                    s.m['mph equil P'] = [s.m['X_I'], s.m['X_II']]
+                    s.m['mph equil'].append(s.m['mph equil P'])
+                    s.m['mph phase'].append([s.m['Phase eq. I'], 
+                                             s.m['Phase eq. II']])
     return s
+
+
+# %% Data range calculations
+def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
+                      PT_Range=None, LLE_only=False, VLE_only=False):
+    """
+    Calculates at 
+    Parameters
+    ----------
+    g_x_func : function
+               Returns the gibbs energy at a the current composition 
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
     
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
     
+    p : class
+        Contains the dictionary describing the parameters.
+
+       
+    n : int, optional
+        Number of sampling points to be tested for in the R^(p.m['n'] - 1)
+        Note. For higher component systems higher numbers of n are recommended.
+        
+    LLE_only : boolean, optional
+               If True then only phase seperation of same volume root 
+               instability will be calculated.
+               
+    VLE_only : boolean, optional
+               If True then phase seperation of same volume root instability 
+               will be ignored.
+    """
+    import numpy
+    Store = numpy.array([numpy.shape(p.m['P'])[0], (p.m['n'] -1 )])
+    for P, T in zip(p.m['P'], p.m['T']):
+        #s.update_state(s, p, P=P, T=T)  # Updated in psd; no need
+        print 'test'
+        s = phase_seperation_detection(g_x_func, s, p, P=P, T=T, n=n, 
+                                       LLE_only=LLE_only,
+                                       VLE_only=VLE_only)
+                                       
+        print s.m['mph phase']
+                                       
+    return s
+# %% Parameter goal Functions
+
+
+
 # %% Plots
-def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
+def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
     """
     Plots the surface of the Gibbs energy of mixing function. Binary and 
     Trenary plots only.
@@ -1673,42 +1750,62 @@ def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
                Returns the gibbs energy at a the current composition 
                point. Should accept s, p as first two arguments.
                Returns a class containing scalar value .m['g_mix']['m']
-               
-    x_r : int, optional
-          Number of composition points to plot.
-    
+
     Tie : list of vectors, optional
           Equilibrium tie lines (of n - 1 independent components) to be added 
           to the plots.
-
+          
+          For a binary system specify 2 tie lines as 
+          [[x_1_a, x_1_b], [x_1_c, x_1_d]]
+          
+          For a trenary system specify the parameters in the plane construction
+          as
+          [[G_p, x_1, lambda_1, x_2, lambda_2]]
+          where G_p is the solution to the global problem at [x_1, x_2] and 
+          lamda_i is the solution duality multipliers.
+          
+          
+          
+    x_r : int, optional
+          Number of composition points to plot.
+    
+    FigNo : int or None, optional
+            Figure number to plot in matplotlib. Specify None when plotting 
+            several figures in a loop.
+        
     Dependencies
     ------------
     numpy
     matplotlib
 
     """
-    from matplotlib import rc
-    from matplotlib import pyplot as plot
-    from numpy import array, linspace, float64 
+
+    import numpy as np
+    
     #% Binary
     if p.m['n'] == 2:
+        from matplotlib import rc
+        from matplotlib import pyplot as plot
         #% Initialize
         s.m['g_mix range'] = {} # Contains solutions for all phases
         s.m['g_mix range']['t'] = []
         for ph in p.m['Valid phases']:
             s.m['g_mix range'][ph] = []
             
-        s.c[1]['x_range'] = linspace(0, 1, x_r)
+        s.c[1]['x_range'] = np.linspace(0, 1, x_r)
         for i in range(len(s.c[1]['x_range']-1)):  # Calculate range of G_mix
             X = [s.c[1]['x_range'][i]]
             s = s.update_state(s, p, X = X, Force_Update=True)
             s = g_x_func(s, p)
-            s.m['g_mix range']['t'].append(float64(s.m['g_mix']['t']))
+            s.m['g_mix range']['t'].append(np.float64(s.m['g_mix']['t']))
             for ph in p.m['Valid phases']:
-                s.m['g_mix range'][ph].append(float64(s.m['g_mix'][ph]))
-
-        plot.figure()
-
+                s.m['g_mix range'][ph].append(np.float64(s.m['g_mix'][ph]))
+                
+        if FigNo is None:
+            plot.figure()
+        else:
+            plot.figure(FigNo)
+            
         for ph in p.m['Valid phases']:
             plot.plot(s.c[1]['x_range'], s.m['g_mix range'][ph], label=ph)
 
@@ -1718,11 +1815,11 @@ def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
                 X = [point[0]]
                 s = s.update_state(s, p, X = X, Force_Update=True)
                 s = g_x_func(s, p)
-                G1 = float64(s.m['g_mix']['t'])
+                G1 = np.float64(s.m['g_mix']['t'])
                 X = [point[1]]
                 s = s.update_state(s, p, X = X, Force_Update=True)
                 s = g_x_func(s, p)
-                G2 = float64(s.m['g_mix']['t'])
+                G2 = np.float64(s.m['g_mix']['t'])
                 plot.plot(point,[G1, G2])
                 Slope = (G1 - G2)/ (point[0] - point[1])
                 plot.annotate('slope = {}'.format(Slope), 
@@ -1740,10 +1837,102 @@ def plot_g_mix(s, p, g_x_func,  Tie=None, x_r=1000):
     
     #% Trenary
     if p.m['n'] == 3:
-        pass
+        from mpl_toolkits.mplot3d import axes3d
+        import matplotlib.pyplot as plot
+        from matplotlib import cm
+        
+        # Define Tie planes
+        def tie(X, T):
+            G_p, x_1, lambda_1, x_2, lambda_2 = T
+            return G_p + lambda_1 * (X[0] - x_1) + lambda_2 * (X[1] - x_2) 
+            
+        
+        #x_range = np.linspace(0.0, 1.0, x_r)
+        #y_range = np.linspace(0.0, 1.0, x_r)
+        
+        x_range = np.linspace(1e-15, 1.0, x_r)
+        y_range = np.linspace(1e-15, 1.0, x_r)
+        xg, yg = np.meshgrid(x_range, y_range)
+        s.m['g_mix range'] = {}
+        s.m['g_mix range']['t'] = np.zeros((x_r, x_r))
+        for ph in p.m['Valid phases']:
+                    s.m['g_mix range'][ph] = np.zeros((x_r, x_r))
+                    
+        Tie_planes = []
+        for z in range(len(Tie)):
+            Tie_planes.append(np.zeros((x_r, x_r)))
+            
+        for i in range(xg.shape[0]):
+            for j in range(yg.shape[0]):
+                 X = [xg[i, j], yg[i, j]]  # [x_1, x_2]
+                 if sum(X) > 1.0:#1.0:
+                     for z in range(len(Tie)):
+                         Tie_planes[z][i, j] = None
+                         
+                     s.m['g_mix range']['t'][i, j] = None
+                     for ph in p.m['Valid phases']:
+                         s.m['g_mix range'][ph][i, j] = None
+
+                 else:
+                     # Tie lines
+                     for z in range(len(Tie)):
+                         Tie_planes[z][i, j] = tie(X, Tie[z])
+                         
+                     # g_func
+                     s = s.update_state(s, p, X = X, Force_Update=True)
+                     s = g_x_func(s, p)
+                     s.m['g_mix range']['t'][i, j] = np.float64(
+                                                             s.m['g_mix']['t'])
+                     for ph in p.m['Valid phases']:
+                         s.m['g_mix range'][ph][i, j] = np.float64(
+                                                             s.m['g_mix'][ph])
+
+        if FigNo is None:
+            fig = plot.figure()# plot.figure()
+        else:
+            fig = plot.figure(FigNo)
+        
+
+        # Plots
+        ax = fig.gca(projection='3d')
+        X, Y = xg, yg
+                
+        # Gibbs phase surfaces
+        rst = 1#2
+        cst = 1#2
+        #for ph in p.m['Valid phases']:
+        #    Z = s.m['g_mix range'][ph]
+        #    ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1)
+        #    cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
+        #    cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
+        
+        # Gibbs minimum surface
+        Z= s.m['g_mix range']['t']
+        ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1,color='r')
+        if False:
+            cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
+            cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
+        
+        
+        # Planes
+        rst = 4#10
+        cst = 4#10
+        for z in range(len(Tie)):
+            ax.plot_surface(X, Y, Tie_planes[z], rstride=rst, cstride=cst, 
+                        alpha=0.1)
+        
+        ax.set_xlabel('$x_1$')
+        ax.set_xlim(0, 1)
+        ax.set_ylabel('$x_2$')
+        ax.set_ylim(0, 1)
+        ax.set_zlabel('$\Delta g$', rotation = 90)
+        
+        return s
+        
     else:
         raise IOError('Too many independent components to plot hypersurface'
                       +'in R^3.')
+                      
 
 def plot_ep(func, X_r, s, p, args=()):
     """
@@ -1781,6 +1970,7 @@ if __name__ == '__main__':
         data.load_pure_data(I['Compounds'])
         data.load_E(I['Compounds'])
     except(KeyError, NameError):  # Define local inputs if I is not found.
+        raise IOError('No input dictionary defined.')
         I = inputs()
         data = data_handling.ImportData()
         data.load_pure_data(I['Compounds'])

@@ -25,8 +25,8 @@ def inputs():
          # Model inputs
           # Compounds to simulate.
          #'Compounds'    : ['acetone', 'water', 'phenol'], 
-         'Compounds'    : ['carbon_dioxide','ethane'], 
-        # 'Compounds'    : ['acetone', 'benzene', 'water'], 
+        # 'Compounds'    : ['carbon_dioxide','ethane'], 
+         'Compounds'    : ['acetone', 'benzene', 'water'], 
          #'Compounds'    : ['acetone','water'], 
          'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
          'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
@@ -35,7 +35,7 @@ def inputs():
                                           # 'Adachi-Lu' 
                                           # 'Soave'
 
-         'Valid phases' : ['x', 'y'], # List of valid phases in equilibrium
+         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
                                        # ex. for VLE use ['x', 'y']
                                        # Speciification does not preclude
                                        # LLE detection and calculation.
@@ -60,8 +60,9 @@ def inputs():
 #%% TEST FUNCTION  Binary NRTL 
 def g_x_test_func(s, p, k=None, ref='x'):
     """
-    This is the test function of a binary NRTL Model from Misos et. al. (2007)
-    using the parameters referenced in the paper.
+    This is the test function of a binary NRTL Model of the water-butyl-acetate
+    system from Misos et. al. (2007) using the parameters referenced in the 
+    paper.
     
     x_1^0 = 0.5 is an unstable point.
     """
@@ -72,7 +73,7 @@ def g_x_test_func(s, p, k=None, ref='x'):
     a_21 = 0.391965#**(-1.0) # Checked. Should be a_12 in Mitsos, see SvA p 448
     
     for i in range(1, p.m['n']+1): 
-        if s.c[i]['x'] <= 1e-9:  # Prevent math errors from zero log call.
+        if s.c[i]['x'] <= 1e-20:  # Prevent math errors from zero log call.
             s.m['g_mix'] = {}
             s.m['g_mix']['t'] = 0.0
             s.m['g_mix']['x'] = s.m['g_mix']['t']
@@ -88,9 +89,74 @@ def g_x_test_func(s, p, k=None, ref='x'):
                         / (s.c[1]['x'] + s.c[2]['x'] * e**(- a_21 * t_21))))
                         
     s.m['g_mix']['x'] = s.m['g_mix']['t']
+    s.m['g_mix']['ph min'] = 'x'
     return s
                                                 
-             
+def g_x_test_func2(s, p, k=None, ref='x'):
+    """
+    This is the test function of a trenary NRTL Model of the toluene_water_
+    aniline system from Misos et. al. (2007) using the parameters referenced
+    in the paper.
+    
+    x_1^0 = [0.3, 0.2] is an unstable point.
+    """
+    from math import log, e 
+    t_12 = 4.93035  # tau paramters
+    t_21 = 7.77063
+    t_13 = 1.59806
+    t_31 = 0.03509
+    t_23 = 4.18462
+    t_32 = 1.27932
+    
+    a_12 = 0.2485  # Alpha paramters
+    a_21 = a_12
+    a_13 = 0.3000
+    a_31 = a_13 
+    a_23 = 0.3412
+    a_32 = a_23
+    
+    for i in range(1, p.m['n']+1): 
+        if s.c[i]['x'] <= 1e-20:  # Prevent math errors from zero log call.
+            s.m['g_mix'] = {}
+            s.m['g_mix']['t'] = 0.0
+            s.m['g_mix']['x'] = s.m['g_mix']['t']
+            return s  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
+
+
+    s.m['g_mix'] = {}
+    s.m['g_mix']['t'] = ( s.c[1]['x'] * log(s.c[1]['x']) 
+                        + s.c[2]['x'] * log(s.c[2]['x']) 
+                        + s.c[3]['x'] * log(s.c[3]['x']) 
+                        
+                        + s.c[1]['x'] * 
+                        (t_21 * e**(-a_21 * t_21) * s.c[2]['x'] 
+                         + t_31 * e**(-a_31 * t_31) * s.c[3]['x'])
+                        / (s.c[1]['x']  
+                           + e**(-a_21 * t_21) * s.c[2]['x']  
+                           + e**(-a_31 * t_31) * s.c[3]['x']
+                           )
+                        
+                        + s.c[2]['x'] * 
+                        (t_12 * e**(-a_12 * t_12) * s.c[1]['x'] 
+                         + t_32 * e**(-a_32 * t_32) * s.c[3]['x'])
+                        / (e**(-a_12 * t_12) * s.c[1]['x'] 
+                           + s.c[2]['x']  
+                           + e**(-a_32 * t_32) * s.c[3]['x']
+                           )
+                                                
+                        + s.c[3]['x'] * 
+                        (t_13 * e**(-a_13 * t_13) * s.c[1]['x'] 
+                         + t_23 * e**(-a_23 * t_23) * s.c[2]['x'])
+                          / (e**(-a_13 * t_13) * s.c[1]['x'] 
+                           + e**(-a_23 * t_23) * s.c[2]['x'] 
+                           + s.c[3]['x']
+                           )
+                        )
+                        
+    s.m['g_mix']['x'] = s.m['g_mix']['t']
+    s.m['g_mix']['ph min'] = 'x'
+    return s       
+    
 # %%
 if __name__ == '__main__':
     # %% Load Data
@@ -159,7 +225,24 @@ if __name__ == '__main__':
 #    if False: # Test Binary NRTL Mitsos et al 
 #        g_range_test(s, p, x_r=1000)
 #        plot_dg_mix_test(s,p)
-    
+    #%% Gibbs surface tests
+    if True: # Trenary test function
+        s = s.update_state(s, p, P=101e3, T=293.15, # irrelevant in NRTL func
+                           X=[0.1,0.1], Force_Update=True)  
+                           
+        Tie = [[-0.407050993421,# -0.3247905329, # G_P
+                0.34759,        # x_1
+                0.0917013,      # lambda_1
+                0.07562,        # x_2
+                0.46985]        # lambda_2
+                ]       
+                           
+        plot_g_mix(s, p, g_x_test_func2, Tie=Tie, x_r=100)
+        
+        s = s.update_state(s, p, # irrelevant in NRTL func
+                           X=[0.34759, 0.07562], Force_Update=True)  
+        print g_x_test_func2(s, p, k=None, ref='x').m['g_mix']['t']
+        
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests   
          
@@ -227,7 +310,7 @@ if __name__ == '__main__':
         print '='*25
         
     #%% Jacobian and Hessian tests.
-    if True: # Binary
+    if False: # Binary
         if False: # b_mix tests
             #X_d = [[0.6, 0.4], [0.6, 0.4]]#array([0.6, 0.6]) 
             X_d = [0.5]
@@ -250,7 +333,7 @@ if __name__ == '__main__':
 
 
     #%% phase_seperation_detection tests.
-    if True: # Binary test func Mitsos et al. 1
+    if False: # Binary test func Mitsos et al. 1
         if False: # Test an unstable and stable point
             X_d = [0.13]
             s.update_state(s, p, P=24e5, T=263.1,  X = X_d) 
@@ -271,6 +354,9 @@ if __name__ == '__main__':
                                                P=101e3, T=300.0,
                                                n=100,
                                                LLE_only=True)
+                                               
+                plot_g_mix(s, p, g_x_test_func,  
+                           Tie= s.m['ph equil']['x'], x_r=1000)
         
             if True: # Test CO2-ethane VLE
                 p.m['r'], p.m['s'] = 1.0, 1.0
@@ -288,7 +374,26 @@ if __name__ == '__main__':
 
         # P_new = P_new[(P_new[:,i] < min(s.m['X_I'][i], s.m['X_II'][i])) 
                      #&  (P_new[:,i] >  max(s.m['X_I'][i], s.m['X_II'][i]))]
-        
+
+
+    #%% data range tests
+    if False: # CO2_Ethane range
+        p.m['r'], p.m['s'] = 1.0, 1.0
+        p.m['k'][1][2] = 0.124
+        p.m['k'][2][1] = p.m['k'][1][2]
+        equilibrium_range(g_mix, s, p, n=100, VLE_only=True)
+
+
+
+
+
+
+
+
+
+
+
+
 #%%
 #A = ['x', 'y', 'a', 'b']
 #len(A)
