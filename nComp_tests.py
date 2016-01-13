@@ -77,6 +77,7 @@ def g_x_test_func(s, p, k=None, ref='x'):
             s.m['g_mix'] = {}
             s.m['g_mix']['t'] = 0.0
             s.m['g_mix']['x'] = s.m['g_mix']['t']
+            s.m['g_mix']['ph min'] = 'x'
             return s  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
             
     s.m['g_mix'] = {}
@@ -120,6 +121,7 @@ def g_x_test_func2(s, p, k=None, ref='x'):
             s.m['g_mix'] = {}
             s.m['g_mix']['t'] = 0.0
             s.m['g_mix']['x'] = s.m['g_mix']['t']
+            s.m['g_mix']['ph min'] = 'x'
             return s  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
 
 
@@ -226,7 +228,7 @@ if __name__ == '__main__':
 #        g_range_test(s, p, x_r=1000)
 #        plot_dg_mix_test(s,p)
     #%% Gibbs surface tests
-    if True: # Trenary test function
+    if False: # Trenary test function
         s = s.update_state(s, p, P=101e3, T=293.15, # irrelevant in NRTL func
                            X=[0.1,0.1], Force_Update=True)  
                            
@@ -245,23 +247,35 @@ if __name__ == '__main__':
         
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests   
-         
-        if False: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  True: Validated 
+        if False: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  Validated 
             Z_0 = array([0.13])
             Z_0 = array([0.5])
             s = phase_equilibrium_calculation(s, p, g_x_test_func, Z_0, k=None,
-                                      P=101e3, T=300.0, 
-               tol=1e-9, Print_Results=True, Plot_Results=True)   
-            
+                                              P=101e3, T=300.0, 
+                                              tol=1e-9, 
+                                              Print_Results=True, 
+                                          Plot_Results=True)   
+
+        if True: #%% TEST CURVE 2 Mitsos et al. (2007)  ##  Validated 
+            Z_0 = array([0.3, 0.2])
+            s = phase_equilibrium_calculation(s, p, g_x_test_func2, Z_0, 
+                                              k=None,
+                                              P=101e3, T=300.0, 
+                                              tol=1e-9, 
+                                              Print_Results=True, 
+                                              Plot_Results=True) 
+        
         #% CO2-Ethane test 
-        if False:
+        if False:  ##  Validated 
             p.m['r'], p.m['s'] = 1.0, 1.0
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = p.m['k'][1][2]
             Z_0 = array([0.25])
             s = phase_equilibrium_calculation(s, p, g_mix, Z_0, k=None,
-                                      P=24e5, T=263.1, 
-               tol=1e-9, Print_Results=True, Plot_Results=True) 
+                                              P=24e5, T=263.1, 
+                                              tol=1e-9, 
+                                              Print_Results=True, 
+                                              Plot_Results=True) 
 
 
     #%% Isotherm tests

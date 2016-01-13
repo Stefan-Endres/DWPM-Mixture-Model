@@ -1223,13 +1223,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     Bounds = []
     for i in range(len(Z_0)):
         if Z_0[i] <= X_I[i]:
-            Bounds.append((1e-6, Z_0))
+            Bounds.append((1e-6, Z_0[i]))
         if Z_0[i] > X_I[i]:
-            Bounds.append((Z_0, 0.99999))
+            Bounds.append((Z_0[i], 0.99999))
 
     # Calculate second point from redifined gobal func. 
-    Args= (g_x_func, Lambda_d, X_I, s, p, ['All'])
-
+    Args = (g_x_func, Lambda_d, X_I, s, p, ['All'])
+    print Bounds
     X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5)
     
     # Find phase of eq. point II
@@ -1248,7 +1248,23 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Gibbs mix func with Tie lines
         from scipy import linspace
         print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
-        plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)    
+        print [[X_II, X_I]]
+        if p.m['n'] == 2: # Plot binary tie lines
+            plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)    
+            
+        if p.m['n'] == 3: # Plot ternary tie lines
+            s.update_state(s, p, P=P, T=T,  X = X_I, Force_Update=True)  
+            G_P = g_x_func(s, p).m['g_mix']['t']
+            print G_P
+            Tie = [[G_P,# -0.3247905329, # G_P # TODO
+                    X_I[0],                # x_1
+                    s.m['Lambda_d'][0],    # lambda_1
+                    X_I[1],                # x_2
+                    s.m['Lambda_d'][1]]    # lambda_2
+                    ] 
+            s.m['Lambda_d']
+            plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=50)    
+        
                 
         # Error func
         s.m['Lambda_d'] = Lambda_d 
