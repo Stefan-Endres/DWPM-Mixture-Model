@@ -57,13 +57,15 @@ if __name__ == '__main__':
 #    a = -1
 #    b = 6
 #    A = i4_sobol_generate(m, n, skip)  * (b - a) + a 
-        
+
+    test_atol = 1e-5
+
     r = [1, 2, 3] # random args for test func tuple
     s = True
     x1 = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=500, 
             skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False)
-    
+    numpy.testing.assert_allclose(x1, [0., 0.], atol=test_atol)
 
 #    x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500, 
 #            skip=1, k=None, 
@@ -79,6 +81,7 @@ if __name__ == '__main__':
     xR = tgo(Rosen, BoundsR, args=(), g_func=None, n=500, 
             skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False)
+    numpy.testing.assert_allclose(xR, [1., 1.], atol=test_atol)
 
     #%% Old
     pass
