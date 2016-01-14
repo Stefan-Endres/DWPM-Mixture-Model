@@ -104,6 +104,7 @@ class VdW:
         ------------
         numpy, math
         """   
+        import logging
         from math import sqrt, acos, cos, pi
         try:
             # Coefficients of V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
@@ -150,9 +151,12 @@ class VdW:
         
         if abs(V_roots[0].imag) > 0.1 or abs(V_roots[1].imag) > 0.1 \
                                       or abs(V_roots[2].imag) > 0.1:
-            print "Warning: large imaginary roots in VdW.VRoot = %f, %f, %f"\
-            %( V_roots[0].imag,V_roots[1].imag,V_roots[2].imag)
-  
+            
+            logging.warn('large imaginary roots in VdW.VRoot = '
+                          + '{}, {}, {}'.format(V_roots[0].imag,
+                                                V_roots[1].imag,
+                                                V_roots[2].imag)
+                         )
         return s
         
     #%%  
@@ -187,6 +191,7 @@ class VdW:
         numpy, math
       
         """
+        import logging
         from math import log # NOTE: math.log is the natural logarithm, not b10   
         from scipy.optimize import fsolve                    
         s = self.a_T(s,p)    # Update s['a'] at specified T for given p['m']
@@ -207,7 +212,9 @@ class VdW:
                 raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
                 ' to use a lower starting value s[\'P\'] before executing the'\
                 +' function')
-                print 'WARNING: Value error in P_maxwell, P = %f' %s['P'] 
+                logging.warn('Value error in P_maxwell, P = '
+                             + '{}'.format(s['P'])
+                             )
  
         try:
             s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
