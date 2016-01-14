@@ -61,27 +61,27 @@ class TestFunctions(unittest.TestCase):
         r = [1, 2, 3] # random args for test func tuple
         s = True
         x1 = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=500,
-                skip=1, k_t=None,
-            callback=None, minimizer_kwargs=None, disp=False)
+                 skip=1, k_t=None,
+                 callback=None, minimizer_kwargs=None, disp=False)
         numpy.testing.assert_allclose(x1, [0., 0.], atol=test_atol)
 
+    @unittest.skip("OverflowError")
     def test_f_test_3(self):
-        pass
-    #    x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500,
-    #            skip=1, k=None,
-    #        callback=None, minimizer_kwargs=None, disp=False)
+        x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500,
+                 skip=1, k=None,
+                 callback=None, minimizer_kwargs=None, disp=False)
 
         # OverflowError: Python int too large to convert to C long
         #   Func_min[i] = func(x_min, *args)
         # Why?
-        # To do implement bounds in local search function
+        # TODO: implement bounds in local search function
         # >>> f_test_3([ -1.04572783e+08,-3.42296527e+08])
         # -4.12493867624096e+25
 
     def test_rosen(self):
         xR = tgo(Rosen, BoundsR, args=(), g_func=None, n=500,
-                skip=1, k_t=None,
-            callback=None, minimizer_kwargs=None, disp=False)
+                 skip=1, k_t=None,
+                 callback=None, minimizer_kwargs=None, disp=False)
         numpy.testing.assert_allclose(xR, [1., 1.], atol=test_atol)
 
 
@@ -92,8 +92,6 @@ if __name__ == '__main__':
     unittest.main()
 
     #%% Old
-    pass
-    
     if False: # (Old practice funcs an alternatives)
         m = 3 # dimensions
         n = 1000 # points
@@ -187,45 +185,3 @@ if __name__ == '__main__':
         Minimizers_indices = numpy.where(Minimizers)[0]
     #    for i in Minimizers_indices:
     #        print i
-        
-
-        
-        
-        
-        
-        
-        
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
