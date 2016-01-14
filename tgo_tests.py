@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 """
-#from __future__ import division, print_function, absolute_import
-from UQToolbox.sobol_lib import i4_sobol_generate
-import numpy
-import scipy
-from tgo import tgo
-import scipy.spatial
-import scipy.optimize
+# from __future__ import division, print_function, absolute_import
 import unittest
+
+import numpy
+
+from tgo import tgo
+
 
 class TestFunction(object):
     def __init__(self, bounds, expected):
         self.bounds = bounds
         self.expected = expected
+
 
 class Test1(TestFunction):
     def f(self, x, r, s):
@@ -23,10 +23,12 @@ class Test1(TestFunction):
     def g(self, C):
         return numpy.sum(C, axis=1) - 6.0 <= 0.0
 
+
 test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
                 expected=[0, 0])
 test1_2 = Test1(bounds=[(0, 1), (0, 1)],
                 expected=[0, 0])
+
 
 class Test3(TestFunction):
     """
@@ -35,51 +37,43 @@ class Test3(TestFunction):
     Approx. Answer:
         f_test_3([14.095, 0.84296]) = -6961.814744487831
     """
+
     def f(self, x):
         return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
 
     def g(self, C):
-        return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
-                & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+        return ((-(C[:, 0] - 5)**2 - (C[:, 1] - 5)**2 - 100.0 <= 0.0)
+                & ((C[:, 0] - 6)**2 - (C[:, 1] - 5)**2 - 82.81 <= 0.0))
 
 
-#FIXME: The bounds appear not to include the expected value
+# FIXME: The bounds appear not to include the expected value
 test3 = Test3(bounds=[(13.0, 100.0), (0.0, 100.0)],
               expected=[14.095, 0.84296])
+
 
 class Rosenbrock(TestFunction):
     """ Rosenbrock's function  Ans x1 = 1, x2 = 1, f = 0 """
     g = None
+
     def f(self, x):
-        return (1.0 - x[0])**2.0 + 100.0 * (x[1] - x[0]**2.0)**2.0
+        return (1.0 - x[0])**2.0 + 100.0*(x[1] - x[0]**2.0)**2.0
+
 
 rosen = Rosenbrock(bounds=[(-3.0, 3.0), (-3.0, 3.0)],
                    expected=[1, 1])
 
-def plot_2D_sequance(B):
-    """Plot the generated sequence to visualize uniformity of distrubtion."""
-    from matplotlib import pyplot as plot
-    plot.figure()
-    #plot.plot(B[0], B[1], 'x')
-    #plot.plot([0,1], [1,0], 'r--')
-    #plot.figure(2)
-    plot.plot(B[:,0], B[:,1], 'x')
-    plot.plot([0,1], [1,0], 'r--')
-
-    return
-
 test_atol = 1e-5
 
+
 def run_test(test, args=()):
-    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500,
-            skip=1, k_t=None,
-            callback=None, minimizer_kwargs=None, disp=False)
+    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500)
 
     numpy.testing.assert_allclose(x, test.expected, atol=test_atol)
 
+
 class TestFunctions(unittest.TestCase):
     def test_1(self):
-        r = [1, 2, 3] # random args for test func tuple
+        r = [1, 2, 3]  # random args for test func tuple
         s = True
         run_test(test1_1, args=(r, s))
 
