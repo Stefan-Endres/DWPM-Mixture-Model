@@ -1,6 +1,9 @@
 # Compiled files 
 *.pyc
 
+# Logs
+*.log
+
 # Test scripts
 Sobol_Tests.py
 

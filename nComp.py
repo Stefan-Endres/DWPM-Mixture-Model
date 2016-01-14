@@ -650,14 +650,14 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     p : class
         Contains the dictionary describing the parameters.
         
-    k : string, optional # TO DO UNFINISHED
+    k : string, optional # TODO UNFINISHED
         Force phase to be calculated, ex. liquid phase 'x'. 
         
     ref : string, optional
           Selected reference phase. Note that is common practice to choose a
           liquid phase 'x' as the reference phase.
           
-    update_system : boolean, optional # TO DO UNFINISHED
+    update_system : boolean, optional # TODO UNFINISHED
                     This updates the system state to the current P, T and 
                     composition conditions. Only use if the system dictionary 
                     has not been updated to the current independent variables.
@@ -678,7 +678,8 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
           s.s['Math Error'] : boolean, if True a math error occured during
                                        calculations. All other values set to 0.
     """
-    if update_system: # TO DO TEST
+    import logging
+    if update_system: # TODO TEST
         Xvec = [[]] # Construct update vector
         for i in range(1, p.m['n']): # for n-1 independent components
             Xvec[0].append(s.c[i][k])
@@ -716,7 +717,7 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
         s.m['g_mix'] = {}
         g_min = []
         s.s['Math Error'] = True
-        print 'WARNING: Math Domain error in g_mix(s,p)!'
+        logging.error('Math Domain error in g_mix(s,p)')
         for ph in p.m['Valid phases']:
                 s.m['g_mix'][ph] = 0.0
 
@@ -727,7 +728,7 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
 # %% Duality formulation
 def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): # 
     """
-    TO DO: Improve bounds
+    TODO: Improve bounds
     
     Returns the upper bounding problem of the dual extremum. Return is negative
     to change to minimization problem.
@@ -870,16 +871,16 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
 def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
                tol=1e-2):
     """
-    Dev notes and TO DO list
+    Dev notes and TODO list
     -----------------------
-    TO DO: -Add valid phases option.
-           -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
+    TODO: -Add valid phases option.
+          -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
             hyperplanes.
-           -Construct bounds which is a list of tuples in [0,1] \in R^n
-           -UBD X_d[0] --> X_d
-           -Lambda_Sol: Allow for multiple solutions and impliment bounds to
+          -Construct bounds which is a list of tuples in [0,1] \in R^n
+          -UBD X_d[0] --> X_d
+          -Lambda_Sol: Allow for multiple solutions and impliment bounds to
                         find any other solutions if they exist.
-           -Lambda_Sol bounds method: The current implementation is only viable
+          -Lambda_Sol bounds method: The current implementation is only viable
                                       for binary systems. Improve.
                                       
     NOTES: -Strictly the composition in all phases in should be specified in
@@ -1023,11 +1024,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     """
     
-TO DO, Why does returning the natiove present an objective function with the
+TODO: Why does returning the natiove present an objective function with the
     second minimizer of the equilibrium problem as the global minima?
     Is this true for all systems?
 
-TO DO, Check method for changing lambda to change goal func to a global minima
+TODO: Check method for changing lambda to change goal func to a global minima
        of corressponding solution.
 
 
@@ -1146,7 +1147,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                    If True the g_mix curve with tie lines will be plotted for 
                    binary and trenary systems.
                    
-    Returns  # TO DO
+    Returns  # TODO
     -------
     
     
@@ -1517,7 +1518,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     p : class
         Contains the dictionary describing the parameters.
 
-    P : scalar  # TO DO: Add optional specification or update
+    P : scalar  # TODO: Add optional specification or update
         Pressure (Pa), if unspecified the current state pressure will be used.
 
     T : scalar
@@ -1601,7 +1602,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                               Plot_Results=False) 
                     
                     s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
-                    # TO DO: Improve finding feasible subspace of points.
+                    # TODO: Improve finding feasible subspace of points.
                     P_new = Points[(i+1):]
 
                     P_new = subset_eqp(P_new, s.m['X_I'], s.m['X_II'])
@@ -1987,7 +1988,7 @@ if __name__ == '__main__':
 
     # %% Find pure component model parameters if not defined
     for compound in I['Compounds']:
-        if False:  # TO DO: ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
+        if False:  # TODO: ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
             I['Compound'] = [compound]
             execfile('pure.py')
 

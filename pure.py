@@ -6,6 +6,7 @@
 #%% Imports
 from __future__ import division
 from scipy.interpolate import interp1d
+import logging
 import data_handling, Van_der_Waals, numpy
 VdW = Van_der_Waals.VdW()
 #'''
@@ -208,24 +209,24 @@ if __name__ == '__main__':
                                              /(64*p['P_c'])
             if not numpy.round(p['b_c'],8) == \
                    numpy.round(data.c[0]['b_c (m3 mol-1)'],8):
-                from termcolor import colored
-                print colored('WARNING: Calculated parameter for \'b_c\' does'
-                 'not match stored data value.','red') 
-                print colored('WARNING: Changing data value for \'b_c\' from'
-                 ' \'b_c\' =','red') + colored(' %s' % p['b_c'], 
-                 'magenta')  + colored(' to \'b_c\' = ','red') \
-                 + colored(' %s' % data.c[0]['b_c'], 'magenta')
+                logging.warn('Calculated parameter for \'b_c\' does'
+                              + 'not match stored data value')
+                logging.warn('Changing data value for \'b_c\' from'
+                             + ' \'b_c\' = {}'.format(p['b_c']) 
+                             + ' to \'b_c\' = {}'.format(data.c[0]['b_c'])
+                             )
+                 
                 p['b_c'] = data.c[0]['b_c']
             
             if not numpy.round(p['a_c'],8) == \
                    numpy.round(data.c[0]['a_c (Pa m6 mol-2)'],8):
-                from termcolor import colored
-                print colored('WARNING: Calculated parameter for \'a_c\' does'
-                'not match stored data value.','red') 
-                print colored('WARNING: Changing data value for \'a_c\' from'
-                ' \'a_c\' =','red') + colored(' %s' % p['a_c'], 
-                'magenta')  + colored(' to \'a_c\' = ','red') \
-                + colored(' %s' % data.c[0]['a_c'], 'magenta')
+                logging.warn(' Calculated parameter for \'a_c\' does'
+                              + 'not match stored data value.')
+                logging.warn(' Changing data value for \'a_c\' from'
+                             + ' \'a_c\' = {}'.format(p['a_c'])
+                             + ' to \'a_c\' = {}'.format(data.c[0]['a_c'])
+                             )
+                
                 p['a_c'] = data.c[0]['a_c']
                 
         except(NameError,KeyError):
@@ -266,9 +267,9 @@ if __name__ == '__main__':
                                  Vl = s['V_l']))
                                   
     #%% Find phase equilibrium at specified Pressure point (P, V_v and V_l)
-    try: #TODO
+    try: #TODO:
         if I['P']: # Note that if I['P'] is > 0 then the boolean is 'True'
-            pass#VdW.Tsat_V_roots(s,p) # NOTE TO DO!
+            pass#VdW.Tsat_V_roots(s,p) # NOTE TODO!
     except(KeyError):
         pass
     

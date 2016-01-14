@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
     # %% Find pure component model parameters if not defined
     for compound in I['Compounds']:
-        if False:  # TO DO ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
+        if False:  # TODO ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
             I['Compound'] = [compound]
             execfile('pure.py')
 

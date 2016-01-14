@@ -17,7 +17,7 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     Finds the global minima of a function using topograhphical global 
     optimisation.
     
-    Parameters TO DO: REVIEW DOC
+    Parameters TODO: REVIEW DOC
     ---------- 
     func : callable
         The objective function to be minimized.  Must be in the form
@@ -73,17 +73,17 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
         potentially be more robust due to testing more local minimizers in the
         function hypersuface)
 
-TO DO:    disp : bool, optional
+TODO:    disp : bool, optional
         Display status messages
 
-TO DO:    callback : callable, `callback(xk, convergence=val)`, optional:
+TODO:    callback : callable, `callback(xk, convergence=val)`, optional:
         A function to follow the progress of the minimization. ``xk`` is
         the current value of ``x0``. ``val`` represents the fractional
         value of the population convergence.  When ``val`` is greater than one
         the function halts. If callback returns `True`, then the minimization
         is halted (any polishing is still carried out).
         
-TO DO:    minimizer_kwargs : dict, optional
+TODO:    minimizer_kwargs : dict, optional
         Extra keyword arguments to be passed to the minimizer
         ``scipy.optimize.minimize()`` Some important options could be:
 
@@ -107,7 +107,7 @@ TO DO:    minimizer_kwargs : dict, optional
     -----
     Global optimization using the Topographical Global Optimization (TGO)
     method first proposed by Törn (1990) [1] with 
-    [ TO DO: EXPLAIN k-t matrix use]
+    [ TODO: EXPLAIN k-t matrix use]
     Hendorson et. al. (2015) [2].
     
     The TGO is a clustering method that uses graph theory to generate good 
@@ -117,7 +117,7 @@ TO DO:    minimizer_kwargs : dict, optional
 
     Examples
     --------
-    TO DO
+    TODO
     
     References
     ----------
@@ -133,14 +133,14 @@ TO DO:    minimizer_kwargs : dict, optional
            7, 86-112.
 
     """
-    # %% Define funcs # TO DO: MOve
+    # %% Define funcs # TODO: MOve
     def t_matrix(H, F):
         """
         Returns the topographical matrix with True boolean values indicating
         positive entries and False ref. values indicating negative values.
         """ 
         H2 = numpy.empty_like(H, dtype=bool)
-        for i in range(numpy.shape(H)[0]):  # TO DO: Numpy operation to replace 
+        for i in range(numpy.shape(H)[0]):  # TODO: Numpy operation to replace 
             H2[i,:] = (H[i,:] > F[i])       # this for this loop?
         
         return H2
@@ -182,17 +182,17 @@ TO DO:    minimizer_kwargs : dict, optional
         return K_opt
               
     # %% Generate sampling points.
-    m = len(bounds)  # Dimensions # TO DO Assert if func output matches dims.
+    m = len(bounds)  # Dimensions # TODO Assert if func output matches dims.
     #print m
     B = i4_sobol_generate(m, n, skip)  # Generate uniform sample points in R^m
     C = numpy.column_stack([B[i] for i in range(m)])
 
     # Distribute over bounds
-    # TO DO: Find a better way to do this
+    # TODO: Find a better way to do this
     for i in range(len(bounds)):
         C[:,i] = C[:,i] * (bounds[i][1] - bounds[i][0]) + bounds[i][0]
     
-    if g_func is not None: # TO DO: Improve
+    if g_func is not None: # TODO: Improve
         C =  C[g_func(C)]  # Subspace of usable points.
     
     Y = scipy.spatial.distance.cdist(C, C, 'euclidean')
@@ -203,7 +203,7 @@ TO DO:    minimizer_kwargs : dict, optional
     F = numpy.zeros(numpy.shape(C)[0]) 
     for i in range(numpy.shape(C)[0]):
         F[i] = func(C[i,:], *args)
-    # To Do see scipy.spatial.KDTree for F lookup
+    # TODO: see scipy.spatial.KDTree for F lookup?
 
     # %% Create float value and bool topograph:
     H = F[A] # This replaces all index values in A with the function result
@@ -217,7 +217,7 @@ TO DO:    minimizer_kwargs : dict, optional
         K_opt = k_t
     # %% Local Search: Find the minimzer float values and 
 
-#TO DO IMPROVE
+#TODO: IMPROVE
 
     Min_ind = Minimizers(K_opt)
     x_vals = []
