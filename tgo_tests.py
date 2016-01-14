@@ -56,18 +56,6 @@ class Rosenbrock(TestFunction):
 rosen = Rosenbrock(bounds=[(-3.0, 3.0), (-3.0, 3.0)],
                    expected=[1, 1])
 
-def plot_2D_sequance(B):
-    """Plot the generated sequence to visualize uniformity of distrubtion."""
-    from matplotlib import pyplot as plot
-    plot.figure()
-    #plot.plot(B[0], B[1], 'x')
-    #plot.plot([0,1], [1,0], 'r--')
-    #plot.figure(2)
-    plot.plot(B[:,0], B[:,1], 'x')
-    plot.plot([0,1], [1,0], 'r--')
-
-    return
-
 test_atol = 1e-5
 
 def run_test(test, args=()):
