@@ -171,7 +171,7 @@ TODO:    minimizer_kwargs : dict, optional
             i += 1
             
         ep = i * k_i / (k_1 - k_i)
-        k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)--2 + 80.0 * ep))
+        k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
                           / 2.0)
         
         k_opt = int(k_c + 1)
