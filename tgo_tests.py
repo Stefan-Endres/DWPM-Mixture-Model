@@ -11,36 +11,52 @@ import scipy.spatial
 import scipy.optimize
 import unittest
 
-def f_test_1(x, r, s): # Test function, bounds: -1 =< x_i =< 6
-    return x[0]**2 + x[1]**2
-    
-Bounds1 = [(-1, 6), (-1, 6)]
+class TestFunction(object):
+    def __init__(self, bounds, expected):
+        self.bounds = bounds
+        self.expected = expected
 
-Bounds2 = [(0, 1), (0, 1)]
+class TestFunctionWithG(TestFunction):
+    pass
 
-def g_test_1(C):
-    return numpy.sum(C, axis=1) - 6.0 <= 0.0# 
+class Test1(TestFunctionWithG):
+    def f(self, x, r, s):
+        return x[0]**2 + x[1]**2
 
+    def g(self, C):
+        return numpy.sum(C, axis=1) - 6.0 <= 0.0
 
-def f_test_3(x): # Test function, bounds: -1 =< x_i =< 6
+test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
+                expected=[0, 0])
+test1_2 = Test1(bounds=[(0, 1), (0, 1)],
+                expected=[0, 0])
+
+class Test3(TestFunctionWithG):
     """
     Hock and Schittkowski 19 problem (HS19). Hoch and Schittkowski (1991)
-    
+
     Approx. Answer:
         f_test_3([14.095, 0.84296]) = -6961.814744487831
     """
-    return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
-    
-Bounds3 = [(13.0, 100.0), (0.0, 100.0)]
+    def f(self, x):
+        return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
 
-def g_test_3(C):
-     return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
-             & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
-             
-def Rosen(x): # Rosenbrock's function # Ans x1 = 1, x2 = 2, f = 0
-        return (1.0 - x[0])**2.0 + 100.0 * (x[1] - x[0]**2.0)**2.0 
-        
-BoundsR = [(-3.0, 3.0), (-3.0, 3.0)]
+    def g(self, C):
+        return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
+                & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+
+
+#FIXME: The bounds appear not to include the expected value
+test3 = Test3(bounds=[(13.0, 100.0), (0.0, 100.0)],
+              expected=[14.095, 0.84296])
+
+class Rosenbrock(TestFunction):
+    """ Rosenbrock's function  Ans x1 = 1, x2 = 1, f = 0 """
+    def f(self, x):
+        return (1.0 - x[0])**2.0 + 100.0 * (x[1] - x[0]**2.0)**2.0
+
+rosen = Rosenbrock(bounds=[(-3.0, 3.0), (-3.0, 3.0)],
+                   expected=[1, 1])
 
 def plot_2D_sequance(B):
     """Plot the generated sequence to visualize uniformity of distrubtion."""
@@ -57,32 +73,34 @@ def plot_2D_sequance(B):
 test_atol = 1e-5
 
 class TestFunctions(unittest.TestCase):
-    def test_f_test_1(self):
+    def test_1(self):
         r = [1, 2, 3] # random args for test func tuple
         s = True
-        x1 = tgo(f_test_1, Bounds1, args=(r,s), g_func=g_test_1, n=500,
-                 skip=1, k_t=None,
-                 callback=None, minimizer_kwargs=None, disp=False)
-        numpy.testing.assert_allclose(x1, [0., 0.], atol=test_atol)
+        x = tgo(test1_1.f, test1_1.bounds, args=(r,s),
+                g_func=test1_1.g, n=500,
+                skip=1, k_t=None,
+                callback=None, minimizer_kwargs=None, disp=False)
+        numpy.testing.assert_allclose(x, test1_1.expected, atol=test_atol)
+
 
     @unittest.skip("OverflowError")
-    def test_f_test_3(self):
-        x3 = tgo(f_test_3, Bounds3, args=(), g_func=g_test_3, n=500,
-                 skip=1, k=None,
-                 callback=None, minimizer_kwargs=None, disp=False)
+    def test_3(self):
+        x = tgo(test3.f, test3.bounds, args=(), g_func=test3.g, n=500,
+                skip=1, k=None,
+                callback=None, minimizer_kwargs=None, disp=False)
 
         # OverflowError: Python int too large to convert to C long
         #   Func_min[i] = func(x_min, *args)
         # Why?
         # TODO: implement bounds in local search function
-        # >>> f_test_3([ -1.04572783e+08,-3.42296527e+08])
+        # >>> test3.f([ -1.04572783e+08,-3.42296527e+08])
         # -4.12493867624096e+25
 
     def test_rosen(self):
-        xR = tgo(Rosen, BoundsR, args=(), g_func=None, n=500,
+        x = tgo(rosen.f, rosen.bounds, args=(), g_func=None, n=500,
                  skip=1, k_t=None,
                  callback=None, minimizer_kwargs=None, disp=False)
-        numpy.testing.assert_allclose(xR, [1., 1.], atol=test_atol)
+        numpy.testing.assert_allclose(x, rosen.expected, atol=test_atol)
 
 
 if __name__ == '__main__':
