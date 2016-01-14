@@ -1567,7 +1567,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     
     # Generate sampling points.
     import numpy
-    from sobol_lib import i4_sobol_generate
+    from UQToolbox.sobol_lib import i4_sobol_generate
     from tgo import tgo
     m = p.m['n'] - 1
     skip = 4
