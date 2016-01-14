@@ -16,10 +16,7 @@ class TestFunction(object):
         self.bounds = bounds
         self.expected = expected
 
-class TestFunctionWithG(TestFunction):
-    pass
-
-class Test1(TestFunctionWithG):
+class Test1(TestFunction):
     def f(self, x, r, s):
         return x[0]**2 + x[1]**2
 
@@ -31,7 +28,7 @@ test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
 test1_2 = Test1(bounds=[(0, 1), (0, 1)],
                 expected=[0, 0])
 
-class Test3(TestFunctionWithG):
+class Test3(TestFunction):
     """
     Hock and Schittkowski 19 problem (HS19). Hoch and Schittkowski (1991)
 
@@ -52,6 +49,7 @@ test3 = Test3(bounds=[(13.0, 100.0), (0.0, 100.0)],
 
 class Rosenbrock(TestFunction):
     """ Rosenbrock's function  Ans x1 = 1, x2 = 1, f = 0 """
+    g = None
     def f(self, x):
         return (1.0 - x[0])**2.0 + 100.0 * (x[1] - x[0]**2.0)**2.0
 
@@ -72,22 +70,22 @@ def plot_2D_sequance(B):
 
 test_atol = 1e-5
 
+def run_test(test, args=()):
+    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500,
+            skip=1, k_t=None,
+            callback=None, minimizer_kwargs=None, disp=False)
+
+    numpy.testing.assert_allclose(x, test.expected, atol=test_atol)
+
 class TestFunctions(unittest.TestCase):
     def test_1(self):
         r = [1, 2, 3] # random args for test func tuple
         s = True
-        x = tgo(test1_1.f, test1_1.bounds, args=(r,s),
-                g_func=test1_1.g, n=500,
-                skip=1, k_t=None,
-                callback=None, minimizer_kwargs=None, disp=False)
-        numpy.testing.assert_allclose(x, test1_1.expected, atol=test_atol)
-
+        run_test(test1_1, args=(r, s))
 
     @unittest.skip("OverflowError")
     def test_3(self):
-        x = tgo(test3.f, test3.bounds, args=(), g_func=test3.g, n=500,
-                skip=1, k=None,
-                callback=None, minimizer_kwargs=None, disp=False)
+        run_test(test3)
 
         # OverflowError: Python int too large to convert to C long
         #   Func_min[i] = func(x_min, *args)
@@ -97,10 +95,7 @@ class TestFunctions(unittest.TestCase):
         # -4.12493867624096e+25
 
     def test_rosen(self):
-        x = tgo(rosen.f, rosen.bounds, args=(), g_func=None, n=500,
-                 skip=1, k_t=None,
-                 callback=None, minimizer_kwargs=None, disp=False)
-        numpy.testing.assert_allclose(x, rosen.expected, atol=test_atol)
+        run_test(rosen)
 
 
 if __name__ == '__main__':
