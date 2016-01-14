@@ -1161,6 +1161,10 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     """
     # Calculate first minimizer
     from tgo import tgo
+    if True: # Print time
+        import timeit
+        A = timeit.time.time()
+        
     s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)  
     s = dual_equal(s, p, g_x_func, Z_0 , tol=tol)
     X_I = s.m['Z_eq']
@@ -1236,6 +1240,11 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     s.update_state(s, p, X = X_II, Force_Update=True)  
     s.m['Phase eq. II'] = g_x_func(s, p).m['g_mix']['ph min']
     
+    
+    if True: 
+        B = timeit.time.time()
+        print 'Total calculation time = {}'.format(B - A)
+        
     if Print_Results:
         print 'EQUILIBRIUM SOLUTIONS I: {} (phase = {})'.format(X_I, 
                                                             s.m['Phase eq. I'])
@@ -1263,7 +1272,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                     s.m['Lambda_d'][1]]    # lambda_2
                     ] 
             s.m['Lambda_d']
-            plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=50)    
+            plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)    
         
                 
         # Error func
