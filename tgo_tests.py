@@ -3,7 +3,7 @@
 """
 """
 #from __future__ import division, print_function, absolute_import
-from sobol_lib import i4_sobol_generate
+from UQToolbox.sobol_lib import i4_sobol_generate
 import numpy
 import scipy
 from tgo import tgo
