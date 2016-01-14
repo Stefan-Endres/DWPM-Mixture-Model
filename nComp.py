@@ -55,11 +55,6 @@ class MixParameters:
         M['k'] = []
         [M['k'].append(['nan']) for j in range(M['n'] + 1)]
 
-#        if I['Mixture model'] == 'VdW standard':
-#            for i in len(I):
-#                M['k12'] = Data['k1_VdW']
-#                M['k21'] = Data['k2_VdW']
-
         if I['Mixture model'] == 'DWPM':
             # Find the interaction paramters between and put them into
             # component lists (ex. Data['k12']  --> M['k'][1][2])
@@ -201,7 +196,8 @@ class state:
 
         Dependencies
         ------------
-        numpy.array
+        numpy
+        logging
     
         Returns
         -------
@@ -226,6 +222,7 @@ class state:
                            X=[[0.5,0.2],[0.2,0.2]])
             
         """
+        import logging
         from numpy import array, size
         # Independent updates
         if P is not None:  # Update pressure
@@ -315,9 +312,10 @@ class state:
                     
         except(ValueError, ZeroDivisionError): # DO NOT RAISE, SET PENALTY
             s.s['Math Error'] = True
-            print('WARNING: Math Domain error in s.update_state'
-                  +'at %s Pa %s K' %(s.s['P'],s.s['T']) )
-        
+            logging.warn('Math Domain error in s.update_state'
+                          +'at {} Pa {} K'.format(s.s['P'], s.s['T'])
+                             )
+                             
         try: # Default optimization state z
             s.m['a'] = a_mix(s, p, phase='x') 
             s.m['b'] = b_mix(s, p, phase='x')   
@@ -418,7 +416,6 @@ def a_mix(s, p, phase='x'):  # (Validated)
 def a_mix_partial_k(s, p, k=1, phase='x'):  # (Validated)
     """
     Returns a_mix_partial of component k in the specified phase.
-
 
     Parameters
     ----------
@@ -641,10 +638,6 @@ def g_IG_k(s, p, k='x'):  # (Validated)
     
 def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     """
-    TO DO: -Add float conversion for 1x1 arrays.
-           -Force 'k' lowest phase
-           -
-    
     Returns the gibbs energy at specified composition relative to a reference
     phase pure component gibbs energy.
     
@@ -877,7 +870,7 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
 def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
                tol=1e-2):
     """
-    Dev notes and TODO list
+    Dev notes and TO DO list
     -----------------------
     TO DO: -Add valid phases option.
            -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
@@ -1030,11 +1023,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     """
     
-TODO, Why does returning the natiove present an objective function with the
+TO DO, Why does returning the natiove present an objective function with the
     second minimizer of the equilibrium problem as the global minima?
     Is this true for all systems?
 
-TODO, Check method for changing lambda to change goal func to a global minima
+TO DO, Check method for changing lambda to change goal func to a global minima
        of corressponding solution.
 
 
@@ -1153,7 +1146,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                    If True the g_mix curve with tie lines will be plotted for 
                    binary and trenary systems.
                    
-    Returns  # TODO
+    Returns  # TO DO
     -------
     
     
@@ -1460,11 +1453,10 @@ def hessian(f, s, p, dx=1e-6, gmix=False, k =['All']):
     import numpy
     N = (p.m['n'] - 1)
     H = numpy.zeros(shape=(N,N))
-    #H[1, 1] = 3
-    #FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False)
     for m in range(1, N + 1):
         for z in range(1, N + 1):
             H[m - 1, z - 1] = FD(f, s, p, 2, z, m, dx, gmix, k)
+            
     return H
     
 # %% Stability and phase seperation
@@ -1503,7 +1495,6 @@ def stability(X, g_x_func, s, p, k):
     H = hessian(g_x_func, s, p, dx=1e-6, gmix=True, k=k)
     Heig = numpy.linalg.eig(H)[0]
     HBeig = (Heig > 0.0)
-    #return (numpy.all(numpy.linalg.eig(H)[0]) > numpy.array([0.0]))
     return numpy.all(HBeig)
 
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
@@ -1526,7 +1517,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     p : class
         Contains the dictionary describing the parameters.
 
-    P : scalar  # TODO: Add optional specification or update
+    P : scalar  # TO DO: Add optional specification or update
         Pressure (Pa), if unspecified the current state pressure will be used.
 
     T : scalar
@@ -1610,7 +1601,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                               Plot_Results=False) 
                     
                     s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
-                    # TODO: Improve finding feasible subspace of points.
+                    # TO DO: Improve finding feasible subspace of points.
                     P_new = Points[(i+1):]
 
                     P_new = subset_eqp(P_new, s.m['X_I'], s.m['X_II'])
@@ -1809,7 +1800,6 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
     
     #% Binary
     if p.m['n'] == 2:
-        from matplotlib import rc
         from matplotlib import pyplot as plot
         #% Initialize
         s.m['g_mix range'] = {} # Contains solutions for all phases
@@ -1870,11 +1860,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         def tie(X, T):
             G_p, x_1, lambda_1, x_2, lambda_2 = T
             return G_p + lambda_1 * (X[0] - x_1) + lambda_2 * (X[1] - x_2) 
-            
-        
-        #x_range = np.linspace(0.0, 1.0, x_r)
-        #y_range = np.linspace(0.0, 1.0, x_r)
-        
+                   
         x_range = np.linspace(1e-15, 1.0, x_r)
         y_range = np.linspace(1e-15, 1.0, x_r)
         xg, yg = np.meshgrid(x_range, y_range)
@@ -1938,7 +1924,6 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
             cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
             cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
         
-        
         # Planes
         rst = 4#10
         cst = 4#10
@@ -1963,7 +1948,6 @@ def plot_ep(func, X_r, s, p, args=()):
     """
     Plot the speficied single var input error function over a range X_r
     """
-    from matplotlib import rc
     from matplotlib import pyplot as plot
    # from numpy import float32
     #% Binary
@@ -2003,7 +1987,7 @@ if __name__ == '__main__':
 
     # %% Find pure component model parameters if not defined
     for compound in I['Compounds']:
-        if False:  # TO DO ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
+        if False:  # TO DO: ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
             I['Compound'] = [compound]
             execfile('pure.py')
 

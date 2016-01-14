@@ -14,14 +14,8 @@ import scipy.optimize
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False):
     """
-    Global optimization using the Topographical Global Optimization (TGO)
-    method first proposed by Törn (1990) with [ TODO: EXPLAIN k-t matrix use]
-    Hendorson et. al. (2015).
-    
-    The TGO is a clustering method that uses graph theory to generate good 
-    starting points for local search methods from points distributed uniformly 
-    in the interior of the feasible set. These points are generated using the 
-    Sobol (1967) sequence.
+    Finds the global minima of a function using topograhphical global 
+    optimisation.
     
     Parameters TO DO: REVIEW DOC
     ---------- 
@@ -79,17 +73,17 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
         potentially be more robust due to testing more local minimizers in the
         function hypersuface)
 
-TODO:    disp : bool, optional
+TO DO:    disp : bool, optional
         Display status messages
 
-TODO:    callback : callable, `callback(xk, convergence=val)`, optional:
+TO DO:    callback : callable, `callback(xk, convergence=val)`, optional:
         A function to follow the progress of the minimization. ``xk`` is
         the current value of ``x0``. ``val`` represents the fractional
         value of the population convergence.  When ``val`` is greater than one
         the function halts. If callback returns `True`, then the minimization
         is halted (any polishing is still carried out).
         
-TODO:    minimizer_kwargs : dict, optional
+TO DO:    minimizer_kwargs : dict, optional
         Extra keyword arguments to be passed to the minimizer
         ``scipy.optimize.minimize()`` Some important options could be:
 
@@ -108,19 +102,35 @@ TODO:    minimizer_kwargs : dict, optional
         ``message`` which describes the cause of the termination. See
         `OptimizeResult` for a description of other attributes. If `polish`
         was employed, then OptimizeResult also contains the `jac` attribute.
-        
+
+    Notes
+    -----
+    Global optimization using the Topographical Global Optimization (TGO)
+    method first proposed by Törn (1990) [1] with 
+    [ TO DO: EXPLAIN k-t matrix use]
+    Hendorson et. al. (2015) [2].
+    
+    The TGO is a clustering method that uses graph theory to generate good 
+    starting points for local search methods from points distributed uniformly 
+    in the interior of the feasible set. These points are generated using the 
+    Sobol (1967) [3] sequence.
+
+    Examples
+    --------
+    TO DO
+    
     References
     ----------
-    .. Henderson, N, de Sá Rêgo, M, Sacco, WF, Rodrigues, RA Jr. (2015) "A new
-       look at the topographical global optimization method and its application
-       to the phase stability analysis of mixtures", Chemical Engineering 
-       Science, 127, 151-174
-    .. Sobol, IM (1967) "The distribution of points in a cube and the 
-       approximate evaluation of integrals. USSR Comput. Math. Math. Phys. 7, 
-       86-112.
-    .. Törn, A (1990) "Topographical global optimization", Reports on Computer
-       Science and Mathematics Ser. A, No 199, 8p. Abo Akademi University, 
-       Sweden
+    .. [1] Törn, A (1990) "Topographical global optimization", Reports on 
+           Computer Science and Mathematics Ser. A, No 199, 8p. Abo Akademi 
+           University, Sweden
+    .. [2] Henderson, N, de Sá Rêgo, M, Sacco, WF, Rodrigues, RA Jr. (2015) "A 
+           new look at the topographical global optimization method and its 
+           application to the phase stability analysis of mixtures", 
+           Chemical Engineering Science, 127, 151-174
+    .. [3] Sobol, IM (1967) "The distribution of points in a cube and the 
+           approximate evaluation of integrals. USSR Comput. Math. Math. Phys.
+           7, 86-112.
 
     """
     # %% Define funcs # TO DO: MOve
@@ -130,8 +140,8 @@ TODO:    minimizer_kwargs : dict, optional
         positive entries and False ref. values indicating negative values.
         """ 
         H2 = numpy.empty_like(H, dtype=bool)
-        for i in range(numpy.shape(H)[0]):
-            H2[i,:] = (H[i,:] > F[i])
+        for i in range(numpy.shape(H)[0]):  # TO DO: Numpy operation to replace 
+            H2[i,:] = (H[i,:] > F[i])       # this for this loop?
         
         return H2
         
@@ -207,7 +217,7 @@ TODO:    minimizer_kwargs : dict, optional
         K_opt = k_t
     # %% Local Search: Find the minimzer float values and 
 
-#TODO IMPROVE
+#TO DO IMPROVE
 
     Min_ind = Minimizers(K_opt)
     x_vals = []
