@@ -138,12 +138,8 @@ TODO:    minimizer_kwargs : dict, optional
         """
         Returns the topographical matrix with True boolean values indicating
         positive entries and False ref. values indicating negative values.
-        """ 
-        H2 = numpy.empty_like(H, dtype=bool)
-        for i in range(numpy.shape(H)[0]):  # TODO: Numpy operation to replace 
-            H2[i,:] = (H[i,:] > F[i])       # this for this loop?
-        
-        return H2
+        """
+        return (H.T > F.T).T
         
     def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
         """Returns the k-t topograph matrix""" 
