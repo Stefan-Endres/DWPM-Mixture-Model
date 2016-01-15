@@ -32,47 +32,35 @@ class ImportData:
             except IOError:  # Raise error if not found
                 raise IOError('Data for specified component '  \
                                +'"{}" not found'.format(comp))
-                
+
+    def load(self, directory, Comps):
+        from csvDict import load_csv_as_dict
+        # Find file name path for specified components
+        filename = '_'.join(Comps)
+
+        # FIXME: Use os.path.join
+        ldstr = directory + filename + '.csv'
+
+        # FIXME: Use os.path.exist
+        try: # Load data from file path
+            Data  = load_csv_as_dict(ldstr)
+            self.VLE = Data
+        except IOError: # Raise error if not found
+            raise IOError('Phase data for system "{}" not found'.format(filename))
+
+
     def load_VLE(self, Comps):
         """
         Returns multicomponent VLE data from specified BINARY components.
         """
-        from csvDict import load_csv_as_dict
-        # Find file name path for specified components
-        filename = '' 
-        for i in range(len(Comps)-1):
-            filename += '{}_'.format(Comps[i])
+        self.load('Data/Binary_VLE/')
 
-        filename +='{}'.format(Comps[len(Comps)-1])
-        
-        ldstr = 'Data/Binary_VLE/'+filename+'.csv'
-
-        try: # Load data from file path
-            Data  = load_csv_as_dict(ldstr)
-            self.VLE = Data
-        except IOError: # Raise error if not found
-            raise IOError('Phase data for system "{}" not found'.format(filename))
-     
     def load_E(self, Comps):
         """
         Returns multicomponent equilibrium data from specified components.
         """
-        from csvDict import load_csv_as_dict
-        # Find file name path for specified components
-        filename = '' 
-        for i in range(len(Comps)-1):
-            filename += '{}_'.format(Comps[i])
+        self.load('Data/nComp_E/')
 
-        filename +='{}'.format(Comps[len(Comps)-1])
-        
-        ldstr = 'Data/nComp_E/'+filename+'.csv'
-
-        try: # Load data from file path
-            Data  = load_csv_as_dict(ldstr)
-            self.VLE = Data
-        except IOError: # Raise error if not found
-            raise IOError('Phase data for system "{}" not found'.format(filename))
-     
      
     def test_internal(self): # TEST; DELETE
          self.test_int() # TEST; DELETE
