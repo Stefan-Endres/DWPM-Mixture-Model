@@ -236,13 +236,6 @@ class state:
                 s.c[i]['T'] = T
 
         if X is not None: # Update new compositions
-#            X = array(X)
-#            if len(X[0]) != (p.m['n'] - 1):  # Check for dimensions
-#                raise IOError('The array of X specified does not match'
-#                               +' the number of components expected. '
-#                               +'len(X) = {} .'.format(len(X))
-#                               +'len(p.m[\'n\']) = {}'.format(len(p.m['n'])))
-                                   
             if Force_Update:
                 for ph in p.m['Valid phases']:
                     Sigma_x_dep = 0.0 # Sum of dependent components
@@ -790,9 +783,6 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     G_P = g_x_func(s,p).m['g_mix']['t']  
     if UBD > G_P:
         P +=  e**(abs(G_P - UBD)*1e2) # Penalty
-        #print "WARNING: Primal problem > UBD"
-        #print ('WARNING: Primal problem > UBD: abs(G_P - UBD)*1e3 = {}'
-        #       .format(P))
                
     # Lamda bounds
     # Upper
@@ -805,12 +795,10 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
         UB = ((UBD - G_upper)/(Z_0[i] - X_bounds[0][i]))
         LB = ((UBD - G_lower)/(Z_0[i] - X_bounds[1][i]))
         if Lambda[i] > UB:
-            #P +=  e**abs(Lambda[i] - UB)*1e2
-            P +=  e**(abs(Lambda[i] - UB)*1e-5)
+            P +=  e**(abs(Lambda[i] - UB)*1e-1)
             
         if Lambda[i] < LB:
-            #P +=  e**abs(Lambda[i] - LB)*1e2
-            P +=  e**(abs(Lambda[i] - LB)*1e-5)
+            P +=  e**(abs(Lambda[i] - LB)*1e-1)
             
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
@@ -938,7 +926,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
               
     """
     from numpy import array, zeros_like, zeros
-    from scipy.optimize import minimize, differential_evolution
+    from scipy.optimize import minimize
     from tgo import tgo
     
     def x_lim(X): # limiting function used in TGO
@@ -979,9 +967,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         
     # Construct composition container from X_d for all phases. (REMOVED)
     X_d = Z_0
-#    X_d = []
-#    for ph in k:
-#        X_d.append(Z_0)
+
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     while abs(UBD - LBD) >= tol:
@@ -1076,24 +1062,10 @@ TODO: Check method for changing lambda to change goal func to a global minima
     """
     import numpy
     Xn = X_I
-    #Xn = [0.58953878]
-    #Lambda_d = [-0.03375225]
-    # Update system to new composition.
-#    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
-#    G_I = g_x_func(s, p).m['g_mix']['t'] 
  
     Xn = numpy.array(X)
     s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
-
-#    return abs(G_I + sum(Lambda_d * (X - X_I))  # Root prblem
-#              - g_x_func(s, p).m['g_mix']['t'] ) 
-
-#    return -(G_I + sum(Lambda_d * (X - X_I))
-#               - g_x_func(s, p).m['g_mix']['t'] )
-
-#    return (G_I + sum(Lambda_d * (X - X_I)) 
-#               - g_x_func(s, p).m['g_mix']['t'] )
-    
+   
     # Note that G_I is constant for all X and does not need to be calculated.
     return numpy.array([-(sum(Lambda_d * (X - X_I))
                - g_x_func(s, p).m['g_mix']['t'] )])
@@ -1169,55 +1141,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     s.m['Phase eq. I'] = g_x_func(s, p).m['g_mix']['ph min']
 
     # Calculate second minimizer
-    #--------------------------------------------------------------------
-#    if False:  # TEST LAMBDA MAINUPATION IN FEED TO DEFINE GLOB. MIN PROBLEM
-#        if k == None:
-#            k = p.m['Valid phases']
-#            
-#        from scipy.optimize import minimize
-#        if Print_Results:  # Tests
-#            print '='*20
-#            print 'First X_I = {}'.format(X_I)
-#            print 'First Lamda = {}'.format(s.m['Lambda_d'])
-#            
-#            
-#        X_d = numpy.zeros_like(Z_0)
-#        for i in range(len(Z_0)):
-#            if Z_0[i] < X_I[i]:
-#                X_d[i] = (X_I[i] - Z_0[i])/2.0
-#            if Z_0[i] > X_I[i]:
-#                X_d[i] = (Z_0[i]- X_I[i])/2.0  
-#
-#        Z_0 = X_I
-#        
-#        # X bounds used in second UBD optimization
-#        X_bounds = [numpy.zeros(shape=(p.m['n']-1)), # Upper bound
-#                    numpy.zeros(shape=(p.m['n']-1))  # Lower bound
-#                    ]  
-#                    
-#        for i in range(p.m['n']-1): 
-#            Sigma_ind = 0.0  # Sum of independent components
-#                             # excluding i lever rule) 
-#            for j in range(p.m['n']-1):
-#                if j != i:
-#                    Sigma_ind += Z_0[j]
-#    
-#            X_bounds[0][i] = 1.0 - Sigma_ind 
-#            
-#            
-#        Lambda_d = minimize(ubd, s.m['Lambda_d'], 
-#                                    method='L-BFGS-B', 
-#                                    args=(g_x_func, X_d, Z_0, 
-#                                          s, p, X_bounds,
-#                                          k))['x']
-#       
-#        s.m['Lambda_d'] = Lambda_d 
-#        if Print_Results:  # Tests
-#            print 'Second X_I = {}'.format(s.m['Z_eq'])
-#            print 'Second Lamda = {}'.format(s.m['Lambda_d'])
-#            print '='*20
-#    
-    #--------------------------------------------------------------------
     Bounds = []
     for i in range(len(Z_0)):
         if Z_0[i] <= X_I[i]:
@@ -1268,14 +1191,12 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             s.m['Lambda_d']
             plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)    
         
-                
         # Error func
         s.m['Lambda_d'] = Lambda_d 
         s.m['Z_eq'] = X_I
         X_r = linspace(1e-5, 0.9999, 1000)    
         plot_ep(eq_sol, X_r, s, p, args=Args)
 
-    
     # Save returns in state dictionary.
     s.m['X_I'] = X_I
     s.m['X_II'] = X_II
@@ -1635,14 +1556,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 if s.m['ph equil P'] is not None:                               
                     s.m['ph equil'][ph].append(s.m['ph equil P'])
           
-#        for i, X in zip(range(n), P):
-#            S[i] = stability(X, g_x_func, s, p, k=ph )
-#            if not S[i]:
-#                s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
-#                                          P=101e3, T=300.0, 
-#                   tol=1e-9, Print_Results=True, Plot_Results=True) 
-#                   P[(i+1):]
-    
+   
     # Detect phase seperation accross volume root phases:
     if not LLE_only:
         # Define difference function
@@ -1666,7 +1580,6 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     
         # Calculated difference of Gibbs energies between all phases at all
         # sampling points.
-#        Ref = p.m['Valid phases'][0] # Reference phase (Use ph1 safer?)
         s.m['mph equil'] = []
         s.m['mph phase'] = []
         for i in range(len(p.m['Valid phases'])):
@@ -1910,24 +1823,24 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         X, Y = xg, yg
                 
         # Gibbs phase surfaces
-        rst = 1#2
-        cst = 1#2
-        #for ph in p.m['Valid phases']:
-        #    Z = s.m['g_mix range'][ph]
-        #    ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1)
-        #    cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
-        #    cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
+        rst = 1
+        cst = 1
+        for ph in p.m['Valid phases']:
+            Z = s.m['g_mix range'][ph]
+            ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1)
+            cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
+            cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
         
         # Gibbs minimum surface
         Z= s.m['g_mix range']['t']
         ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1,color='r')
-        if False:
+        if True:
             cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
             cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
         
         # Planes
-        rst = 4#10
-        cst = 4#10
+        rst = 4
+        cst = 4
         for z in range(len(Tie)):
             ax.plot_surface(X, Y, Tie_planes[z], rstride=rst, cstride=cst, 
                         alpha=0.1)
@@ -1950,7 +1863,6 @@ def plot_ep(func, X_r, s, p, args=()):
     Plot the speficied single var input error function over a range X_r
     """
     from matplotlib import pyplot as plot
-   # from numpy import float32
     #% Binary
     if p.m['n'] == 2:
         ep = []
