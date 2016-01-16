@@ -1,7 +1,9 @@
+[![Code Climate](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/gpa.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)
+
 # DWPM-Mixture-Model
 Phase seperation calculation using the DWPM mixture rule.
 
-### Basic description of files.
+## Basic description of files.
 1. ```nComp.py``` contains the core functions used to simulate multicomponent equilibrium problems and optimise parameter models. 
 2. ```binary.py``` is superseded by ```nComp.py```. The solution methods for the equilibrium calculation are based on equation based approaches (and might not always be at the true global minima). For now it is only used to validate that the functions in ```nComp.py``` are working by comparing some systems with known parameters or giving an expected output (such as matching isotherms etc.). Once all the functions in ```nComp.py``` working and validated this file will be deleted.
 3. ```pure.py``` is used to fit single component Van der Waals EOS temperature dependent activity coefficient parameters to the Adachi-Lu and Soave models. These parameters are used in the multicomponent functions. The single component data is contained in ```\Data\pure``` and every component simulated in multicomponent system requires vapour pressure data or parameters stores in the .csv files in ```\Data\pure```. Unlike  ```binary.py``` these functions will always be used.
