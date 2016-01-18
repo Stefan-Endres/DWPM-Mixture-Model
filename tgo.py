@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
+""" execfile('tgo.py')
 """
 #from __future__ import division, print_function, absolute_import
 from UQToolbox.sobol_lib import i4_sobol_generate
@@ -8,8 +8,56 @@ import numpy
 import scipy
 import scipy.spatial
 import scipy.optimize
-#import numpy as np
-#from scipy.optimize import minimize
+
+
+# %% Define funcs # TODO: Create tgo class to wrap all funcs
+def t_matrix(H, F):
+    """
+    Returns the topographical matrix with True boolean values indicating
+    positive entries and False ref. values indicating negative values.
+    """
+    return (H.T > F.T).T
+
+
+def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
+    """Returns the k-t topograph matrix"""
+    #
+
+    return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
+
+
+def minimizers(K):
+    """Returns the minimizer indexes of a k-t matrix"""
+    Minimizers = numpy.all(K, axis=-1)
+    # Find data point indexes of minimizers:
+    return numpy.where(Minimizers)[0]
+
+
+def K_optimal(T): # TODO: Recheck correct implementation, compare with HS19
+    """
+    Returns the optimimal k-t topograph with the semi-empircal correlation
+    proposed by Henderson et. al. (2015)
+    """
+    K_1 = k_t_matrix(T, 1)  # 1-t topograph
+    k_1 = len(minimizers(K_1))
+    k_i = k_1
+    i = 2
+    while k_1 == k_i:
+        K_i = k_t_matrix(T, i)
+        k_i = len(minimizers(K_i))
+        i += 1
+
+    ep = i * k_i / (k_1 - k_i)
+    k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
+                      / 2.0)
+
+    k_opt = int(k_c + 1)
+    if k_opt > numpy.shape(T)[1]:  # If size of k_opt exceeds t-graph size.
+        k_opt = int(numpy.shape(T)[1])
+
+    K_opt = k_t_matrix(T, k_opt)
+    return K_opt
+
 
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None, 
         callback=None, minimizer_kwargs=None, disp=False):
@@ -73,17 +121,17 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
         potentially be more robust due to testing more local minimizers in the
         function hypersuface)
 
-TODO:    disp : bool, optional
+# TODO:    disp : bool, optional
         Display status messages
 
-TODO:    callback : callable, `callback(xk, convergence=val)`, optional:
+# TODO:    callback : callable, `callback(xk, convergence=val)`, optional:
         A function to follow the progress of the minimization. ``xk`` is
         the current value of ``x0``. ``val`` represents the fractional
         value of the population convergence.  When ``val`` is greater than one
         the function halts. If callback returns `True`, then the minimization
         is halted (any polishing is still carried out).
         
-TODO:    minimizer_kwargs : dict, optional
+# TODO:    minimizer_kwargs : dict, optional
         Extra keyword arguments to be passed to the minimizer
         ``scipy.optimize.minimize()`` Some important options could be:
 
@@ -133,49 +181,7 @@ TODO:    minimizer_kwargs : dict, optional
            7, 86-112.
 
     """
-    # %% Define funcs # TODO: MOve
-    def t_matrix(H, F):
-        """
-        Returns the topographical matrix with True boolean values indicating
-        positive entries and False ref. values indicating negative values.
-        """
-        return (H.T > F.T).T
-        
-    def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
-        """Returns the k-t topograph matrix""" 
-        return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
-    
-    def Minimizers(K): 
-        """Returns the minimizer indexes of a k-t matrix""" 
-        Minimizers = numpy.all(K, axis=-1)         
-        # Find data point indexes of minimizers:
-        #Minimizers_indices = numpy.where(Minimizers)[0]
-        return numpy.where(Minimizers)[0]
-        
-    def K_optimal(T):
-        """
-        Returns the optimimal k-t topograph with the semi-empircal correlation
-        proposed by Henderson et. al. (2015)
-        """
-        K_1 = k_t_matrix(T, 1)  # 1-t topograph
-        k_1 = len(Minimizers(K_1))
-        k_i = k_1
-        i = 2
-        while k_1 == k_i:
-            K_i = k_t_matrix(T, i)
-            k_i = len(Minimizers(K_i))
-            i += 1
-            
-        ep = i * k_i / (k_1 - k_i)
-        k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
-                          / 2.0)
-        
-        k_opt = int(k_c + 1)
-        if k_opt > numpy.shape(T)[1]:  # If size of k_opt exceeds t-graph size.
-            k_opt = int(numpy.shape(T)[1])
-        
-        K_opt = k_t_matrix(T, k_opt) 
-        return K_opt
+
               
     # %% Generate sampling points.
     m = len(bounds)  # Dimensions # TODO Assert if func output matches dims.
@@ -215,14 +221,13 @@ TODO:    minimizer_kwargs : dict, optional
 
 #TODO: IMPROVE
 
-    Min_ind = Minimizers(K_opt)
+    Min_ind = minimizers(K_opt)
     x_vals = []
     Func_min = numpy.zeros_like(Min_ind)
     for i, ind in zip(range(len(Min_ind)), Min_ind):
         # Find minimum x vals
         x_min = scipy.optimize.minimize(func, C[ind,:], 
                                         method='L-BFGS-B', 
-                                        #method='Nelder-Mead', 
                                         bounds=bounds,
                                         args=args)['x']
         x_vals.append(x_min)
@@ -236,13 +241,7 @@ TODO:    minimizer_kwargs : dict, optional
 
     
 if __name__ == '__main__':
-    # Run tests
-    import os 
-    __location__ = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    #f = open(os.path.join(__location__, 'tgo_tests.py'));
-#    runfile(os.path.join(__location__, 'tgo_tests.py'))
-    #from tgo_tests import Bounds1
+    pass
     
     
     
