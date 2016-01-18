@@ -8,6 +8,7 @@ Script to simulate phase equilibria of multicomponent systems.
 from __future__ import division
 import data_handling
 import Van_der_Waals
+import numpy
 from nComp import *
 VdW = Van_der_Waals.VdW()
 
@@ -221,8 +222,8 @@ if __name__ == '__main__':
     #%% Equilibrium Optimization tests   
     if True: # Equilibrium Optimization tests   
         if False: #%% TEST CURVE 1 Mitsos et al. (2007)  ##  Validated 
-            Z_0 = array([0.13])
-            Z_0 = array([0.5])
+            Z_0 = numpy.array([0.13])
+            Z_0 = numpy.array([0.5])
             s = phase_equilibrium_calculation(s, p, g_x_test_func, Z_0, k=None,
                                               P=101e3, T=300.0, 
                                               tol=1e-9, 
@@ -230,7 +231,7 @@ if __name__ == '__main__':
                                           Plot_Results=True)   
 
         if True: #%% TEST CURVE 2 Mitsos et al. (2007)  ##  Validated 
-            Z_0 = array([0.3, 0.2])
+            Z_0 = numpy.array([0.3, 0.2])
             s = phase_equilibrium_calculation(s, p, g_x_test_func2, Z_0, 
                                               k=None,
                                               P=101e3, T=300.0, 
@@ -243,7 +244,7 @@ if __name__ == '__main__':
             p.m['r'], p.m['s'] = 1.0, 1.0
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = p.m['k'][1][2]
-            Z_0 = array([0.25])
+            Z_0 = numpy.array([0.25])
             s = phase_equilibrium_calculation(s, p, g_mix, Z_0, k=None,
                                               P=24e5, T=263.1, 
                                               tol=1e-9, 
@@ -349,7 +350,7 @@ if __name__ == '__main__':
                 p.m['r'], p.m['s'] = 1.0, 1.0
                 p.m['k'][1][2] = 0.124
                 p.m['k'][2][1] = p.m['k'][1][2]
-                Z_0 = array([0.25])
+                Z_0 = numpy.array([0.25])
                 Fd = phase_seperation_detection(g_mix, s, p, 
                                                P=24e5, T=263.1,
                                                n=100,
