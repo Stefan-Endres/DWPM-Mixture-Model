@@ -3,6 +3,7 @@
 
 # Logs
 *.log
+*.directory
 
 # Test scripts
 Sobol_Tests.py

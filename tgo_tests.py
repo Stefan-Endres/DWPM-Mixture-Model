@@ -2,13 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 """
-# from __future__ import division, print_function, absolute_import
 import unittest
-
 import numpy
-
 from tgo import tgo
-
 
 class TestFunction(object):
     def __init__(self, bounds, expected):
@@ -84,7 +80,7 @@ class TestFunctions(unittest.TestCase):
         # OverflowError: Python int too large to convert to C long
         #   Func_min[i] = func(x_min, *args)
         # Why?
-        # TO DO: implement bounds in local search function
+        # TODO: implement bounds in local search function
         # >>> test3.f([ -1.04572783e+08,-3.42296527e+08])
         # -4.12493867624096e+25
 

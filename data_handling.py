@@ -53,48 +53,24 @@ class ImportData:
         """
         Returns multicomponent VLE data from specified BINARY components.
         """
-        self.load('Data/Binary_VLE/')
+        self.load('Data/Binary_VLE/', Comps)
 
     def load_E(self, Comps):
         """
         Returns multicomponent equilibrium data from specified components.
         """
-        self.load('Data/nComp_E/')
+        self.load('Data/nComp_E/', Comps)
 
-     
+
     def test_internal(self): # TEST; DELETE
          self.test_int() # TEST; DELETE
-         
+
     def test_int(self): # TEST; DELETE
          print 'Test Succesful!'
 
-#Comps = ['acetone','water']
-#data = import_data()
-#data.load_pure_data(Comps)
-#data.load_VLE(Comps)
-#data.c[1]
-#data.VLE
-#%%
-#def import_data():
-#    data = import_data()
-#    data.load_pure_data(Compounds) # Call ex. component 1: data.c[0]
-#    data.load_VLE(Compounds)       # Call ex. component 1: data.c[0]
-
- 
-#%%
 if __name__ == '__main__':
-    data.test_internal() # TEST; DELETE
+    data.test_internal()
     data = ImportData()
     data.load_pure_data(Compounds) # Call ex. component 1: data.c[0]
     if len(Compounds) > 1:
         data.load_VLE(Compounds)       # Call ex. component 1: data.c[0]
-    
-    
-    
-    #save_dict_as_csv(data.c[0],'test.csv')
-              
-    #Order = ['T (K)', 'P (Pa)', 'T_c (K)', 'P_c (Pa)', 'V_c (m3 mol-1)', 'Z_c',
-              # 'R (m3 Pa K−1 mol−1)' ,'w' ,'a_c', 'b_c',
-    #         'm (Adachi-Lu)', 'm (Soave)','virialT','virialB']
-
-    #save_dict_as_csv(data.c[0],'test2.csv', Order)

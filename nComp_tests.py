@@ -199,34 +199,7 @@ if __name__ == '__main__':
     #%% TESTS
     # Test State variable
     p.m['r'], p.m['s'] = 1.0, 1.0
-#    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[0.1])
-#    s = s.update_state(s, p, P=I['P'], T=I['T'], X=[[0.1,0.2],[0.2,0.2]])
-#    s = s.update_state(s, p, P=I['P'], T=I['T'], phase=['x','y'],X=[[0.5,0.2],[0.2,0.2]])
-#    s = g_mix(s, p)
-        
-    
-    #%   
-#    if False: # Test Gibbs curves
-#        p.m['r'], p.m['s'] = 1.0, 1.0
-#        p.m['k'][1][2] = 0.124
-#        p.m['k'][2][1] = p.m['k'][1][2]
-#        s = s.update_state(s, p, P=24e5, T=263.1)
-#        x_r = 500
-#        g_range(s, p, x_r)
-#        plot_dg_mix(s,p)
-#        
-    #%    
-    from numpy import array
-#    if False: # Test Duality funcs
-#        Lambda = array([1, 2])
-#        X_d = array([0.4, 0.3]) 
-#        Z_0 = array([0.5, 0.5]) 
-#        ubd(Lambda, g_mix, X_d, Z_0, s, p)
-#        lbd(X_d, g_mix, Lambda, Z_0, s, p)
-#        
-#    if False: # Test Binary NRTL Mitsos et al 
-#        g_range_test(s, p, x_r=1000)
-#        plot_dg_mix_test(s,p)
+
     #%% Gibbs surface tests
     if False: # Trenary test function
         s = s.update_state(s, p, P=101e3, T=293.15, # irrelevant in NRTL func
@@ -286,12 +259,12 @@ if __name__ == '__main__':
         p.m['r'] = 7.53330786789
         p.m['s'] = 0.107160035705
         
-#            T_isos =  p.m['T']   
+#            T_isos =  p.m['T']
 #            from  more_itertools import unique_everseen
 #            T_isos = list(unique_everseen(T_isos))
 #            for T_i in T_isos:
-#                plot_isotherm(s, p, T_plot = T_i, added_res= 50) 
-        
+#                plot_isotherm(s, p, T_plot = T_i, added_res= 50)
+
     #%% Jacobian and Hessian tests.
     if False: # Generic tests.  ## (Successfully validated against anal. sol.
         def f_x(s, p):  # Simple test func
@@ -382,51 +355,12 @@ if __name__ == '__main__':
                                                n=100,
                                                VLE_only=True)
         
-        
-        
-        
-
-        # P_new = P_new[(P_new[:,i] < min(s.m['X_I'][i], s.m['X_II'][i])) 
-                     #&  (P_new[:,i] >  max(s.m['X_I'][i], s.m['X_II'][i]))]
-
-
     #%% data range tests
     if False: # CO2_Ethane range
         p.m['r'], p.m['s'] = 1.0, 1.0
         p.m['k'][1][2] = 0.124
         p.m['k'][2][1] = p.m['k'][1][2]
         equilibrium_range(g_mix, s, p, n=100, VLE_only=True)
-
-
-
-
-
-
-
-
-
-
-
-
-#%%
-#A = ['x', 'y', 'a', 'b']
-#len(A)
-#for i in range(len(A)):
-#    for j in range(i + 1, len(A)):
-#        print '{} and {}'.format(A[i], A[j])
-#%%
-#import numpy
-#import scipy
-#A = numpy.array([1.0, 1, 2, 3.0, 4, 5])
-#B = numpy.array([-1.0, -1, -2, -3.0, -4, -5])
-#C = numpy.array([1.0, -1, 2, -3.0, 4, -5])
-##print scipy.alltrue(A > 0.0, axis=-1) or scipy.alltrue(A < 0.0, axis=-1)
-##print scipy.alltrue(B > 0.0, axis=-1) or scipy.alltrue(B < 0.0, axis=-1)
-##print scipy.alltrue(C > 0.0, axis=-1) or scipy.alltrue(C < 0.0, axis=-1)
-#
-#numpy.all(A > 0) or numpy.all(A < 0)
-#numpy.all(B > 0) or numpy.all(B < 0)
-#numpy.all(C > 0) or numpy.all(C < 0)
 
 
 
