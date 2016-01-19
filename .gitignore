@@ -8,6 +8,10 @@
 
 # Test scripts
 Sobol_Tests.py
+dev.py
+
+# Personal configs
+config.cfg
 
 # Windows image file caches
 Thumbs.db

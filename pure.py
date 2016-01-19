@@ -7,10 +7,10 @@
 from __future__ import division
 from scipy.interpolate import interp1d
 import logging
-import data_handling, Van_der_Waals, numpy
-
-from common import parameters
-
+import data_handling
+import numpy
+#from common import parameters
+import Van_der_Waals
 VdW = Van_der_Waals.VdW()
 #'''
 try:
@@ -154,10 +154,10 @@ if __name__ == '__main__':
         Compounds = I['Compound'] # Variable to draw data in data_handling.py
         data = data_handling.ImportData()  
         data.load_pure_data(I['Compound'])
-        #execfile('data_handling.py') # Load data
+        #execfile('data_hanmMdling.py') # Load data
 
     #%% Find model parameters if not defined
-    p = parameters(data.c[0],I) # Load parameters as p dictionary
+    p = data.parameters(data.c[0],I) # Load parameters as p dictionary
  
      # Find a_c, b_c  parameters if not available and test dimensional values
     if data.c[0]['a_c (Pa m6 mol-2)'][0] == '' \

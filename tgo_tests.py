@@ -3,6 +3,7 @@
 """
 Test Run examples:
 
+ex.
 $ python2 -m unittest -v tgo_tests.TestTgoFuncs
 $ python2 -m unittest -v tgo_tests.TestTgoSubFuncs
 $ python2 -m unittest -v tgo_tests.TestTgoSubFuncs.test_t1
@@ -71,7 +72,7 @@ def run_test(test, args=()):
     x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500)
     numpy.testing.assert_allclose(x, test.expected, atol=test_atol)
 
-# python2 -m unittest -v tgo_tests.TestTgoFuncs
+# $ python2 -m unittest -v tgo_tests.TestTgoFuncs
 class TestTgoFuncs(unittest.TestCase):
     """Global optimisation tests:"""
     def test_f1(self):
@@ -95,7 +96,7 @@ class TestTgoFuncs(unittest.TestCase):
         """Rosenbrock optimisation:"""
         run_test(rosen)
 
-# python2 -m unittest -v tgo_tests.TestTgoSubFuncs
+# $ python2 -m unittest -v tgo_tests.TestTgoSubFuncs
 class TestTgoSubFuncs(unittest.TestCase):
     """TGO subfunction tests using known solution (test_f1)"""
     # int bool solution for known sampling points

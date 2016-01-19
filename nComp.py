@@ -9,8 +9,7 @@ from __future__ import division
 import data_handling
 import Van_der_Waals
 VdW = Van_der_Waals.VdW()
-
-import common
+import data_handling
 
 # %% Define paramter class
 class MixParameters:
@@ -22,13 +21,13 @@ class MixParameters:
     Data : Dictionary containing data loaded from the stored .csv file.
 
     I : Input dictionary, must contain key 'Model' defining the a parameter
-        dependancy model.
+        dependancy model. (Depreciated)
     """
     def __init__(self):
         self.c = []  # creates a new empty list for components
         self.c.append('nan')  # Define an empty set in index 0
 
-    def mixture_parameters(self, Data, I):
+    def mixture_parameters(self, Data, I, data):
         """Mixture model parameters"""
         M = {'T'      : Data['T (K)'], # Temperature Pressure data
              'P'      : Data['P (Pa)'],
@@ -82,7 +81,7 @@ class MixParameters:
         self.m = M
 
     def parameters(self, Data, I):
-        p = common.parameters(Data, I)
+        p = data.parameters(Data, I)
         p['name'] = Data['name']
         self.c.append(p)
 
@@ -1868,7 +1867,7 @@ if __name__ == '__main__':
 
     # %% Initialize binary and single component paramters
     p = MixParameters()
-    p.mixture_parameters(data.VLE, I)
+    p.mixture_parameters(data.VLE, I, data)
     p.m['n'] = len(I['Compounds'])  # Define system size
     for i in range(p.m['n']):  # Set params for all compounds
         p.parameters(data.c[i], I)  # Defines p.c[i]

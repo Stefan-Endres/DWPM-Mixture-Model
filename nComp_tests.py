@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
     # %% Initialize binary and single component paramters
     p = MixParameters()
-    p.mixture_parameters(data.VLE, I)
+    p.mixture_parameters(data.VLE, I, data)
     p.m['n'] = len(I['Compounds'])  # Define system size
 
     for i in range(p.m['n']):  # Set params for all compounds
