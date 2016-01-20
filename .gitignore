@@ -1,10 +1,11 @@
 # Compiled files 
 *.pyc
 
-# Logs
+# Logs and reports
 *.log
 *.directory
 *.idea
+htmlcov/
 
 # Test scripts
 Sobol_Tests.py
