@@ -186,7 +186,7 @@ if __name__ == '__main__':
     p.m['n'] = len(I['Compounds'])  # Define system size
 
     for i in range(p.m['n']):  # Set params for all compounds
-        p.parameters(data.c[i], I)  # Defines p.c[i]
+        p.parameter_build(data.c[i], I)  # Defines p.c[i]
 
     p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
 

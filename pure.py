@@ -161,9 +161,9 @@ if __name__ == '__main__':
  
      # Find a_c, b_c  parameters if not available and test dimensional values
     if data.c[0]['a_c (Pa m6 mol-2)'][0] == '' \
-    or data.c[0]['b_c (m3 mol-1)'][0] == '': 
+    or data.c[0]['b_c (m3 mol-1)'][0] == '':
         try: # Check if all params are available
-            data.c[0]['b_c (m3 mol-1)'] = p['R']*p['T_c']/(8.0*p['P_c']) 
+            data.c[0]['b_c (m3 mol-1)'] = p['R']*p['T_c']/(8.0*p['P_c'])
             data.c[0]['a_c (Pa m6 mol-2)'] = 27*(p['R']**2)*(p['T_c']**2) \
                                              /(64*p['P_c'])
             if not numpy.round(p['b_c'],8) == \
@@ -171,12 +171,12 @@ if __name__ == '__main__':
                 logging.warn('Calculated parameter for \'b_c\' does'
                               + 'not match stored data value')
                 logging.warn('Changing data value for \'b_c\' from'
-                             + ' \'b_c\' = {}'.format(p['b_c']) 
+                             + ' \'b_c\' = {}'.format(p['b_c'])
                              + ' to \'b_c\' = {}'.format(data.c[0]['b_c'])
                              )
-                 
+
                 p['b_c'] = data.c[0]['b_c']
-            
+
             if not numpy.round(p['a_c'],8) == \
                    numpy.round(data.c[0]['a_c (Pa m6 mol-2)'],8):
                 logging.warn(' Calculated parameter for \'a_c\' does'
@@ -185,9 +185,9 @@ if __name__ == '__main__':
                              + ' \'a_c\' = {}'.format(p['a_c'])
                              + ' to \'a_c\' = {}'.format(data.c[0]['a_c'])
                              )
-                
+
                 p['a_c'] = data.c[0]['a_c']
-                
+
         except(NameError,KeyError):
             raise IOError('Missing \'P_c\' and/or \'T_c\' paramter')
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
             data.c[0]['T (K)']
         except(NameError,KeyError):
             raise IOError('No parameters or vapour pressure data detected.')
-            
+
         #find_a_m() # Find params if data is available
         p['m'] = optim_a_m(p)
         exec 'data.c[0][\'m ({})\'] = p[\'m\']'.format(I['Model'])
@@ -224,67 +224,47 @@ if __name__ == '__main__':
                                  P  = s['P_sat']/1000.0,
                                  Vv = s['V_v'],
                                  Vl = s['V_l']))
-                                  
+
     #%% Find phase equilibrium at specified Pressure point (P, V_v and V_l)
     try: #TODO:
         if I['P']: # Note that if I['P'] is > 0 then the boolean is 'True'
             pass#VdW.Tsat_V_roots(s,p) # NOTE TODO!
     except(KeyError):
         pass
-    
+
     #%% Save if True
     """ NOTE!!!: Save the data container and define first data entry [0]
-    DO NOT save the dictionary container (or test first if save_to_dict.py is 
+    DO NOT save the dictionary container (or test first if save_to_dict.py is
     robust))
     """
     if I['Save results']:
         from csvDict import save_dict_as_csv
         # Order of headings to save in .csv
-        Order = ['T (K)', 'P (Pa)', 'T_c (K)', 'P_c (Pa)', 'V_c (m3 mol-1)', 
-                 'Z_c', 'R (m3 Pa K-1 mol-1)' ,'w' ,'a_c (Pa m6 mol-2)', 
-                 'b_c (m3 mol-1)', 'm (Adachi-Lu)', 'm (Soave)', 'virialT', 
+        Order = ['T (K)', 'P (Pa)', 'T_c (K)', 'P_c (Pa)', 'V_c (m3 mol-1)',
+                 'Z_c', 'R (m3 Pa K-1 mol-1)' ,'w' ,'a_c (Pa m6 mol-2)',
+                 'b_c (m3 mol-1)', 'm (Adachi-Lu)', 'm (Soave)', 'virialT',
                  'virialB','name']
-        # Save path string     
+        # Save path string
         sstr = 'Data/Pure_Component/{}.csv'.format(data.c[0]['name'][0])
         print 'Saving new results to {}'.format(sstr)
         save_dict_as_csv(data.c[0],sstr,Order)
-        
+
     #%% Plotting if True
-    try: 
+    try:
         if I['Plot pure']:
             from numpy import linspace
             s['T_sat store'] = linspace(p['T'][0],p['T'][len(p['T'])-1])
             s['P_sat store'] = []
             s['P_est'] = interp1d(p['T'],p['P'])(s['T_sat store'])
             i = 0
-            for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],  
+            for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],
                             s['P_est'][:len(s['T_sat store'])-1]): # Trim crit.
                 s['T'] = T # Solve P_sat at this Temperature
                 s['P'] = P # P est
                 s = VdW.Psat_V_roots(s,p,tol=1e-1)
-                s['P_sat store'].append(s['P_sat']) 
-                
-            s['P_sat store'].append(p['P_c']) # Append Critical point  
+                s['P_sat store'].append(s['P_sat'])
+
+            s['P_sat store'].append(p['P_c']) # Append Critical point
             plot_Psat(s,p,I['Plot options'])
     except(KeyError):
         pass
-    
-    #%%
-    
-
-
-    # TESTING AND DEBUGGING
-    #s = {}
-    #s['P'] = data.c[0]['P (Pa)'][10]/1000
-    #s['T'] = data.c[0]['T (K)'][10]
-    #s['m'] = data.c[0]['m (Soave)'][0]
-    #s['a'] = 27*(p['R']**2)*(p['T_c']**2)/(64*p['P_c'])
-    #s['b'] = p['R']*p['T_c']/(8*p['P_c']) 
-    #VdW.Psat_V_roots(s,p)
-    
-
-
-
-    #a = VdW.a_m_sol(s,p)
-    #a = VdW.a_m_sol(s,p)
-    #VdW.Psat_V_roots(s,p)

@@ -20,8 +20,6 @@ class MixParameters:
     ----------
     Data : Dictionary containing data loaded from the stored .csv file.
 
-    I : Input dictionary, must contain key 'Model' defining the a parameter
-        dependancy model. (Depreciated)
     """
     def __init__(self):
         self.c = []  # creates a new empty list for components
@@ -1842,7 +1840,7 @@ def plot_ep(func, X_r, s, p, args=()):
                     s.m['T'],
                     s.m['P']))
     return
-    
+
 
 
 # %%

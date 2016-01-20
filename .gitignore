@@ -9,6 +9,7 @@
 # Test scripts
 Sobol_Tests.py
 dev.py
+dev2.py
 
 # Personal configs
 config.cfg
