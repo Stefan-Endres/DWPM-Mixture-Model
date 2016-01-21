@@ -124,6 +124,8 @@ def pure_sim(data, i=0):
 
     return s, p
 
+
+
 #%% Define multi-component simulation function
 def n_comp_sim(data):
     # Define paramter class

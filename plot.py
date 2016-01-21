@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# (TO DO)
+
 
 from __future__ import print_function
 
@@ -39,7 +41,7 @@ print('='*30)
 print(args.phases)
 print(args.r)
 # Try running this with the following arguments to see the options printed out
-# it's basically already in the form you are using in data_handling, but we 
+# it's basically already in the form you are using in data_handling, but we
 # don't have to write any code.
 # python argparse_example.py -c ethanol water -p x y -e DWPM
 # python argparse_example.py -c ethanol water -p x y --eos DWPM

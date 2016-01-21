@@ -18,30 +18,21 @@ class AllTestCases(unittest.TestCase):
     #TestFunctions
 
 
-def test_all_wrap():
+#def test_all_wrap(TestTgo, DataTests):
+def test_all_wrap(test_suite):
     """
     Gather all the data_handling tests from this module in a test suite.
     """
     TestAll = unittest.TestSuite()
-    suite1 = unittest.makeSuite(TestTgo)
-    suite2 = unittest.makeSuite(DataTests)
-    TestAll.addTest(suite1)
-    TestAll.addTest(suite2)
+    for ts in test_suite:
+        TestAll.addTest(ts)
     return TestAll
 
-
-#def suite1():
-#    suite1 = unittest.TestSuite()
-#    suite1.addTest(MyTestCase)
-#    suite1.addTest(TestFunctions)
-#    return suite1
 
 if __name__ == '__main__':
     TestTgo = tgo_suite()
     DataTests = data_handling_suite()
-    #unittest.TextTestRunner(verbosity=2).run(TestTgo)
-
-    TestAll = data_handling_suite()
+    TestAll = test_all_wrap((TestTgo, DataTests))
     unittest.TextTestRunner(verbosity=2).run(TestAll)
 
 

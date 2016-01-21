@@ -36,7 +36,7 @@ class ImportData:
         if isinstance(self.comps, basestring): #  1x1 list TODO: Not needed?
             self.comps = [self.comps]
 
-        self.EOS = config.get('inputs', 'EOS')
+        self.eos = config.get('inputs', 'EOS')
         phasestr = config.get('inputs', 'valid_phases')
         self.phases = phasestr.split('-')
         self.model = config.get('inputs', 'model')
@@ -111,13 +111,6 @@ class ImportData:
             raise IOError('Phase data for '
                           'system "{}" not found'.format(filename))
 
-    def test_internal(self): # TEST; DELETE
-         self.test_int() # TEST; DELETE
-         #print
-
-    def test_int(self): # TEST; DELETE
-         print 'Test Succesful!'
-
 
 def parameter_build(Data):
     """
@@ -186,7 +179,7 @@ class MixParameters:
              'P'      : data_VLE['P (Pa)'],
              'n'      : len(data.comps),
              'phases' : len(data.phases),
-             'Model'  : data.EOS,
+             'Model'  : data.eos,
              'Valid phases' : data.phases
              }
 
@@ -202,14 +195,15 @@ class MixParameters:
 
                 # NOTE: This routine will change component strings the for the
                 # equilibrium of each phase into a list simple list for each
-                # phase ex. data_VLE['x1'], data_VLE['x2'] becomes M['x'][1], M['x'][2]
+                # phase ex. data_VLE['x1'], data_VLE['x2'] becomes: M['x'][1],
+                #                                                   M['x'][2]
 
         # Define model paramters
         # Empty lists for model interaction paramters
         M['k'] = []
         [M['k'].append(['nan']) for j in range(M['n'] + 1)]
 
-        if data.EOS == 'DWPM':
+        if data.eos == 'DWPM':
             # Find the interaction paramters between and put them into
             # component lists (ex. data_VLE['k12']  --> M['k'][1][2])
 
@@ -249,14 +243,4 @@ class MixParameters:
 
 
 if __name__ == '__main__':
-    data = ImportData()
-    if len(data.comps) > 1:
-        data.load()
-    elif len(data.comps) == 1:
-        data.load_pure_data()
-
-    data.test_internal()
-    #data = ImportData()
-    #data.load_pure_data(Compounds) # Call ex. component 1: data.c[0]
-    #if len(Compounds) > 1:
-    #    data.load_VLE(Compounds)       # Call ex. component 1: data.c[0]
+    pass
