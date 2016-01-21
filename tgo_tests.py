@@ -74,7 +74,9 @@ def run_test(test, args=()):
 
 # $ python2 -m unittest -v tgo_tests.TestTgoFuncs
 class TestTgoFuncs(unittest.TestCase):
-    """Global optimisation tests:"""
+    """
+    Global optimisation tests:
+    """
     def test_f1(self):
         r = [1, 2, 3]  # random args for test func tuple
         s = True
@@ -98,7 +100,9 @@ class TestTgoFuncs(unittest.TestCase):
 
 # $ python2 -m unittest -v tgo_tests.TestTgoSubFuncs
 class TestTgoSubFuncs(unittest.TestCase):
-    """TGO subfunction tests using known solution (test_f1)"""
+    """
+    TGO subfunction tests using known solution (test_f1)
+    """
     # int bool solution for known sampling points
     T_Ans = numpy.array([[0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -150,18 +154,18 @@ def tgo_suite():
     """
     Gather all the TGO tests from this module in a test suite.
     """
-    tgo_test_suite = unittest.TestSuite()
+    TestTgo = unittest.TestSuite()
     tgo_suite1 = unittest.makeSuite(TestTgoFuncs)
     tgo_suite2 = unittest.makeSuite(TestTgoSubFuncs)
-    tgo_test_suite.addTest(tgo_suite1)
-    tgo_test_suite.addTest(tgo_suite2)
-    return tgo_test_suite
+    TestTgo.addTest(tgo_suite1)
+    TestTgo.addTest(tgo_suite2)
+    return TestTgo
 
 
 
 if __name__ == '__main__':
-    tgo_test_suite=tgo_suite()
-    unittest.TextTestRunner(verbosity=2).run(tgo_test_suite)
+    TestTgo=tgo_suite()
+    unittest.TextTestRunner(verbosity=2).run(TestTgo)
 
 
 

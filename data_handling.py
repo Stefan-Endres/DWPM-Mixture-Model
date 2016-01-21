@@ -87,8 +87,7 @@ class ImportData:
         for i, comp in enumerate(self.comps):
             ldstr = os.path.join(self.datadir
                                  ,'Pure_Component','{}.csv'.format(comp))
-            print ldstr
-            #ldstr           = '/Pure_Component/{}.csv'.format(comp)
+
             try:
                 Data = load_csv_as_dict(ldstr)
                 Data['name'] = [comp,]
@@ -104,20 +103,13 @@ class ImportData:
         # Find file name path for specified components
         filename = '_'.join(self.comps)
         ldstr = os.path.join(self.datadir, 'nComp_E', filename + '.csv')
-        print 'TEST'
         try: # Load data from file path
             Data  = load_csv_as_dict(ldstr)
             self.VLE = Data
+
         except IOError: # Raise error if not found
             raise IOError('Phase data for '
                           'system "{}" not found'.format(filename))
-
-
-#    def load_E(self):
-#        """
-#        Returns multicomponent equilibrium data from specified components.
-#        """
-#        self.load('Data/nComp_E/', self.comps)
 
     def test_internal(self): # TEST; DELETE
          self.test_int() # TEST; DELETE

@@ -150,6 +150,7 @@ def n_comp_sim(data):
 if __name__ == '__main__':
     # Return basic data
     data = data_handling.ImportData()
+    print data.T
 
     if len(data.comps) == 1:  # pure component simulation.
         # Load pure data
