@@ -138,13 +138,13 @@ class TestTgoSubFuncs(unittest.TestCase):
                      , axis=-1)
         numpy.testing.assert_array_equal(K_3, Ans)
 
-    def test_t3(self):
+    def test_t4(self):
         """Minimizer function"""
         self.assertEqual(numpy.float32(minimizers(self.T_Ans)), 3)
 
-    def K_optimal(T):
+    def test_t5(self):
         """K_optimal"""
-        numpy.testing.assert_array_equal(K_optimal(self.T), A)
+        numpy.testing.assert_array_equal(K_optimal(self.T), self.T_Ans)
 
 def tgo_suite():
     """
