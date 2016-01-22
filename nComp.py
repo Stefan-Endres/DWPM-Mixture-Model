@@ -439,7 +439,7 @@ def g_R_k_i(s, p, k='x', i=1):  # (Validated)
     -------
     g_R_k_i : scalar output.
     """
-    from math import log
+    from numpy import log
     if k == 'y':  # 'y' = Vapour phase standard
         V = s.c[i]['V_v'] 
     else:  # Assume all phases other than vapour are liquid, ex. 'x'
@@ -475,7 +475,7 @@ def g_R_mix_i(s, p, k='x'):  # (Validated)
     -------
     g_R_k_i : scalar output.
     """
-    from math import log
+    from numpy import log
     if k == 'y':  # 'y' = Vapour phase standard
         V = s.m['V_v'] 
     else:  # Assume all phases other than vapour are liquid, ex. 'x'
@@ -506,7 +506,7 @@ def g_IG_k(s, p, k='x'):  # (Validated)
     -------
     g_IG_k : scalar output.
     """
-    from math import log
+    from numpy import log
           
     Sigma_g_IG_k = 0.0 # Sum of ideal gas terms
     for i in range(1, p.m['n']+1): 
@@ -647,14 +647,13 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     Dependencies
     ------------
     numpy.array
-    math.e
 
     Returns
     -------
     ubd : scalar
           Value of the upper bounding problem at Lamda.
     """
-    from math import e
+    from numpy import exp
     from numpy import array
     X_d = array(X_d)  # Prevent float converstion of 1x1 arrays
     # Reset system from changed composition in bound calculation each call
@@ -670,8 +669,8 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     P = 0
     G_P = g_x_func(s,p).m['g_mix']['t']  
     if UBD > G_P:
-        P +=  e**(abs(G_P - UBD)*1e2) # Penalty
-               
+        P += exp(abs(G_P - UBD)) # Penalty
+
     # Lamda bounds
     # Upper
     s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)  
@@ -683,10 +682,10 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
         UB = ((UBD - G_upper)/(Z_0[i] - X_bounds[0][i]))
         LB = ((UBD - G_lower)/(Z_0[i] - X_bounds[1][i]))
         if Lambda[i] > UB:
-            P +=  e**(abs(Lambda[i] - UB)*1e-1)
+            P +=  exp(abs(Lambda[i] - UB)*1e-1)
             
         if Lambda[i] < LB:
-            P +=  e**(abs(Lambda[i] - LB)*1e-1)
+            P +=  exp(abs(Lambda[i] - LB)*1e-1)
             
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
@@ -941,7 +940,6 @@ TODO: Check method for changing lambda to change goal func to a global minima
     Dependencies
     ------------
     numpy.array
-    math.e
 
     Returns
     -------
