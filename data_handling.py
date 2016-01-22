@@ -9,6 +9,7 @@ ex.
 """
 import ConfigParser
 import os
+import numpy
 
 #%% Load data classes
 class ImportData:
@@ -155,7 +156,7 @@ def parameter_build(Data):
         pass
 
     for key, value in p.iteritems(): # Filter out '' values
-        if not value.__class__ == float:
+        if not (value.__class__ == float or value.__class__ == numpy.float64):
             p[key] = filter(lambda a: a != '', value)
 
     return p

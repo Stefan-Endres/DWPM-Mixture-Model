@@ -9,6 +9,7 @@ import numpy
 #from tgo_tests import TestTgo
 from tgo_tests import tgo_suite
 from data_handling_tests import data_handling_suite
+from pure_tests import pure_suite
 
 
 class AllTestCases(unittest.TestCase):
@@ -32,7 +33,8 @@ def test_all_wrap(test_suite):
 if __name__ == '__main__':
     TestTgo = tgo_suite()
     DataTests = data_handling_suite()
-    TestAll = test_all_wrap((TestTgo, DataTests))
+    TestPure = pure_suite()
+    TestAll = test_all_wrap((TestTgo, DataTests, TestPure))
     unittest.TextTestRunner(verbosity=2).run(TestAll)
 
 
