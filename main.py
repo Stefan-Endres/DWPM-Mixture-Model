@@ -126,13 +126,22 @@ def pure_sim(data, i=0):
 
 #%% Define multi-component simulation function
 def n_comp_sim(data):
-    # Define paramter class
+    # Define parameter class
     p = data_handling.MixParameters()
     p.mixture_parameters(data.VLE, data)
     p.m['n'] = len(data.comps)  # Define system size
     for i in range(p.m['n']):  # Set params for all compounds
         p.parameters(data.c[i])  # Defines p.c[i]
         #p.parameter_build(data.c[i])
+    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
+
+    # %% Initialize state variables
+    s = nComp.state()
+    s.mixed()  # Define mix state variable, call using s.m['key']
+    # Define three component state variables (use index 1 and 2 for clarity)
+    for i in range(1, p.m['n']+1):
+        s.pure(p, i)  # Call using ex. s.c[1]['key']
+
     p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
 
     # %% Initialize state variables
@@ -150,7 +159,6 @@ def n_comp_sim(data):
 if __name__ == '__main__':
     # Return basic data
     data = data_handling.ImportData()
-    print data.T
 
     if len(data.comps) == 1:  # pure component simulation.
         # Load pure data
@@ -167,5 +175,5 @@ if __name__ == '__main__':
         s, p = n_comp_sim(data)
 
 
-    if plotting:
-        from plot import *  # allow easier func calls from python shell
+    #if data.plotting:
+    #    from plot import *  # allow easier func calls from python shell

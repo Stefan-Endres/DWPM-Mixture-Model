@@ -12,52 +12,6 @@ import numpy
 from nComp import *
 VdW = Van_der_Waals.VdW()
 
-try:  # DEBUGGING; DELETE
-    del s
-    del p
-    del I
-except NameError:
-    pass
-
-
-# %% Inputs (will be called if no input container "I" is defined before exec)
-def inputs():
-    I = {
-         # Model inputs
-          # Compounds to simulate.
-         #'Compounds'    : ['acetone', 'water', 'phenol'], 
-        # 'Compounds'    : ['carbon_dioxide','ethane'], 
-         'Compounds'    : ['acetone', 'benzene', 'water'], 
-         #'Compounds'    : ['acetone','water'], 
-         'Mixture model': 'DWPM',  # Removed 'VdW standard', set r = s = 1
-         'Model'        : 'Adachi-Lu',  # Activity coefficient Model used in 
-                                        # the simulation, 
-                                         # options:
-                                          # 'Adachi-Lu' 
-                                          # 'Soave'
-
-         'Valid phases' : ['x'],#, 'y'], # List of valid phases in equilibrium
-                                       # ex. for VLE use ['x', 'y']
-                                       # Speciification does not preclude
-                                       # LLE detection and calculation.
-
-         # Optional inputs
-         'T'           : 281.15,  # 281.15
-         'P'           : 6278.150329,   # 
-         'Phase split' : True,  # Find phase split at specified T, P.
-         'Save results': True,
-         'Fig. number' : 2,
-         'Plot pure'   : False,
-         'Plot options': {'text.usetex' : True,  # Options for all plots
-                          'font.size' : 11,
-                          'font.family' : 'lmodern',
-                          'text.latex.unicode': True
-                          },
-         }
-
-    return I
-
-
 #%% TEST FUNCTION  Binary NRTL 
 def g_x_test_func(s, p, k=None, ref='x'):
     """
@@ -228,7 +182,7 @@ if __name__ == '__main__':
                                               P=101e3, T=300.0, 
                                               tol=1e-9, 
                                               Print_Results=True, 
-                                          Plot_Results=True)   
+                                              Plot_Results=True)
 
         if True: #%% TEST CURVE 2 Mitsos et al. (2007)  ##  Validated 
             Z_0 = numpy.array([0.3, 0.2])

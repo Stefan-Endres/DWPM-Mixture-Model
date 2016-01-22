@@ -10,6 +10,7 @@ import data_handling
 import Van_der_Waals
 VdW = Van_der_Waals.VdW()
 import data_handling
+import plot
 
 
 # %% Define state variable class
@@ -1063,7 +1064,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
         print [[X_II, X_I]]
         if p.m['n'] == 2: # Plot binary tie lines
-            plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)    
+            plot.plot_g_mix(s, p, g_x_func, Tie =[[X_II, X_I]], x_r=1000)
             
         if p.m['n'] == 3: # Plot ternary tie lines
             s.update_state(s, p, P=P, T=T,  X = X_I, Force_Update=True)  
@@ -1076,13 +1077,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                     s.m['Lambda_d'][1]]    # lambda_2
                     ] 
             s.m['Lambda_d']
-            plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)    
+            plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
         
         # Error func
         s.m['Lambda_d'] = Lambda_d 
         s.m['Z_eq'] = X_I
         X_r = linspace(1e-5, 0.9999, 1000)    
-        plot_ep(eq_sol, X_r, s, p, args=Args)
+        plot.plot_ep(eq_sol, X_r, s, p, args=Args)
 
     # Save returns in state dictionary.
     s.m['X_I'] = X_I
@@ -1363,7 +1364,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                         seperations in different volume root of the EOS 
                         (ex. VLE)
     """ 
-
+    # TODO: Update this documentation
     
     # Generate sampling points.
     import numpy
@@ -1554,36 +1555,4 @@ def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
 
 # %%
 if __name__ == '__main__':
-    # %% Load Data
-    try:  # Dectect input, use local script if not defined then import data
-        data = data_handling.ImportData()
-        data.load_pure_data(I['Compounds'])
-        data.load_E(I['Compounds'])
-    except(KeyError, NameError):  # Define local inputs if I is not found.
-        raise IOError('No input dictionary defined.')
-        I = inputs()
-        data = data_handling.ImportData()
-        data.load_pure_data(I['Compounds'])
-        data.load_E(I['Compounds'])
-
-    # %% Find pure component model parameters if not defined
-    for compound in I['Compounds']:
-        if False:  # TODO: ADD EXCEPTION HANDLING TO DETECT NEEDED PARAMS
-            I['Compound'] = [compound]
-            execfile('pure.py')
-
-    # %% Initialize binary and single component paramters
-    p = MixParameters()
-    p.mixture_parameters(data.VLE, I, data)
-    p.m['n'] = len(I['Compounds'])  # Define system size
-    for i in range(p.m['n']):  # Set params for all compounds
-        p.parameters(data.c[i], I)  # Defines p.c[i]
-
-    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
-
-    # %% Initialize state variables
-    s = state()
-    s.mixed()  # Define mix state variable, call using s.m['key']
-    # Define three component state variables (use index 1 and 2 for clarity)
-    for i in range(1, p.m['n']+1):
-        s.pure(p, i)  # Call using ex. s.c[1]['key']
+    pass

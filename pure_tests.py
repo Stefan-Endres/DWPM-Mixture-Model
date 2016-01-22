@@ -26,7 +26,7 @@ class TestPureFuncs(unittest.TestCase):
         self.data.c[0]['a_c (Pa m6 mol-2)'][0] = ''
         self.data.c[0]['b_c (m3 mol-1)'][0] = ''
         s, p = main.pure_sim(self.data)
-        
+
         # Redefine for other tests
         self.data.c[0]['a_c (Pa m6 mol-2)'] =[0.533365967206]
         self.data.c[0]['b_c (m3 mol-1)'] = [6.36225762119e-05]
@@ -72,7 +72,7 @@ class TestPureFuncs(unittest.TestCase):
         s, p = main.pure_sim(self.data)
         numpy.testing.assert_allclose(1, 1, rtol=1e-02)
 
-class TestNewPure(unittest.TestCase):
+class TestNewPure(unittest.TestCase): #TODO
     def test_pn1(self):
         self.assertEqual(True, True)
 
