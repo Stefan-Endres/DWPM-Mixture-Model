@@ -10,6 +10,7 @@ import numpy
 from tgo_tests import tgo_suite
 from data_handling_tests import data_handling_suite
 from pure_tests import pure_suite
+from ncomp_tests import ncomp_suite
 
 
 class AllTestCases(unittest.TestCase):
@@ -34,7 +35,8 @@ if __name__ == '__main__':
     TestTgo = tgo_suite()
     DataTests = data_handling_suite()
     TestPure = pure_suite()
-    TestAll = test_all_wrap((TestTgo, DataTests, TestPure))
+    TestNcomp = ncomp_suite()
+    TestAll = test_all_wrap((TestTgo, DataTests, TestPure, TestNcomp))
     unittest.TextTestRunner(verbosity=2).run(TestAll)
 
 

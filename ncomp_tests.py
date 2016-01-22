@@ -131,13 +131,22 @@ class TestNcompFuncsBin(unittest.TestCase):
 
     def test_b1(self):
         """
-        State and data class definition
+        State and data class defs and funcs
         """
+        self.p.m['r'], self.p.m['s'] = 1.0, 1.0
+        self.p.m['k'][1][2] = 0.124
+        self.p.m['k'][2][1] = self.p.m['k'][1][2]
+        self.s.update_state(self.s, self.p, P=24e5, T=263.1,
+                            X=[[0.25], [0.25]])
+
         self.assertTrue(type(self.s.c) is list)
         self.assertTrue(type(self.s.c[1]) is dict)
         self.assertTrue(type(self.p.c) is list)
         self.assertTrue(type(self.p.c[1]) is dict)
         self.assertTrue(type(self.p.m['k'][1][2]) is float )
+        part = a_mix_partial_k(self.s, self.p, k=1, phase='x')
+        #self.assertTrue(type(part) is float )
+        #TODO: Type is float64, find test.
 
     def test_b2(self):
         """
