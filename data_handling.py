@@ -30,6 +30,7 @@ class ImportData:
                                                                     configfile)
             raise EnvironmentError(message)
 
+
         # Load data vars into class and parse lists
         # TODO: There's probably a simpler way simpler way to do this l 33-79.
         compstr = config.get('inputs', 'compounds')
