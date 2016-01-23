@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# TODO: Add list sorting to ensure right component is tests in phase detectionsco
+# TODO: Add list sorting to ensure right component is tests in phase detection.
 
 
 import unittest

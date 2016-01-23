@@ -21,7 +21,7 @@ class AllTestCases(unittest.TestCase):
 
 
 #def test_all_wrap(TestTgo, DataTests):
-def test_all_wrap(test_suite):
+def test_all_wrap(test_suite): #TODO:  look at nose as a test runner.
     """
     Gather all the data_handling tests from this module in a test suite.
     """

@@ -5,6 +5,7 @@
 *.log
 *.directory
 *.idea
+.coverage
 htmlcov/
 
 # Test scripts
