@@ -24,62 +24,35 @@ class ImportData:
 
         if os.path.exists(configfile):
             config.read('config.cfg')
+            self.datadir =  config.get('paths',
+                           'datadir')
         else:
             message = ("Cannot find config file {0}. "
                        "Try copying sample_config.cfg to {0}.").format(
                                                                     configfile)
             raise EnvironmentError(message)
 
-
+    def run_options(self, args):
         # Load data vars into class and parse lists
-        # TODO: There's probably a simpler way simpler way to do this l 33-79.
-        compstr = config.get('inputs', 'compounds')
-        self.comps = compstr.split('-')
-        if isinstance(self.comps, basestring): #  1x1 list TODO: Not needed?
-            self.comps = [self.comps]
-
-        self.eos = config.get('inputs', 'EOS')
-        phasestr = config.get('inputs', 'valid_phases')
-        self.phases = phasestr.split('-')
-        self.model = config.get('inputs', 'model')
-        self.r = config.get('inputs', 'r')
-        if self.r == 'None': # TODO: Get None vals from empty config entry?
-            self.r = None
-
-        self.s = config.get('inputs', 's')
-        if self.s == 'None':
-            self.s = None
-
-        self.T = config.get('inputs', 'T')
-        if self.T == 'None':
-            self.T = None
-
-        self.P = config.get('inputs', 'P')
-        if self.P == 'None':
-            self.P = None
-
-        self.Z_0 = config.get('inputs', 'Z_0')
-        if self.Z_0 == 'None':
-            self.Z_0 = None
-        else:
-            self.Z_0 = self.Z_0.split('-')
-
-        self.save_results = config.getboolean('output settings',
-                                              'save_results')
-        self.force_update = config.getboolean('output settings',
-                                               'force_update')
-        self.plot_iso = config.getboolean('output settings',
-                                          'plot_iso')
-        self.plot_gibbs = config.getboolean('output settings',
-                                            'plot_gibbs')
-        self.plot_pure = config.getboolean('output settings',
-                                           'plot_pure')
-        self.save_pure = config.getboolean('output settings',
-                                           'save_pure')
-        self.force_pure_update = config.getboolean('output settings',
-                                                   'force_pure_update')
-        self.datadir =  config.get('paths',
-                                   'datadir')
+        # Required args
+        self.comps = args.compounds
+        self.phases = args.phases
+        # Otionals
+        self.eos = args.eos
+        self.model = args.model
+        self.r = args.r
+        self.s = args.s
+        self.T = args.temperature
+        self.P = args.pressure
+        self.Z_0 = args.z
+        # Plots
+        self.plot_iso = args.plot_iso
+        self.plot_gibbs = args.plot_gibbs
+        self.plot_pure = args.plot_pure
+        # Saves
+        self.save_results = args.save
+        self.save_pure = args.save_pure
+        self.force_pure_update = args.force_pure_update
 
     def load_pure_data(self):
         from csvDict import load_csv_as_dict

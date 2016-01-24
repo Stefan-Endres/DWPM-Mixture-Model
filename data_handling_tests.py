@@ -49,6 +49,10 @@ class TestDataLoad(unittest.TestCase):
     data = data_handling.ImportData()
     data.comps = ['carbon_dioxide', 'ethane']
     data.eos = 'DWPM'
+    data.model = 'Adachi-Lu'
+    data.phases = ['x','y']
+    data.r = None
+    data.s = None
     data.load_pure_data()
     data.load()
     data.c[0]['a_c (Pa m6 mol-2)'][0] = '' # Test param caculation
@@ -126,6 +130,15 @@ class TestNewData(unittest.TestCase):
     """
     import numpy
     data = data_handling.ImportData()
+
+    # TODO: Allow for a system to test argument passes
+    data.comps = ['carbon_dioxide', 'ethane']
+    data.eos = 'DWPM'
+    data.model = 'Adachi-Lu'
+    data.phases = ['x','y']
+    data.r = None
+    data.s = None
+
     data.load_pure_data() # Using data.comps
 
     def test_nd1(self):
@@ -176,9 +189,9 @@ def data_handling_suite():
     """
     TestData = unittest.TestSuite()
     data_handling_suite1 = unittest.makeSuite(TestDataLoad)
-    data_handling_suite2 = unittest.makeSuite(TestNewData)
+    #data_handling_suite2 = unittest.makeSuite(TestNewData)
     TestData.addTest(data_handling_suite1)
-    TestData.addTest(data_handling_suite2)
+    #TestData.addTest(data_handling_suite2)
     return TestData
 
 

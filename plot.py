@@ -18,6 +18,23 @@ def plot_Psat(s, p, options, figno=1):
 
     """
     import matplotlib.pyplot as plot
+    from numpy import linspace, interp
+
+    s['T_sat store'] = linspace(p['T'][0], p['T'][len(p['T'])-1])
+    s['P_sat store'] = []
+    s['P_est'] = interp(p['T'], p['P'])(s['T_sat store'])
+    i = 0
+    for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],
+                    s['P_est'][:len(s['T_sat store'])-1]): # Trim crit.
+        s['T'] = T # Solve P_sat at this Temperature
+        s['P'] = P # P est
+        s = VdW.Psat_V_roots(s,p,tol=1e-1)
+        s['P_sat store'].append(s['P_sat'])
+
+        s['P_sat store'].append(p['P_c']) # Append Critical point
+
+
+
     plot.figure(figno)
     plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
     plot.rcParams.update(options)
@@ -266,17 +283,4 @@ if __name__ == '__main__':
 
     #%% Plot pure if True
      if data.plot_pure:
-        from numpy import linspace
-        s['T_sat store'] = linspace(p['T'][0], p['T'][len(p['T'])-1])
-        s['P_sat store'] = []
-        s['P_est'] = interp1d(p['T'], p['P'])(s['T_sat store'])
-        i = 0
-        for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],
-                        s['P_est'][:len(s['T_sat store'])-1]): # Trim crit.
-            s['T'] = T # Solve P_sat at this Temperature
-            s['P'] = P # P est
-            s = VdW.Psat_V_roots(s,p,tol=1e-1)
-            s['P_sat store'].append(s['P_sat'])
-
-        s['P_sat store'].append(p['P_c']) # Append Critical point
         plot_Psat(s, p, plot_options)

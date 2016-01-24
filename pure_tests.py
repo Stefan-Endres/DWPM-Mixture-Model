@@ -3,6 +3,7 @@ import unittest
 import data_handling
 import main
 import numpy
+import pure
 
 class TestPureFuncs(unittest.TestCase):
     """
@@ -10,7 +11,13 @@ class TestPureFuncs(unittest.TestCase):
     """
     data = data_handling.ImportData()
     data.comps = ['ethane']
+    data.phases = ['x', 'y']
     data.eos = 'DWPM'
+    data.model = 'Adachi-Lu'
+    data.r = None
+    data.s = None
+    data.T = None
+    data.P = None
     data.load_pure_data()
     data.save_pure = False  # Force test not to save.
     p1_ans1 = 0.533365967206
@@ -19,13 +26,14 @@ class TestPureFuncs(unittest.TestCase):
     p3_ans = 0.701094516008
     p4_ans = [1046007.02038, 0.00160041689843, 8.83846522926e-05]
 
+    data.force_pure_update =True
     def test_p1(self):
         """
         Critical parameters
         """
         self.data.c[0]['a_c (Pa m6 mol-2)'][0] = ''
         self.data.c[0]['b_c (m3 mol-1)'][0] = ''
-        s, p = main.pure_sim(self.data)
+        s, p = pure.pure_sim(self.data)
 
         # Redefine for other tests
         self.data.c[0]['a_c (Pa m6 mol-2)'] =[0.533365967206]
@@ -42,7 +50,7 @@ class TestPureFuncs(unittest.TestCase):
         self.data.model = 'Soave'
         self.data.c[0]['model'] = 'Soave'
         self.data.c[0]['m (Soave)'][0] = ''
-        s, p = main.pure_sim(self.data)
+        s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose([self.p2_ans],[p['m'][0]], rtol=1e-03)
 
     def test_p3(self):
@@ -52,7 +60,7 @@ class TestPureFuncs(unittest.TestCase):
         self.data.model = 'Adachi-Lu'
         self.data.c[0]['model'] = 'Adachi-Lu'
         self.data.c[0]['m (Adachi-Lu)'][0] = ''
-        s, p = main.pure_sim(self.data)
+        s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose([self.p3_ans],[p['m'][0]], rtol=1e-02)
 
     def test_p4(self):
@@ -60,7 +68,7 @@ class TestPureFuncs(unittest.TestCase):
         Phase equilibrium at fixed temperature
         """
         self.data.T = 243.01
-        s, p = main.pure_sim(self.data)
+        s, p = pure.pure_sim(self.data)
         p4 = [s['P_sat'], s['V_v'], s['V_l']]
         numpy.testing.assert_allclose(self.p4_ans, p4, rtol=1e-02)
 
@@ -69,7 +77,7 @@ class TestPureFuncs(unittest.TestCase):
         Phase equilibrium at fixed pressure
         """
         self.data.P = 1046007.02038
-        s, p = main.pure_sim(self.data)
+        s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose(1, 1, rtol=1e-02)
 
 class TestNewPure(unittest.TestCase): #TODO
@@ -89,4 +97,5 @@ def pure_suite():
 if __name__ == '__main__':
     TestPure = pure_suite()
     unittest.TextTestRunner(verbosity=2).run(TestPure)
+    
 

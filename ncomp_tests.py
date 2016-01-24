@@ -121,6 +121,9 @@ class TestNcompFuncsBin(unittest.TestCase):
     data.comps = ['carbon_dioxide', 'ethane']
     data.phases = ['x', 'y']
     data.eos = 'DWPM'
+    data.model = 'Adachi-Lu'
+    data.r = None
+    data.s = None
     if len(data.comps) > 1:  # multi component simulation.
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
@@ -225,6 +228,9 @@ class TestNcompFuncsTern(unittest.TestCase):
     data.comps = ['acetone', 'benzene', 'water']
     data.phases = ['x']
     data.eos = 'DWPM'
+    data.model = 'Adachi-Lu'
+    data.r = None
+    data.s = None
     if len(data.comps) > 1:  # multi component simulation.
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
