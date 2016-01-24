@@ -8,6 +8,7 @@ The functions can be used by calling the `main.py` script with optionals
 passed from the command line, for example initializing the state and parameter 
 classes `s` `p` for acetone water phenol with two valid root phases and 
 then enter the Python shell:
+
 `$ python -i main.py -c acetone benzene water -p x y`
 ```python
 >>> s
