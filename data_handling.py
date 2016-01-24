@@ -33,8 +33,14 @@ class ImportData:
             raise EnvironmentError(message)
 
     def run_options(self, args):
-        # Load data vars into class and parse lists
-        # Required args
+        """
+        Load data vars into data class
+
+        Parameters
+        ----------
+        args : object
+               argparse arguments given when running main.py
+        """
         self.comps = args.compounds
         self.phases = args.phases
         # Otionals
@@ -45,6 +51,9 @@ class ImportData:
         self.T = args.temperature
         self.P = args.pressure
         self.Z_0 = args.z
+
+        self.lle_only = args.lle_only
+        self.vle_only = args.vle_only
         # Plots
         self.plot_iso = args.plot_iso
         self.plot_gibbs = args.plot_gibbs

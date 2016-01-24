@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # (TODO)
+import Van_der_Waals
+VdW = Van_der_Waals.VdW()
 
 #%% Plot pure Functions
 def plot_Psat(s, p, options, figno=1):
@@ -22,7 +24,7 @@ def plot_Psat(s, p, options, figno=1):
 
     s['T_sat store'] = linspace(p['T'][0], p['T'][len(p['T'])-1])
     s['P_sat store'] = []
-    s['P_est'] = interp(p['T'], p['P'])(s['T_sat store'])
+    s['P_est'] = interp(s['T_sat store'], p['T'], p['P'])
     i = 0
     for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],
                     s['P_est'][:len(s['T_sat store'])-1]): # Trim crit.
@@ -46,7 +48,7 @@ def plot_Psat(s, p, options, figno=1):
     plot.xlabel("Temperature / K")
     plot.ylabel("Pressure$^{sat}$ / Pa")
     plot.title("Van der Waals EoS correlation for $%s$" \
-                % (data.c[0]['name'][0]))
+                % (p.c[0]['name'][0]))
     plot.legend(loc=options['legend.loc'])
     return
 

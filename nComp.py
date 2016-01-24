@@ -213,7 +213,37 @@ class state:
         s.m = VdW.V_root(s.m, p.m) # 'V_v' and 'V_l' mixture volumes at x1, x2
   
         return s
-            
+
+
+# Define multi component initialisation
+def n_comp_init(data):
+    # Define parameter class
+    p = data_handling.MixParameters()
+    p.mixture_parameters(data.VLE, data)
+    p.m['n'] = len(data.comps)  # Define system size
+    for i in range(p.m['n']):  # Set params for all compounds
+        p.parameters(data.c[i])  # Defines p.c[i]
+        #p.parameter_build(data.c[i])
+    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
+
+    # %% Initialize state variables
+    s = state()
+    s.mixed()  # Define mix state variable, call using s.m['key']
+    # Define three component state variables (use index 1 and 2 for clarity)
+    for i in range(1, p.m['n']+1):
+        s.pure(p, i)  # Call using ex. s.c[1]['key']
+
+    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
+
+    # %% Initialize state variables
+    s = state()
+    s.mixed()  # Define mix state variable, call using s.m['key']
+    # Define three component state variables (use index 1 and 2 for clarity)
+    for i in range(1, p.m['n']+1):
+        s.pure(p, i)  # Call using ex. s.c[1]['key']
+
+    return s, p
+
 
 # %% Define mixture models
 def a_ij(s, p, i=1, j=1):  # (Validated)
@@ -1299,7 +1329,7 @@ def stability(X, g_x_func, s, p, k):
          A True boolean is return if the point is stable, else False.
     """
     import numpy
-    s.update_state(s, p, X = X, phase = k)#, Force_Update=True) 
+    s.update_state(s, p, X = X, phase = k, Force_Update=True)
     H = hessian(g_x_func, s, p, dx=1e-6, gmix=True, k=k)
     Heig = numpy.linalg.eig(H)[0]
     HBeig = (Heig > 0.0)
@@ -1376,6 +1406,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     S = numpy.empty(n, dtype=bool)
 
     # Update P, T to specified value
+    print Points[0]
     s = s.update_state(s, p,  P=P, T=T, X = Points[0], Force_Update=True)
     
     def subset_eqp(Points, X_I, X_II):

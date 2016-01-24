@@ -53,6 +53,7 @@ class TestPureFuncs(unittest.TestCase):
         s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose([self.p2_ans],[p['m'][0]], rtol=1e-03)
 
+    #@unittest.skip("ValueError") #TODO FIX
     def test_p3(self):
         """
         Adachi-Lu model optimisation

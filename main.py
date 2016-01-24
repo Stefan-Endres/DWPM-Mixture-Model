@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+"""
+python2 main.py -c acetone benzene water -p x y
+python2 -i main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 1.0
+
+python2 main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 1.0
+
+"""
+
 import data_handling
 import nComp
 import pure
@@ -8,44 +17,8 @@ import numpy
 import scipy
 import scipy.interpolate
 import Van_der_Waals
-import argparse
-
 VdW = Van_der_Waals.VdW()
-
-
-
-
-#%% Define multi-component simulation function
-def n_comp_sim(data):
-    # Define parameter class
-    p = data_handling.MixParameters()
-    p.mixture_parameters(data.VLE, data)
-    p.m['n'] = len(data.comps)  # Define system size
-    for i in range(p.m['n']):  # Set params for all compounds
-        p.parameters(data.c[i])  # Defines p.c[i]
-        #p.parameter_build(data.c[i])
-    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
-
-    # %% Initialize state variables
-    s = nComp.state()
-    s.mixed()  # Define mix state variable, call using s.m['key']
-    # Define three component state variables (use index 1 and 2 for clarity)
-    for i in range(1, p.m['n']+1):
-        s.pure(p, i)  # Call using ex. s.c[1]['key']
-
-    p.m['R'] = p.c[1]['R']  # Use a component Universal gas constant
-
-    # %% Initialize state variables
-    s = nComp.state()
-    s.mixed()  # Define mix state variable, call using s.m['key']
-    # Define three component state variables (use index 1 and 2 for clarity)
-    for i in range(1, p.m['n']+1):
-        s.pure(p, i)  # Call using ex. s.c[1]['key']
-
-    return s, p
-
-
-
+import argparse
 
 if __name__ == '__main__':
     # Return basic data
@@ -55,7 +28,7 @@ if __name__ == '__main__':
     # Positional arguments
     parser.add_argument('-c', '--compounds', nargs='+', required=True,
                         help='compounds to simulate for example'
-                             'acetone water phenol')
+                             'acetone benzene water')
     parser.add_argument('-p', '--phases', nargs='+', required=True,
                         help='List of valid phases in equilibrium'
                              'ex. for VLE use x y')
@@ -71,12 +44,26 @@ if __name__ == '__main__':
                         default="Adachi-Lu",
                         choices=['Adachi-Lu', 'Soave'],
                         help='Actvity coefficient model')
-    parser.add_argument('-T', '--temperature', nargs=1, type=float,
+    parser.add_argument('-T', '--temperature', type=float,
                         help='Temperature for point simulation')
-    parser.add_argument('-P', '--pressure', nargs=1, type=float,
+    parser.add_argument('-P', '--pressure', type=float,
                         help='Pressure for point simulation')
     parser.add_argument('-z', type=float, nargs="+",
                         help='Composition for point simulation')
+
+    #
+#    parser.add_argument('-g_f', '--g_x_func' type=float, nargs="+",
+#                        help='')
+
+    parser.add_argument('-vle', '--vle_only',
+                        action="store_true",
+                        help='If specified then phase seperation of same '
+                             'volume root instability will be ignored.')
+
+    parser.add_argument('-lle', '--lle_only',
+                        action="store_true",
+                        help='Calculate oly phase seperation of same volume '
+                             'root')
 
     # Plots
     parser.add_argument('-pltg', '--plot_gibbs',
@@ -116,12 +103,10 @@ if __name__ == '__main__':
                         help=' force a new optimisation for the m'
                              'parameter for the selected Model, to be '
                              'used if new vapour datais added')
-    # Plotting
 
     args = parser.parse_args()
-    print args.plot_gibbs
     data.run_options(args)
-    print data.plot_gibbs
+
 
     if len(data.comps) == 1:  # pure component simulation.
         # Load pure data
@@ -131,14 +116,27 @@ if __name__ == '__main__':
         s, p = pure.pure_sim(data, i=0)
 
     if len(data.comps) > 1:  # multi component simulation.
+        from nComp import phase_equilibrium_calculation as pec
+        from nComp import phase_seperation_detection as psd
+        from nComp import g_mix as g_x_func
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
-
         # Load VLE and mixture parameter data
         data.load()
+        s, p = nComp.n_comp_init(data)
 
-        s, p = n_comp_sim(data)
+        # Parameter optimisation
+        if data.optimse:
+            pass #TODO
+        
+        # Simulate specifications
+        if data.P is not None and data.T is not None and data.Z_0 is None:
+            psd(g_x_func, s, p, data.P, data.T, n=100, LLE_only=data.lle_only,
+                                   VLE_only=data.vle_only) # Tested/working
 
+        if data.P is not None and data.T is not None and data.Z_0 is not None:
+            pec(s, p, g_x_func, Z_0, k=None, P=data.P, T=data.T, # Not tested
+               tol=1e-9, Print_Results=True, Plot_Results=data.plot_gibbs)
 
-    #if data.plotting:
-    #    from plot import *  # allow easier func calls from python shell
+        if data.plot_iso:
+            pass #TODO
