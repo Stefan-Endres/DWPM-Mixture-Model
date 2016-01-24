@@ -94,7 +94,13 @@ if __name__ == '__main__':
     parser.add_argument('-pltp', '--plot_pure',
                         action="store_true",
                         help='Plot the pure vapour pressure model')
-    # Save
+
+    # Optimise
+    parser.add_argument('-opt', '--optimise',
+                        action="store_true",
+                        help='Optimise the DWPM paramters')
+
+    #  Save
     parser.add_argument('-save', nargs=1, type=bool,
                         default=False,
                         help='Save the results of the multi-component'

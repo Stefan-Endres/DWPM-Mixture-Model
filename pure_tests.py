@@ -97,5 +97,5 @@ def pure_suite():
 if __name__ == '__main__':
     TestPure = pure_suite()
     unittest.TextTestRunner(verbosity=2).run(TestPure)
-    
+
 

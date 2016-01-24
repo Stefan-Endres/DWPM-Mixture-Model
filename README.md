@@ -3,6 +3,44 @@
 # DWPM-Mixture-Model
 Phase seperation calculation using the DWPM mixture rule.
 
+## Main function call examples.
+The functions can be used by calling the `main.py` script with optionals 
+passed from the command line, for example initializing the state and parameter 
+classes `s` `p` for acetone water phenol with two valid root phases and 
+then enter the Python shell:
+`$ python -i main.py -c acetone benzene water -p x y`
+```python
+>>> s
+<nComp.state instance at 0x7f28190cf368>
+>>> p
+<data_handling.MixParameters instance at 0x7f28190d01b8>
+
+```
+
+[To be implemented soon:]
+To optmise new paramters and save the results add the `-optim` `-save` options
+`$ python main.py -c acetone benzene water -p x y -optim -save` 
+
+To calculate all phase seperations and equilibrium points specifify the 
+pressure and temperature only
+`$ python main.py -c acetone water -p x y -P 101e3 -T 298.15`
+To calculate equilibrium at a specific feed point specifify the pressure, 
+temperature and a feed composition
+`$ python main.py -c acetone water -p x y -P 101e3 -T 298.15 -z 0.5 0.4`
+
+Several plots for binary and ternary systems are available.
+The plot optional `-pltg` can be added to plot the Gibbs surface and any 
+equilibrium tangent planes at a P, T point. 
+`$ python main.py -c acetone water -p x y -P 101e3 -T 298.15 -pltg `
+
+The `-pltiso` will plot either isotherms or isobars with the current optimised 
+parameters at the data $P$, $T$, $\bar{x}$ data points to compare the fit
+`$ python main.py -c acetone water -p x y -pltiso`
+
+Specifying `-pltiso` with a temperature or pressure point will plot an isotherm 
+or isotherm at that point
+`$ python main.py -c acetone water -p x y -T 298.15 -pltiso`
+
 ## Basic description of files.
 1. `main.py` main script to call, the specifications in `config.cfg` is used to 
 determine the scripts to be run. See Config files for detail.
