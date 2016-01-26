@@ -701,21 +701,21 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
 
     # Reset system from changed composition in bound calculation each call
     # Comp. invariant in UBD
-    s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
+    s = s.update_state(s, p, X = X_d, Force_Update=True)
     G_X_d = g_x_func(s, p).m['g_mix']['t']
-    UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
+    #UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
     # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
     #       must strictly be added as a constraint to this problem.
-    s = s.update_state(s, p, phase = k,  X = Z_0, Force_Update=True)
+    s = s.update_state(s, p, X = Z_0, Force_Update=True)
     # G_p (Primal problem Z_0_i - x_i = 0 for all i)
     G_P = g_x_func(s, p).m['g_mix']['t']
 
     # Lamda bounds
     # Upper
-    s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)
+    s = s.update_state(s, p,  X = X_bounds[0], Force_Update=True)
     G_upper = g_x_func(s, p).m['g_mix']['t']
     # Lower
-    s = s.update_state(s, p,  X = X_bounds[1], phase = k, Force_Update=True)
+    s = s.update_state(s, p,  X = X_bounds[1], Force_Update=True)
     G_lower = g_x_func(s, p).m['g_mix']['t']
 
     # b_i
@@ -729,11 +729,11 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
             # [row, col]
             if i == j:
                 A_1[i, j] = - X_bounds[0][i] - X_d[i]
-                A_2[i, j] = - X_d[0][i]
+                A_2[i, j] = - X_d[i]
                 A_3[i, j] = Z_0[i] - X_bounds[0][i]
             if j != i:
                 A_1[i, j] = X_d[i] - Z_0[i]
-                A_2[i, j] = Z_0[i] - X_d[0][i]
+                A_2[i, j] = Z_0[i] - X_d[i]
                 A_3[i, j] = 0.0 # (same as c, but needs to be 2d array)
 
     # Concatenate all arrays
@@ -793,35 +793,7 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     # Reset system from changed composition in bound calculation each call
     # Comp. invariant in UBD
     s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
-    UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d)) 
-
-    # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
-    #       must strictly be added as a constraint to this problem.
-
-    s = s.update_state(s, p, phase = k,  X = Z_0, Force_Update=True)  
-    # G_p (Primal problem Z_0_i - x_i = 0 for all i)
-    P = 0
-    G_P = g_x_func(s,p).m['g_mix']['t']  
-    if UBD > G_P:
-        P += exp(abs(G_P - UBD)) # Penalty
-
-
-    # Lamda bounds
-    # Upper
-    s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)  
-    G_upper = g_x_func(s, p).m['g_mix']['t']
-    # Lower
-    s = s.update_state(s, p,  X = X_bounds[1], phase = k, Force_Update=True) 
-    G_lower = g_x_func(s, p).m['g_mix']['t']
-    for i in range(p.m['n']-1):
-        UB = ((UBD - G_upper)/(Z_0[i] - X_bounds[0][i]))
-        LB = ((UBD - G_lower)/(Z_0[i] - X_bounds[1][i]))
-        if Lambda[i] > UB:
-            P +=  exp(abs(Lambda[i] - UB)*1e-1)
-            
-        if Lambda[i] < LB:
-            P +=  exp(abs(Lambda[i] - LB)*1e-1)
-            
+    UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))            
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
 
@@ -999,7 +971,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
         # Find new bounds for linprog
         c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
-        Lambda_sol = linprog(c, A_ub=A, b_ub=B, bounds=X_bounds)
+        Lambda_sol = linprog(c, A_ub=A, b_ub=b, bounds=Bounds)
+        print 'LAMBDA_SOL = {}'.format(Lambda_sol)
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
