@@ -637,6 +637,110 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     return s
 
 # %% Duality formulation
+def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
+    """
+    Returns the arguments to be used in the optimisation of the upper bounding
+    problem with scipy.optimize.linprog.
+
+    used
+    Parameters
+    ----------
+    X_d : vector (1xn array)
+          Contains the current composition point in the overall dual
+          optimisation. Constant for the upper bounding problem.
+
+    Z_0 : vector (1xn array)
+          Feed composition. Constant.
+
+    X_bounds : list of vectors
+               Material constraint bounds on composition.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+
+    p : class
+        Contains the dictionary describing the parameters.
+
+    k : list, optional (TODO)
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.
+
+    Returns
+    -------
+    c : array_like
+        Coefficients of the linear objective function to be minimized.
+
+    A : A_eq : array_like, optional
+        2-D array which, when matrix-multiplied by x, gives the values of the
+        upper-bound inequality constraints at x.
+
+    b : array_like, optional
+        1-D array of values representing the upper-bound of each inequality
+        constraint (row) in.
+    """
+    import numpy
+    # Coefficients of UBD linear objective function
+    c = numpy.zeros([p.m['n'] - 1])
+    # TODO: Improve
+    # Coefficients of Lambda inequality constraints
+    A_1 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
+    b_1 = numpy.zeros([p.m['n'] - 1])
+    A_2 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
+    b_2 = numpy.zeros([p.m['n'] - 1])
+    A_3 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
+    b_3 = numpy.zeros([p.m['n'] - 1])
+
+    X_d = numpy.array(X_d)  # Prevent float converstion of 1x1 arrays
+
+    # Reset system from changed composition in bound calculation each call
+    # Comp. invariant in UBD
+    s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
+    G_X_d = g_x_func(s, p).m['g_mix']['t']
+    UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
+    # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
+    #       must strictly be added as a constraint to this problem.
+    s = s.update_state(s, p, phase = k,  X = Z_0, Force_Update=True)
+    # G_p (Primal problem Z_0_i - x_i = 0 for all i)
+    G_P = g_x_func(s, p).m['g_mix']['t']
+
+    # Lamda bounds
+    # Upper
+    s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)
+    G_upper = g_x_func(s, p).m['g_mix']['t']
+    # Lower
+    s = s.update_state(s, p,  X = X_bounds[1], phase = k, Force_Update=True)
+    G_lower = g_x_func(s, p).m['g_mix']['t']
+
+    # b_i
+    b_1[:] = G_X_d - G_upper
+    b_2[:] = G_lower - G_X_d
+    b_3[:] = 0.0
+    # A_i
+    for i in range(p.m['n']-1): #TODO: Vectorise if possible
+        c[i] = Z_0[i] - X_bounds[0][i]
+        for j in range(p.m['n']-1):
+            # [row, col]
+            if i == j:
+                A_1[i, j] = - X_bounds[0][i] - X_d[i]
+                A_2[i, j] = - X_d[0][i]
+                A_3[i, j] = Z_0[i] - X_bounds[0][i]
+            if j != i:
+                A_1[i, j] = X_d[i] - Z_0[i]
+                A_2[i, j] = Z_0[i] - X_d[0][i]
+                A_3[i, j] = 0.0 # (same as c, but needs to be 2d array)
+
+    # Concatenate all arrays
+    A = numpy.concatenate((A_1, A_2, A_3), axis=0)
+    b = numpy.concatenate((b_1, b_2, b_3))
+    return c, A, b
+
 def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): # 
     """
     TODO: Improve bounds
@@ -701,6 +805,7 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     if UBD > G_P:
         P += exp(abs(G_P - UBD)) # Penalty
 
+
     # Lamda bounds
     # Upper
     s = s.update_state(s, p,  X = X_bounds[0], phase = k, Force_Update=True)  
@@ -719,7 +824,6 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
             
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
     return -UBD + P # -UBD to minimize max problem
-
 
 
 def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
@@ -843,7 +947,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
               
     """
     from numpy import array, zeros_like, zeros
-    from scipy.optimize import minimize
+    from scipy.optimize import minimize, linprog
     from tgo import tgo
     
     def x_lim(X): # limiting function used in TGO
@@ -891,10 +995,15 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Solve UBD
          # Update system to new composition.
          # (Comp. invariant in UBD)
-        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True) 
-        Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B', 
-                              args=(g_x_func, X_d, Z_0, s, p, X_bounds,
-                                    k))['x']
+        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True)
+
+        # Find new bounds for linprog
+        c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
+        Lambda_sol = linprog(c, A_ub=A, b_ub=B, bounds=X_bounds)
+
+        #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
+         #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
+         #                           k))['x']
                                     
         Lambda_d = array(Lambda_sol)  # If float convert back to 1x1 array
     
@@ -1576,12 +1685,5 @@ def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
     return s
 # %% Parameter goal Functions
 
-
-
-
-
-
-
-# %%
 if __name__ == '__main__':
     pass

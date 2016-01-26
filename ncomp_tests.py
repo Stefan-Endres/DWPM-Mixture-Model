@@ -130,7 +130,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         # Load VLE and mixture parameter data
         data.load()
 
-        s, p = main.n_comp_sim(data)
+        s, p = n_comp_init(data)
 
     def test_b1(self):
         """
@@ -237,7 +237,7 @@ class TestNcompFuncsTern(unittest.TestCase):
         # Load VLE and mixture parameter data
         data.load()
 
-        s, p = main.n_comp_sim(data)
+        s, p = n_comp_init(data)
         p.m['r'], p.m['s'] = 1.0, 1.0
 
 
