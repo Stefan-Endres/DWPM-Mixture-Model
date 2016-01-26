@@ -961,7 +961,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
-    tol = 1e-1 # TEST DELETE
+    tol = 1e-6 # TEST DELETE
     while abs(UBD - LBD) >= tol:
         # Solve UBD
          # Update system to new composition.
