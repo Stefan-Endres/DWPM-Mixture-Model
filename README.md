@@ -69,7 +69,7 @@ the global minima of many sub-problems in `nComp.py`.
 ## Config files
 The simulation inputs are read from a file called `config.cfg` in the same 
 format as `config example.cfg` and needs to placed in the directory before 
-running the `main.py` file. The `[dir]` needs to contain a directory to a Data 
+running the `main.py` file. The `[paths]` section needs to contain a directory to a Data 
 folder containing the `.csv` files used in the project. Any `.csv` file with 
 the required headings as read in `data_handling.py` can be read.
 
