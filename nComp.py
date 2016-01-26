@@ -793,9 +793,9 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     # Reset system from changed composition in bound calculation each call
     # Comp. invariant in UBD
     s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
-    UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))            
+    UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))
     s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
-    return -UBD + P # -UBD to minimize max problem
+    return -UBD # -UBD to minimize max problem
 
 
 def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
@@ -971,7 +971,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
         # Find new bounds for linprog
         c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
-        Lambda_sol = linprog(c, A_ub=A, b_ub=b, bounds=Bounds)
+        Lambda_sol = linprog(c, A_ub=A, b_ub=b, bounds=Bounds)['x']
         print 'LAMBDA_SOL = {}'.format(Lambda_sol)
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
