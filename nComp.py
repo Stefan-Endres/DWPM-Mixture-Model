@@ -721,7 +721,7 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     # b_i
     b_1[:] = G_X_d - G_upper
     b_2[:] = G_lower - G_X_d
-    b_3[:] = 0.0
+    b_3[:] = G_P - G_X_d#0.0
     # A_i
     for i in range(p.m['n']-1): #TODO: Vectorise if possible
         c[i] = Z_0[i] - X_bounds[0][i]
@@ -731,7 +731,7 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
                 A_1[i, j] = - X_bounds[0][i] - X_d[i]
                 A_2[i, j] = - X_d[i]
                 A_3[i, j] = Z_0[i] - X_bounds[0][i]
-            if j != i:
+            if i != j:
                 A_1[i, j] = X_d[i] - Z_0[i]
                 A_2[i, j] = Z_0[i] - X_d[i]
                 A_3[i, j] = 0.0 # (same as c, but needs to be 2d array)
@@ -789,13 +789,11 @@ def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): #
     """
     from numpy import exp
     from numpy import array
-    X_d = array(X_d)  # Prevent float converstion of 1x1 arrays
+    X_d = array(X_d)  # Prevent float conversation of 1x1 arrays
     # Reset system from changed composition in bound calculation each call
     # Comp. invariant in UBD
     s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
-    UBD = g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))
-    s = s.update_state(s, p,  X = Z_0, Force_Update=True) 
-    return -UBD # -UBD to minimize max problem
+    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))
 
 
 def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
@@ -963,6 +961,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
+    tol = 1e-1 # TEST DELETE
     while abs(UBD - LBD) >= tol:
         # Solve UBD
          # Update system to new composition.
@@ -971,8 +970,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
         # Find new bounds for linprog
         c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
-        Lambda_sol = linprog(c, A_ub=A, b_ub=b, bounds=Bounds)['x']
-        print 'LAMBDA_SOL = {}'.format(Lambda_sol)
+        Lambda_sol = linprog(c, A_ub=A, b_ub=b)['x']
+       # print 'LAMBDA_SOL = {}'.format(Lambda_sol)
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
@@ -981,7 +980,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         Lambda_d = array(Lambda_sol)  # If float convert back to 1x1 array
     
         # NOTE: NEGATIVE THE MAX DEFINED PROBLEM:
-        UBD = -ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
+        UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
 
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                                  g_func=x_lim,
