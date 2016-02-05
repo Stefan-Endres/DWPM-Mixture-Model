@@ -1,8 +1,6 @@
 [![Code Climate](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/gpa.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)
-[![Test Coverage](https://codeclimate.com/repos/56b4f4a0983f2b007d00135e/badges/71a1b441b1ae6f925618/coverage.svg)](https://codeclimate.com/repos/
-56b4f4a0983f2b007d00135e/coverage)
-[![Issue Count](https://codeclimate.com/repos/56b4f4a0983f2b007d00135e/badges/71a1b441b1ae6f925618/issue_count.svg)](https://codeclimate.com/repos/
-56b4f4a0983f2b007d00135e/feed)
+[![Test Coverage](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/coverage.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/coverage)
+[![Issue Count](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/issue_count.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)
 
 
 # DWPM-Mixture-Model
