@@ -1,4 +1,12 @@
 [![Code Climate](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/gpa.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)
+[![Test Coverage](https://codeclimate.com/repos/56b4f4a0983f2b007d00135e/badges/
+71a1b441b1ae6f925618/coverage.svg)](https://codeclimate.com/repos/
+56b4f4a0983f2b007d00135e/coverage)
+[![Issue 
+Count](https://codeclimate.com/repos/56b4f4a0983f2b007d00135e/badges/
+71a1b441b1ae6f925618/issue_count.svg)](https://codeclimate.com/repos/
+56b4f4a0983f2b007d00135e/feed)
+
 
 # DWPM-Mixture-Model
 Phase seperation calculation using the DWPM mixture rule.
@@ -85,6 +93,4 @@ example:
 Specific function tests inside a unittest can be run for example:
 
 `$ python2 -m unittest -v tgo_tests.TestTgoSubFuncs.test_t1`
-
-NOTE: Only tgo_tests.py are fully working yet, 
 
