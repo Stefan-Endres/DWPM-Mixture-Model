@@ -697,7 +697,7 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     A_3 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
     b_3 = numpy.zeros([p.m['n'] - 1])
 
-    X_d = numpy.array(X_d)  # Prevent float converstion of 1x1 arrays
+    X_d = numpy.array(X_d)  # Prevent float conversion of 1x1 arrays
 
     # Reset system from changed composition in bound calculation each call
     # Comp. invariant in UBD
@@ -722,23 +722,28 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     b_1[:] = G_X_d - G_upper
     b_2[:] = G_lower - G_X_d
     b_3[:] = G_P - G_X_d#0.0
+    #print "b_3 = {}".format(b_3)
     # A_i
     for i in range(p.m['n']-1): #TODO: Vectorise if possible
-        c[i] = Z_0[i] - X_bounds[0][i]
+        c[i] = -(Z_0[i] - X_bounds[0][i]) # linrpog maximize/minimize? D
+                 # Documentation is contradictory across version; check
         for j in range(p.m['n']-1):
             # [row, col]
             if i == j:
-                A_1[i, j] = - X_bounds[0][i] - X_d[i]
-                A_2[i, j] = - X_d[i]
-                A_3[i, j] = Z_0[i] - X_bounds[0][i]
+                A_1[i, j] = X_d[j] - X_bounds[0][j] #- X_bounds[0][i] - X_d[i]
+                A_2[i, j] = - X_d[j]
+                A_3[i, j] = Z_0[j] - X_bounds[0][j]
             if i != j:
-                A_1[i, j] = X_d[i] - Z_0[i]
-                A_2[i, j] = Z_0[i] - X_d[i]
+                A_1[i, j] = X_d[j] - Z_0[j]
+                A_2[i, j] = Z_0[j] - X_d[j]
                 A_3[i, j] = 0.0 # (same as c, but needs to be 2d array)
 
     # Concatenate all arrays
     A = numpy.concatenate((A_1, A_2, A_3), axis=0)
     b = numpy.concatenate((b_1, b_2, b_3))
+    #print 'c = {}'.format(c)
+    #print 'A = {}'.format(A)
+    #print 'b = {}'.format(b)
     return c, A, b
 
 def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): # 
@@ -916,7 +921,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
               
     """
-    from numpy import array, zeros_like, zeros
+    from numpy import array, zeros_like, zeros, inf
     from scipy.optimize import minimize, linprog
     from tgo import tgo
     
@@ -952,16 +957,19 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # Construct physical bounds x \in [0, 1] for all independent components
     # (used in differential_evolution)
     Bounds = []
+    L_bounds = [] # Lambda inf bounds used in linprog.
     for i in range(p.m['n'] - 1):
         #Bounds.append((0, 1))
         Bounds.append((1e-5, 0.99999))
-        
-    # Construct composition container from X_d for all phases. (REMOVED)
-    X_d = Z_0
+        L_bounds.append((-inf, inf))
+        #L_bounds.append((None, None))
 
+    # Construct composition container from X_d for all phases. (REMOVED)
+    #X_d = Z_0
+    X_d = X_bounds[0]
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
-    tol = 1e-6 # TEST DELETE
+    tol = 1e-3 # TEST DELETE
     while abs(UBD - LBD) >= tol:
         # Solve UBD
          # Update system to new composition.
@@ -969,17 +977,20 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         s.update_state(s, p,  X = X_d , phase = k, Force_Update=True)
 
         # Find new bounds for linprog
+                      #(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
         c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
-        Lambda_sol = linprog(c, A_ub=A, b_ub=b)['x']
-       # print 'LAMBDA_SOL = {}'.format(Lambda_sol)
+        # Find mulitpliers with max problem.
+        Lambda_sol = -linprog(c, A_ub=A, b_ub=b, bounds =L_bounds)['x']
+
+        print(linprog(c, A_ub=A, b_ub=b, bounds =L_bounds))
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
          #                           k))['x']
                                     
         Lambda_d = array(Lambda_sol)  # If float convert back to 1x1 array
-    
-        # NOTE: NEGATIVE THE MAX DEFINED PROBLEM:
+
+        #print Lambda_d
         UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
 
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
@@ -1491,7 +1502,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     s = s.update_state(s, p,  P=P, T=T, X = Points[0], Force_Update=True)
     
     def subset_eqp(Points, X_I, X_II):
-        # Retunrs a subset of "Points" outside EQP
+        # Returns a subset of "Points" outside EQP
         import numpy
         for i in range(p.m['n']-1):
             P_new_low = Points[Points[:,i] < 
