@@ -741,7 +741,7 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
 
     # NOTE: Check if this loop is working correctly.
     for i in range(p.m['n'] - 1): #TODO: Vectorise if possible
-        A_2[i] = Z_0[i] - X_d[i]
+        A_2[i] = X_d[i] - Z_0[i] #Z_0[i] - X_d[i]
         for j in range(p.m['n'] - 1):
             # [row, col]
             if i == j:
@@ -1010,7 +1010,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
          #                           k))['x']
                                     
-        Lambda_d = array(Lambda_sol)  # If float convert back to 1x1 array
+        Lambda_d = -array(Lambda_sol)  # If float convert back to 1x1 array
 
         #print Lambda_d
         UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
