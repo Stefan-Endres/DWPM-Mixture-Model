@@ -687,15 +687,20 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     """
     import numpy
     # Coefficients of UBD linear objective function
-    c = numpy.zeros([p.m['n'] - 1])
+    c = numpy.zeros([p.m['n']]) # linrpog maximize/minimize? D
+                 # Documentation is contradictory across version; check
+    c[p.m['n'] - 1] = -1.0  # -1.0 change max --> min problem
     # TODO: Improve
     # Coefficients of Lambda inequality constraints
-    A_1 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
-    b_1 = numpy.zeros([p.m['n'] - 1])
-    A_2 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
-    b_2 = numpy.zeros([p.m['n'] - 1])
-    A_3 = numpy.zeros([p.m['n'] - 1, p.m['n'] - 1])
+    A_1 = numpy.zeros([p.m['n']])
+    b_1 = numpy.zeros(1)
+    A_2 = numpy.zeros([p.m['n']])
+    b_2 = numpy.zeros(1)
+    A_3 = numpy.zeros([p.m['n'] - 1, p.m['n']])
     b_3 = numpy.zeros([p.m['n'] - 1])
+    A_4 = numpy.zeros([p.m['n'] - 1, p.m['n']])
+    b_4 = numpy.zeros([p.m['n'] - 1])
+
 
     X_d = numpy.array(X_d)  # Prevent float conversion of 1x1 arrays
 
@@ -703,7 +708,7 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     # Comp. invariant in UBD
     s = s.update_state(s, p, X = X_d, Force_Update=True)
     G_X_d = g_x_func(s, p).m['g_mix']['t']
-    #UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
+    # UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
     # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
     #       must strictly be added as a constraint to this problem.
     s = s.update_state(s, p, X = Z_0, Force_Update=True)
@@ -719,28 +724,41 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     G_lower = g_x_func(s, p).m['g_mix']['t']
 
     # b_i
-    b_1[:] = G_X_d - G_upper
-    b_2[:] = G_lower - G_X_d
-    b_3[:] = G_P - G_X_d#0.0
+    b_1[:] = G_P
+    b_2[:] = G_X_d
+    b_3[:] = -G_upper
+    b_4[:] = G_lower
     #print "b_3 = {}".format(b_3)
+
     # A_i
-    for i in range(p.m['n']-1): #TODO: Vectorise if possible
-        c[i] = -(Z_0[i] - X_bounds[0][i]) # linrpog maximize/minimize? D
-                 # Documentation is contradictory across version; check
-        for j in range(p.m['n']-1):
+    # Set etas
+    A_1[p.m['n'] - 1] = 1.0
+    A_2[p.m['n'] - 1] = 1.0
+    A_3[:, p.m['n'] - 1] = -1.0
+    A_4[:, p.m['n'] - 1] = 1.0
+    # Fill in subspace excluding eta
+    #A_1[:1] = 0 # (already zero
+
+    # NOTE: Check if this loop is working correctly.
+    for i in range(p.m['n'] - 1): #TODO: Vectorise if possible
+        A_2[i] = Z_0[i] - X_d[i]
+        for j in range(p.m['n'] - 1):
             # [row, col]
             if i == j:
-                A_1[i, j] = X_d[j] - X_bounds[0][j] #- X_bounds[0][i] - X_d[i]
-                A_2[i, j] = - X_d[j]
                 A_3[i, j] = Z_0[j] - X_bounds[0][j]
-            if i != j:
-                A_1[i, j] = X_d[j] - Z_0[j]
-                A_2[i, j] = Z_0[j] - X_d[j]
-                A_3[i, j] = 0.0 # (same as c, but needs to be 2d array)
+                A_4[i, j] = -Z_0[j]
+#            if i != j: # Note, all zero entries no longer needer
+#                A_3[i, j] = 0.0
+#                A_4[i, j] = 0.0
 
     # Concatenate all arrays
-    A = numpy.concatenate((A_1, A_2, A_3), axis=0)
-    b = numpy.concatenate((b_1, b_2, b_3))
+
+    A_v = numpy.vstack((A_1, A_2))
+    A = numpy.concatenate((A_v, A_3, A_4), axis=0)
+    b = numpy.concatenate((b_1, b_2, b_3, b_4))
+    #print 'c shape = {}'.format(numpy.shape(c))
+    #print 'A shape = {}'.format(numpy.shape(A))
+    #print 'b shape = {}'.format(numpy.shape(b))
     #print 'c = {}'.format(c)
     #print 'A = {}'.format(A)
     #print 'b = {}'.format(b)
@@ -921,7 +939,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
               
     """
-    from numpy import array, zeros_like, zeros, inf
+    from numpy import array, zeros_like, zeros, inf, delete, shape
     from scipy.optimize import minimize, linprog
     from tgo import tgo
     
@@ -964,6 +982,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         L_bounds.append((-inf, inf))
         #L_bounds.append((None, None))
 
+    L_bounds.append((-inf, inf)) # Append extra bound set for eta
+
     # Construct composition container from X_d for all phases. (REMOVED)
     #X_d = Z_0
     X_d = X_bounds[0]
@@ -980,9 +1000,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                       #(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
         c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
         # Find mulitpliers with max problem.
-        Lambda_sol = -linprog(c, A_ub=A, b_ub=b, bounds =L_bounds)['x']
+        #lp_sol = -linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
+        lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
+        Lambda_sol = delete(lp_sol, shape(lp_sol)[0]-1)
 
-        print(linprog(c, A_ub=A, b_ub=b, bounds =L_bounds))
+        print(linprog(c, A_ub=A, b_ub=b, bounds=L_bounds))
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
