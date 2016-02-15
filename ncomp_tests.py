@@ -158,14 +158,16 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['r'], self.p.m['s'] = 1.0, 1.0
         self.p.m['k'][1][2] = 0.124
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
-        Z_0 = numpy.array([0.25])
-        s2= phase_equilibrium_calculation(self.s, self.p, g_mix, Z_0, k=None,
-                                              P=24e5, T=263.1,
-                                              tol=1e-9,
-                                              Print_Results=False,
-                                              Plot_Results=False)
+        Z_0 = numpy.array([0.23])
+        s2 = phase_equilibrium_calculation(self.s, self.p, g_mix, Z_0,
+                                           k=None,
+                                           P=24e5, T=263.1,
+                                           tol=1e-9,
+                                           Print_Results=False,
+                                           Plot_Results=False)
+
         numpy.testing.assert_allclose([s2.m['X_I'][0], s2.m['X_II'][0]],
-                                      [0.28226453, 0.25], rtol=1e-02)
+                                      [0.28226453, 0.25], rtol=5e-02)
 
 
     def test_b3(self):
@@ -175,7 +177,6 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['r'], self.p.m['s'] = 1.0, 1.0
         self.p.m['k'][1][2] = 0.124
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
-        Z_0 = numpy.array([0.25])
         Fd = phase_seperation_detection(g_mix, self.s, self.p,
                                        P=24e5, T=263.1,
                                        n=100,
@@ -184,7 +185,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         numpy.testing.assert_allclose(Fd.m['mph equil P'],
                                       [numpy.array([ 0.19469983]),
                                       numpy.array([ 0.30628315])],
-                                      rtol=1e-02)
+                                      rtol=5e-02)
 
 
     def test_b4(self):
@@ -192,6 +193,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         Equil. Mitsos et al. (2007) test 1 bin
         """
         Z_0 = numpy.array([0.5])
+        self.p.m['Valid phases'] = ['x']
         s = phase_equilibrium_calculation(self.s, self.p, g_x_test_func, Z_0,
                                               k=None,
                                               tol=1e-9,
@@ -199,7 +201,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                               Plot_Results=False)
 
         numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
-                                      [0.5885, 0.004546], rtol=1e-01)
+                                      [0.5885, 0.004546], rtol=1e-02)
 
     def test_b5(self):
         """

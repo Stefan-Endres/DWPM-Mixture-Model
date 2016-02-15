@@ -59,6 +59,7 @@ class ImportData:
         self.plot_gibbs = args.plot_gibbs
         self.plot_pure = args.plot_pure
         # Saves
+        self.optimise = args.optimise
         self.save_results = args.save
         self.save_pure = args.save_pure
         self.force_pure_update = args.force_pure_update

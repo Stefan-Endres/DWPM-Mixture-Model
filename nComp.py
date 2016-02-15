@@ -708,26 +708,29 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     # Comp. invariant in UBD
     s = s.update_state(s, p, X = X_d, Force_Update=True)
     G_X_d = g_x_func(s, p).m['g_mix']['t']
-    # UBD = G_X_d + sum(Lambda * (Z_0 - X_d)) # (Not needed, delete)
-    # NOTE: G_p = g_x_func(s, p) with s.update_state(s, p,  X = Z_0)
-    #       must strictly be added as a constraint to this problem.
-    s = s.update_state(s, p, X = Z_0, Force_Update=True)
+
     # G_p (Primal problem Z_0_i - x_i = 0 for all i)
+    s = s.update_state(s, p, X = Z_0, Force_Update=True)
     G_P = g_x_func(s, p).m['g_mix']['t']
 
     # Lamda bounds
-    # Upper
-    s = s.update_state(s, p,  X = X_bounds[0], Force_Update=True)
-    G_upper = g_x_func(s, p).m['g_mix']['t']
-    # Lower
-    s = s.update_state(s, p,  X = X_bounds[1], Force_Update=True)
-    G_lower = g_x_func(s, p).m['g_mix']['t']
+    G_upper = []
+    G_lower = []
+    for i in range(p.m['n']-1):
+        # Upper
+        s = s.update_state(s, p,  X = X_bounds[0][i], Force_Update=True)
+        G_upper.append(g_x_func(s, p).m['g_mix']['t'])
+        #print 'Z_0 ={}'.format(Z_0)
+        #print 'X_bounds[0] = {}'.format(X_bounds[0])
+        #print 'G_upper = {}'.format(G_upper)
+        # Lower
+        s = s.update_state(s, p,  X = X_bounds[1][i], Force_Update=True)
+        G_lower.append(g_x_func(s, p).m['g_mix']['t'])
 
     # b_i
     b_1[:] = G_P
     b_2[:] = G_X_d
-    b_3[:] = -G_upper
-    b_4[:] = G_lower
+
     #print "b_3 = {}".format(b_3)
 
     # A_i
@@ -742,11 +745,13 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     # NOTE: Check if this loop is working correctly.
     for i in range(p.m['n'] - 1): #TODO: Vectorise if possible
         A_2[i] = X_d[i] - Z_0[i] #Z_0[i] - X_d[i]
+        b_3[i] = -G_upper[i]
+        b_4[i] = G_lower[i]
         for j in range(p.m['n'] - 1):
             # [row, col]
             if i == j:
-                A_3[i, j] = Z_0[j] - X_bounds[0][j]
-                A_4[i, j] = -Z_0[j]
+                A_3[i, j] = Z_0[j] - X_bounds[0][i][j]
+                A_4[i, j] = X_bounds[1][i][j] - Z_0[j]
 #            if i != j: # Note, all zero entries no longer needer
 #                A_3[i, j] = 0.0
 #                A_4[i, j] = 0.0
@@ -756,12 +761,12 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     A_v = numpy.vstack((A_1, A_2))
     A = numpy.concatenate((A_v, A_3, A_4), axis=0)
     b = numpy.concatenate((b_1, b_2, b_3, b_4))
-    #print 'c shape = {}'.format(numpy.shape(c))
-    #print 'A shape = {}'.format(numpy.shape(A))
-    #print 'b shape = {}'.format(numpy.shape(b))
-    #print 'c = {}'.format(c)
-    #print 'A = {}'.format(A)
-    #print 'b = {}'.format(b)
+    print 'c shape = {}'.format(numpy.shape(c))
+    print 'A shape = {}'.format(numpy.shape(A))
+    print 'b shape = {}'.format(numpy.shape(b))
+    print 'c = {}'.format(c)
+    print 'A = {}'.format(A)
+    print 'b = {}'.format(b)
     return c, A, b
 
 def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): # 
@@ -865,7 +870,7 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     """
     Xn = X
     # Update system to new composition.
-    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
+    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)
 
     return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
 
@@ -939,7 +944,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
               
     """
-    from numpy import array, zeros_like, zeros, inf, delete, shape
+    import numpy
     from scipy.optimize import minimize, linprog
     from tgo import tgo
     
@@ -951,27 +956,39 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         k = p.m['Valid phases']
         
     # Initialize
-    Z_0 = array(Z_0)
+    Z_0 = numpy.array(Z_0)
     LBD = - 1e300  # -inf
     s.update_state(s, p,  X = Z_0, phase = k, Force_Update=True) 
         
     # G_p (Primal problem Z_0_i - x_i = 0 for all i):
     UBD = g_x_func(s, p).m['g_mix']['t']  
-    Lambda_d = zeros_like(Z_0)
+    Lambda_d = numpy.zeros_like(Z_0)
 
     # X bounds used in UBD optimization
-    X_bounds = [zeros(shape=(p.m['n']-1)), # Upper bound
-                zeros(shape=(p.m['n']-1))  # Lower bound
-                ]  
-    for i in range(p.m['n']-1): 
-        Sigma_ind = 0.0  # Sum of independent components excluding i
-                         # (lever rule) 
-        for j in range(p.m['n']-1):
-            if j != i:
-                Sigma_ind += Z_0[j]
+    X_bounds = [[], # Upper bound (bar x)
+                []  # Lower bound (hat x)
+                ]
 
-        X_bounds[0][i] = 1.0 - Sigma_ind 
-        
+    for i in range(p.m['n']-1):
+        # Append an independent coordinate point for each bound
+        X_bounds[0].append(numpy.zeros(shape=(p.m['n']-1)))
+        X_bounds[1].append(numpy.zeros(shape=(p.m['n']-1)))
+
+        # Set upper bound coordinate point i
+        Sigma_ind = 0.0  # Sum of independent components excluding i
+                         # (lever rule)
+        for k_ind in range(p.m['n']-1): # Note: k var name is used as phase
+            # Set k != i  (k==i changed at end of loop)
+            X_bounds[0][i][k_ind] = Z_0[k_ind]
+            if k_ind != i:
+                Sigma_ind += Z_0[k_ind] # Test, use numpy.sum if working
+
+                # Set Lower bound coordinate point i
+                X_bounds[1][i][k_ind] = Z_0[k_ind]
+                # (Remaining bound coordinate points kept at zero)
+
+        X_bounds[0][i][i] = 1.0 - Sigma_ind # change from Z_0[k]
+
     # Construct physical bounds x \in [0, 1] for all independent components
     # (used in differential_evolution)
     Bounds = []
@@ -979,14 +996,14 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     for i in range(p.m['n'] - 1):
         #Bounds.append((0, 1))
         Bounds.append((1e-5, 0.99999))
-        L_bounds.append((-inf, inf))
+        L_bounds.append((-numpy.inf, numpy.inf))
         #L_bounds.append((None, None))
 
-    L_bounds.append((-inf, inf)) # Append extra bound set for eta
+    L_bounds.append((-numpy.inf, numpy.inf)) # Append extra bound set for eta
 
     # Construct composition container from X_d for all phases. (REMOVED)
-    #X_d = Z_0
-    X_d = X_bounds[0]
+    #X_d = X_bounds[0]
+    X_d = numpy.array(Z_0)
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     tol = 1e-3 # TEST DELETE
@@ -1002,16 +1019,16 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Find mulitpliers with max problem.
         #lp_sol = -linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
         lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
-        Lambda_sol = delete(lp_sol, shape(lp_sol)[0]-1)
-
         print(linprog(c, A_ub=A, b_ub=b, bounds=L_bounds))
+        print 'lp_sol = {}'.format(lp_sol)
+        Lambda_sol = numpy.delete(lp_sol, numpy.shape(lp_sol)[0]-1)
 
         #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
          #                           k))['x']
                                     
-        Lambda_d = -array(Lambda_sol)  # If float convert back to 1x1 array
-
+        Lambda_d = -numpy.array(Lambda_sol)  # If float convert back to 1x1 array
+        #Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
         #print Lambda_d
         UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
 
@@ -1617,8 +1634,6 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
             for j in range(i + 1, len(p.m['Valid phases'])):
                 ph1 = p.m['Valid phases'][i]
                 ph2 = p.m['Valid phases'][j]
-                print ph1
-                print ph2
                 Fd = numpy.empty(n)
                 for l, X in zip(range(n), Points):
                     Fd[l] = g_diff(X, g_x_func, s, p, ph1, ph2, ph1)
@@ -1629,13 +1644,12 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     Bounds = [(1e-6, 0.99999)]
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5)
-                    print Z_0
-                    
+
                     s = phase_equilibrium_calculation(s, p, g_x_func, Z_0,
                           P=P, T=T, 
                           tol=1e-2, 
-                          Print_Results=True, 
-                          Plot_Results=True) 
+                          Print_Results=False,
+                          Plot_Results=False)
                           
                     s.m['mph equil P'] = [s.m['X_I'], s.m['X_II']]
                     s.m['mph equil'].append(s.m['mph equil P'])
