@@ -1003,7 +1003,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     # Construct composition container from X_d for all phases. (REMOVED)
     #X_d = X_bounds[0]
-    X_d = numpy.array(Z_0)
+    #X_d = numpy.array(Z_0)
+    X_d = numpy.array(X_bounds[1][0]) # TEST
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     tol = 1e-3 # TEST DELETE
@@ -1027,9 +1028,12 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
          #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
          #                           k))['x']
                                     
-        Lambda_d = -numpy.array(Lambda_sol)  # If float convert back to 1x1 array
+        Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
         #Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
         #print Lambda_d
+
+        # (Global s comps changed in ubd_b?  Test)
+        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True)
         UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
 
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
