@@ -24,8 +24,7 @@ class ImportData:
 
         if os.path.exists(configfile):
             config.read('config.cfg')
-            self.datadir =  config.get('paths',
-                           'datadir')
+            self.datadir = os.path.expanduser(config.get('paths', 'datadir'))
         else:
             message = ("Cannot find config file {0}. "
                        "Try copying sample_config.cfg to {0}.").format(
