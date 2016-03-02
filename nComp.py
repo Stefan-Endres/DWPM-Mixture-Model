@@ -637,7 +637,7 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     return s
 
 # %% Duality formulation
-def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
+def ubd(X_D, Z_0, g_x_func, s, p, k=None):
     """
     Returns the arguments to be used in the optimisation of the upper bounding
     problem with scipy.optimize.linprog.
@@ -690,138 +690,41 @@ def ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
     c = numpy.zeros([p.m['n']]) # linrpog maximize/minimize? D
                  # Documentation is contradictory across version; check
     c[p.m['n'] - 1] = -1.0  # -1.0 change max --> min problem
-    # TODO: Improve
+
     # Coefficients of Lambda inequality constraints
-    A_1 = numpy.zeros([p.m['n']])
-    b_1 = numpy.zeros(1)
-    A_2 = numpy.zeros([p.m['n']])
-    b_2 = numpy.zeros(1)
-    A_3 = numpy.zeros([p.m['n'] - 1, p.m['n']])
-    b_3 = numpy.zeros([p.m['n'] - 1])
-    A_4 = numpy.zeros([p.m['n'] - 1, p.m['n']])
-    b_4 = numpy.zeros([p.m['n'] - 1])
+
+    A = numpy.zeros([len(X_D) + 1, # rows = for all X_D + Global ineq
+                     p.m['n']]     # cols = n comps + eta
+                    )
+    b = numpy.zeros(len(X_D) + 1)
 
 
-    X_d = numpy.array(X_d)  # Prevent float conversion of 1x1 arrays
-
-    # Reset system from changed composition in bound calculation each call
-    # Comp. invariant in UBD
-    s = s.update_state(s, p, X = X_d, Force_Update=True)
-    G_X_d = g_x_func(s, p).m['g_mix']['t']
-
+    # Global problem bound (Fill last row of A and last element in b
     # G_p (Primal problem Z_0_i - x_i = 0 for all i)
     s = s.update_state(s, p, X = Z_0, Force_Update=True)
     G_P = g_x_func(s, p).m['g_mix']['t']
+    A[len(X_D), p.m['n'] - 1] = 1  # set eta to 1
+    b[len(X_D)] = G_P
 
-    # Lamda bounds
-    G_upper = []
-    G_lower = []
-    for i in range(p.m['n']-1):
-        # Upper
-        s = s.update_state(s, p,  X = X_bounds[0][i], Force_Update=True)
-        G_upper.append(g_x_func(s, p).m['g_mix']['t'])
-        #print 'Z_0 ={}'.format(Z_0)
-        #print 'X_bounds[0] = {}'.format(X_bounds[0])
-        #print 'G_upper = {}'.format(G_upper)
-        # Lower
-        s = s.update_state(s, p,  X = X_bounds[1][i], Force_Update=True)
-        G_lower.append(g_x_func(s, p).m['g_mix']['t'])
+    # Bounds for all X_d in X_D
+    A[:, p.m['n'] - 1] = 1  # set all eta coefficients = 1
+    for X, k in zip(X_D, range(len(X_D))):
+        # Find G(X_d)
+        s = s.update_state(s, p, X = X, Force_Update=True)
+        G_d = g_x_func(s, p).m['g_mix']['t']
+        b[k] = G_d
+        for i in range(p.m['n'] - 1):
+            A[k, i] = -(Z_0[i] - X_D[k][i])
 
-    # b_i
-    b_1[:] = G_P
-    b_2[:] = G_X_d
+    if False:
+        print 'c shape = {}'.format(numpy.shape(c))
+        print 'A shape = {}'.format(numpy.shape(A))
+        print 'b shape = {}'.format(numpy.shape(b))
+        print 'c = {}'.format(c)
+        print 'A = {}'.format(A)
+        print 'b = {}'.format(b)
 
-    #print "b_3 = {}".format(b_3)
-
-    # A_i
-    # Set etas
-    A_1[p.m['n'] - 1] = 1.0
-    A_2[p.m['n'] - 1] = 1.0
-    A_3[:, p.m['n'] - 1] = -1.0
-    A_4[:, p.m['n'] - 1] = 1.0
-    # Fill in subspace excluding eta
-    #A_1[:1] = 0 # (already zero
-
-    # NOTE: Check if this loop is working correctly.
-    for i in range(p.m['n'] - 1): #TODO: Vectorise if possible
-        A_2[i] = X_d[i] - Z_0[i] #Z_0[i] - X_d[i]
-        b_3[i] = -G_upper[i]
-        b_4[i] = G_lower[i]
-        for j in range(p.m['n'] - 1):
-            # [row, col]
-            if i == j:
-                A_3[i, j] = Z_0[j] - X_bounds[0][i][j]
-                A_4[i, j] = X_bounds[1][i][j] - Z_0[j]
-#            if i != j: # Note, all zero entries no longer needer
-#                A_3[i, j] = 0.0
-#                A_4[i, j] = 0.0
-
-    # Concatenate all arrays
-
-    A_v = numpy.vstack((A_1, A_2))
-    A = numpy.concatenate((A_v, A_3, A_4), axis=0)
-    b = numpy.concatenate((b_1, b_2, b_3, b_4))
-    print 'c shape = {}'.format(numpy.shape(c))
-    print 'A shape = {}'.format(numpy.shape(A))
-    print 'b shape = {}'.format(numpy.shape(b))
-    print 'c = {}'.format(c)
-    print 'A = {}'.format(A)
-    print 'b = {}'.format(b)
     return c, A, b
-
-def ubd(Lambda, g_x_func, X_d, Z_0, s, p, X_bounds, k=['All']): # 
-    """
-    TODO: Improve bounds
-    
-    Returns the upper bounding problem of the dual extremum. Return is negative
-    to change to minimization problem.
-    
-    Parameters
-    ----------
-    Lambda : vector (1xn array)
-             Contains the langrange (or diality) multipliers Lambda \in R^m
-             to be optimised to the maximum value of the ubd.
-
-    g_x_func : function
-               Returns the gibbs energy at a the current composition 
-               point. Should accept s, p as first two arguments.
-               Returns a class containing scalar value .m['g_mix']['t']
-               
-    X_d : vector (1xn array)
-          Contains the current composition point in the overall dual 
-          optimisation. Constant for the upper bounding problem.
-                
-    Z_0 : vector (1xn array)
-          Feed composition. Constant.
-    
-    s : class
-        Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
-    
-    p : class
-        Contains the dictionary describing the parameters.
-        
-    k : list, optional
-        List contain valid phases for the current equilibrium calculation.
-        ex. k = ['x', 'y']
-        If default value None is the value in p.m['Valid phases'] is retained.  
-        
-    Dependencies
-    ------------
-    numpy.array
-
-    Returns
-    -------
-    ubd : scalar
-          Value of the upper bounding problem at Lamda.
-    """
-    from numpy import exp
-    from numpy import array
-    X_d = array(X_d)  # Prevent float conversation of 1x1 arrays
-    # Reset system from changed composition in bound calculation each call
-    # Comp. invariant in UBD
-    s = s.update_state(s, p,  X = X_d, phase = k, Force_Update=True)
-    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda * (Z_0 - X_d))
 
 
 def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
@@ -880,7 +783,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     """
     Dev notes and TODO list
     -----------------------
-    TODO: -Add valid phases option.
+    TODO: -Look into using X_bounds scheme of Pereira instead for low mole Z_0
+          -Add valid phases option.
           -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
             hyperplanes.
           -Construct bounds which is a list of tuples in [0,1] \in R^n
@@ -1004,45 +908,46 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # Construct composition container from X_d for all phases. (REMOVED)
     #X_d = X_bounds[0]
     #X_d = numpy.array(Z_0)
-    X_d = numpy.array(X_bounds[1][0]) # TEST
+    #X_d = numpy.array(X_bounds[1][0]) # TEST
 
+    # Update state to random X to initialise state class.
+    X_sol = numpy.array(X_bounds[1][0])  # set X_sol to lower bounds
+    s.update_state(s, p,  X = X_sol , phase = k, Force_Update=True)
+
+    X_D = []  # set empty list
+    # Add every X_bounds to X_D list to use in linprog
+    for i in range(p.m['n']-1):
+        X_D.append(X_bounds[0][i])
+        X_D.append(X_bounds[1][i])
+
+    #print '~!!!!!!!!!!!   x_D = {}'.format(X_D)
     #%% Normal calculation of daul problem if Z_0 is unstable.
     tol = 1e-3 # TEST DELETE
     while abs(UBD - LBD) >= tol:
         # Solve UBD
          # Update system to new composition.
          # (Comp. invariant in UBD)
-        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True)
+
 
         # Find new bounds for linprog
-                      #(X_d, Z_0, X_bounds, g_x_func, s, p, k=None):
-        c, A, b = ubd_b(X_d, Z_0, X_bounds, g_x_func, s, p)
+                      #(X_D, Z_0, X_bounds, g_x_func, s, p, k=None):
+        c, A, b = ubd(X_D, Z_0, g_x_func, s, p)
         # Find mulitpliers with max problem.
-        #lp_sol = -linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
-        lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)['x']
-        print(linprog(c, A_ub=A, b_ub=b, bounds=L_bounds))
-        print 'lp_sol = {}'.format(lp_sol)
-        Lambda_sol = numpy.delete(lp_sol, numpy.shape(lp_sol)[0]-1)
+        lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)
+        Lambda_sol = numpy.delete(lp_sol.x, numpy.shape(lp_sol.x)[0] - 1)
 
-        #Lambda_sol = minimize(ubd, Lambda_d, method='L-BFGS-B',
-         #                     args=(g_x_func, X_d, Z_0, s, p, X_bounds,
-         #                           k))['x']
-                                    
         Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
-        #Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
-        #print Lambda_d
 
-        # (Global s comps changed in ubd_b?  Test)
-        s.update_state(s, p,  X = X_d , phase = k, Force_Update=True)
-        UBD = ubd(Lambda_d, g_x_func, X_d, Z_0, s, p, X_bounds, k)
+        UBD = -lp_sol.fun
 
+        # Solve LBD
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                                  g_func=x_lim,
                                  n = 100,
                                  skip=2)
-        # Solve LBD                  
+        # Calculate LBD
         LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k) 
-        X_d = X_sol
+        X_D.append(X_sol)
         # End
        
 
@@ -1050,11 +955,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         print 'Final UBD = {}'.format(UBD)
         print 'Final LBD = {}'.format(LBD)
         print 'Final UBD - LBD = {}'.format(UBD - LBD)
-        print 'Final Z_eq = {}'.format(X_d)
+        print 'Final Z_eq = {}'.format(X_sol)
         print 'Final Lambda_d = {}'.format(Lambda_d)
         
     # Returns
-    s.m['Z_eq'] = X_d
+    s.m['Z_eq'] = X_sol
     s.m['Lambda_d'] = Lambda_d
     return s
 

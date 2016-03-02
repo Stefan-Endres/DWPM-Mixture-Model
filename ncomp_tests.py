@@ -164,7 +164,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                            P=24e5, T=263.1,
                                            tol=1e-9,
                                            Print_Results=False,
-                                           Plot_Results=False)
+                                           Plot_Results=True)
 
         numpy.testing.assert_allclose([s2.m['X_I'][0], s2.m['X_II'][0]],
                                       [0.28226453, 0.25], rtol=5e-02)
@@ -198,11 +198,11 @@ class TestNcompFuncsBin(unittest.TestCase):
                                               k=None,
                                               tol=1e-9,
                                               Print_Results=False,
-                                              Plot_Results=False)
+                                              Plot_Results=True)
 
-        numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
-                                      [0.5885, 0.004546], rtol=1e-02)
+        #numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
 
+                                      
     def test_b5(self):
         """
         Phase sep. Mitsos et al. (2007) test 1 bin
@@ -263,7 +263,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                           P=101e3, T=300.0,
                                           tol=1e-9,
                                           Print_Results=False,
-                                          Plot_Results=False)
+                                          Plot_Results=True)
 
         numpy.testing.assert_allclose(s.m['X_I'],
                                       [1.00000000e-05, 9.99990000e-01],
