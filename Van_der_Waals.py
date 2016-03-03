@@ -46,7 +46,8 @@ class VdW:
             Contains the current state variable temperature 'T' 
         
         p : dictionary
-            Contains the critical paramters 'T_c', 'a_c' and the a dependancy 
+            Contains the critical paramters 'T_c
+            ', 'a_c' and the a dependancy
             model 'Model' with parameter 'm'
             
         Dependencies
@@ -207,7 +208,8 @@ class VdW:
                 return s['P']*(s['V_l'] - s['V_v']) \
                    + s['a']/s['V_v'] - (s['a']/s['V_l']) \
                    + p['R'] * s['T'] * log((s['V_v'] - s['b']) \
-                                          /(s['V_l'] - s['b']))  
+                                          /(s['V_l'] - s['b']))
+
             except(ValueError):
                 raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
                 ' to use a lower starting value s[\'P\'] before executing the'\
@@ -215,12 +217,12 @@ class VdW:
                 logging.warn('Value error in P_maxwell, P = '
                              + '{}'.format(s['P'])
                              )
- 
+
         try:
             s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
         except(IOError):
             try: # Scale to approx. P near P_sat
-                s['P'] = p['P_c']**(s['T']/p['T_c'])*estfactor 
+                s['P'] = p['P_c']**(s['T']/p['T_c'])*estfactor
                 s = self.V_root(s,p) # Update s['V_v'] and s['V_l']
                 s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
             except(IOError):

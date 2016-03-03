@@ -44,6 +44,9 @@ if __name__ == '__main__':
                         default="Adachi-Lu",
                         choices=['Adachi-Lu', 'Soave'],
                         help='Actvity coefficient model')
+
+    #TODO Add k_ij array input and processing
+
     parser.add_argument('-T', '--temperature', type=float,
                         help='Temperature for point simulation')
     parser.add_argument('-P', '--pressure', type=float,
@@ -85,7 +88,7 @@ if __name__ == '__main__':
     # Optimise
     parser.add_argument('-opt', '--optimise',
                         action="store_true",
-                        help='Optimise the DWPM paramters')
+                        help='Optimise the DWPM parameters')
 
     #  Save
     parser.add_argument('-save', nargs=1, type=bool,
@@ -126,9 +129,9 @@ if __name__ == '__main__':
         s, p = nComp.n_comp_init(data)
 
         # Parameter optimisation
-        if data.optimse:
+        if data.optimise:
             pass #TODO
-        
+
         # Simulate specifications
         if data.P is not None and data.T is not None and data.Z_0 is None:
             psd(g_x_func, s, p, data.P, data.T, n=100, LLE_only=data.lle_only,
@@ -137,6 +140,11 @@ if __name__ == '__main__':
         if data.P is not None and data.T is not None and data.Z_0 is not None:
             pec(s, p, g_x_func, Z_0, k=None, P=data.P, T=data.T, # Not tested
                tol=1e-9, Print_Results=True, Plot_Results=data.plot_gibbs)
+
+        # TODO Move to plot.py and exec script?
+        if data.plot_gibbs:
+            options = plot.plot_options
+            plot.plot_g_mix(s, p, options, figno=None)
 
         if data.plot_iso:
             pass #TODO

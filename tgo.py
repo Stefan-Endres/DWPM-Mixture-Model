@@ -21,8 +21,6 @@ def t_matrix(H, F):
 
 def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
     """Returns the k-t topograph matrix"""
-    #
-
     return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
 
 

@@ -4,7 +4,7 @@ import Van_der_Waals
 VdW = Van_der_Waals.VdW()
 
 #%% Plot pure Functions
-def plot_Psat(s, p, options, figno=1):
+def plot_Psat(s, p, options, figno=None):
     """
 
     Parameters
@@ -154,6 +154,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                     s.m['T'],
                     s.m['P']))
         plot.legend()
+        plot.show()
         return
 
     #% Trenary
@@ -242,7 +243,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         ax.set_ylabel('$x_2$')
         ax.set_ylim(0, 1)
         ax.set_zlabel('$\Delta g$', rotation = 90)
-
+        plot.show()
         return s
 
     else:
