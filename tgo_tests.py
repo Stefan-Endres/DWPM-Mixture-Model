@@ -31,6 +31,8 @@ test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
 test1_2 = Test1(bounds=[(0, 1), (0, 1)],
                 expected=[0, 0])
 
+#class Test2(TestFunction):
+
 
 class Test3(TestFunction):
     """

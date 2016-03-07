@@ -166,7 +166,7 @@ class TGO(object):
         # Find global of all minimizers
         self.res.x = self.x_vals[ind_sorted[0]]  # Save global minima
         x_global_min = self.x_vals[ind_sorted[0]]
-        self.res.x = self.Func_min[ind_sorted[0]]  # Save global fun value
+        self.res.fun = self.Func_min[ind_sorted[0]]  # Save global fun value
         return x_global_min
 
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
@@ -295,9 +295,6 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     TGOc = TGO(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1,
                k_t=None, callback=None, minimizer_kwargs=None, disp=False)
 
-    TGOc.func
-
-
     # Generate sampling points
     TGOc.sampling()
 
@@ -308,20 +305,20 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     # Find topograph
     TGOc.topograph()
 
-    ## Find the optimial k+ topograph
+    ## Find the optimal k+ topograph
     # Find epsilon_i parameter for current system
     if k_t is None:
-        K_opt = TGOc.K_optimal()
+        TGOc.K_opt = TGOc.K_optimal()
 
-    # %% Local Search: Find the minimzer float values and
-
-#TODO: IMPROVE
-
+    # %% Local Search: Find the minimiser float values and func vals.
     TGOc.l_minima()
 
     # Confirm the routine ran succesfully
     TGOc.res.message = 'Optimization terminated successfully.'
     TGOc.res.succes = True
+
+    # Add local func evals to sampling func evals
+    TGOc.res.nfev += TGOc.res.nlfev
 
     return TGOc.res
 
