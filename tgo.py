@@ -35,59 +35,80 @@ class TGO(object):
 
         # Initialize return object
         self.res = scipy.optimize.OptimizeResult()
+        self.res.nfev = n  # Include each sampling point as func evaluation
+        self.res.nlfev = 0  # Local function evals for all minimisers
+        self.res.nljev = 0  # Local jacobian evals for all minimisers
         #self.res.func
 
+    # %% Define funcs # TODO: Create tgo class to wrap all funcs
+   def sampling(self):
+        """
+        Generates uniform sampling points in a hypercube and scales the points
+        to the bound limits.
+        """
+        # Generate sampling points.
+        #  TODO Assert if func output matches dims. found from bounds
+        self.m = len(self.bounds)  # Dimensions
+
+        # Generate uniform sample points in R^m
+        self.B = i4_sobol_generate(self.m, self.n, self.skip)
+        self.C = numpy.column_stack([self.B[i] for i in range(self.m)])
+
+        # Distribute over bounds
+        # TODO: Find a better way to do this
+        for i in range(len(self.bounds)):
+            self.C[:,i] = (self.C[:,i] *
+                           (self.bounds[i][1] - self.bounds[i][0])
+                           + self.bounds[i][0] )
+
+        return self.C
 
 
-
-    pass
-
-
-# %% Define funcs # TODO: Create tgo class to wrap all funcs
-def t_matrix(H, F):
-    """
-    Returns the topographical matrix with True boolean values indicating
-    positive entries and False ref. values indicating negative values.
-    """
-    return (H.T > F.T).T
+    def t_matrix(H, F):
+        """
+        Returns the topographical matrix with True boolean values indicating
+        positive entries and False ref. values indicating negative values.
+        """
+        return (H.T > F.T).T
 
 
-def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
-    """Returns the k-t topograph matrix"""
-    return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
+    def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
+        """Returns the k-t topograph matrix"""
+        return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
 
 
-def minimizers(K):
-    """Returns the minimizer indexes of a k-t matrix"""
-    Minimizers = numpy.all(K, axis=-1)
-    # Find data point indexes of minimizers:
-    return numpy.where(Minimizers)[0]
+    def minimizers(K):
+        """Returns the minimizer indexes of a k-t matrix"""
+        Minimizers = numpy.all(K, axis=-1)
+        # Find data point indexes of minimizers:
+        return numpy.where(Minimizers)[0]
 
 
-def K_optimal(T): # TODO: Recheck correct implementation, compare with HS19
-    """
-    Returns the optimimal k-t topograph with the semi-empircal correlation
-    proposed by Henderson et. al. (2015)
-    """
-    K_1 = k_t_matrix(T, 1)  # 1-t topograph
-    k_1 = len(minimizers(K_1))
-    k_i = k_1
-    i = 2
-    while k_1 == k_i:
-        K_i = k_t_matrix(T, i)
-        k_i = len(minimizers(K_i))
-        i += 1
+    def K_optimal(T): # TODO: Recheck correct implementation, compare with HS19
+        """
+        Returns the optimimal k-t topograph with the semi-empircal correlation
+        proposed by Henderson et. al. (2015)
+        """
+        K_1 = k_t_matrix(T, 1)  # 1-t topograph
+        k_1 = len(minimizers(K_1))
+        k_i = k_1
+        i = 2
+        while k_1 == k_i:
+            K_i = k_t_matrix(T, i)
+            k_i = len(minimizers(K_i))
+            i += 1
 
-    ep = i * k_i / (k_1 - k_i)
-    k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
-                      / 2.0)
+        ep = i * k_i / (k_1 - k_i)
+        k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
+                          / 2.0)
 
-    k_opt = int(k_c + 1)
-    if k_opt > numpy.shape(T)[1]:  # If size of k_opt exceeds t-graph size.
-        k_opt = int(numpy.shape(T)[1])
+        k_opt = int(k_c + 1)
+        if k_opt > numpy.shape(T)[1]:  # If size of k_opt exceeds t-graph size.
+            k_opt = int(numpy.shape(T)[1])
 
-    K_opt = k_t_matrix(T, k_opt)
-    return K_opt
+        K_opt = k_t_matrix(T, k_opt)
+        return K_opt
+
 
 
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
@@ -212,21 +233,16 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
            7, 86-112.
 
     """
+    # Initiate TGO class
+    TGOc = TGO(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1,
+               k_t=None, callback=None, minimizer_kwargs=None, disp=False)
 
+    # Generate sampling points
+    TGOc.sampling()
 
-    # %% Generate sampling points.
-    m = len(bounds)  # Dimensions # TODO Assert if func output matches dims.
-    #print m
-    B = i4_sobol_generate(m, n, skip)  # Generate uniform sample points in R^m
-    C = numpy.column_stack([B[i] for i in range(m)])
-
-    # Distribute over bounds
-    # TODO: Find a better way to do this
-    for i in range(len(bounds)):
-        C[:,i] = C[:,i] * (bounds[i][1] - bounds[i][0]) + bounds[i][0]
-
+    # Find subspace of feasible points
     if g_func is not None: # TODO: Improve
-        C =  C[g_func(C)]  # Subspace of usable points.
+        C =  C[g_func(C)]  # Subspace of feasible points.
 
     Y = scipy.spatial.distance.cdist(C, C, 'euclidean')
     Z = numpy.argsort(Y, axis=-1)
@@ -268,6 +284,12 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     # Find global of all minimizers
     i_glob = numpy.argsort(Func_min)[0]
     x_global_min = x_vals[i_glob]
+
+
+    # Initialize return object
+   # self.res = scipy.optimize.OptimizeResult()
+  #  self.res.nfev = n # Include each sampling point as func evaluation
+
     return x_global_min
 
     
