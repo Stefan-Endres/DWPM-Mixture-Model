@@ -29,6 +29,9 @@ class TGO(object):
         self.n = n
         self.skip = skip
         self.k_t = k_t
+        if k_t is not None:
+            self.K_opt = k_t
+
         self.callback = callback
         self.minimizer_kwargs = minimizer_kwargs
         self.disp = disp
@@ -41,7 +44,7 @@ class TGO(object):
         #self.res.func
 
     # %% Define funcs # TODO: Create tgo class to wrap all funcs
-   def sampling(self):
+    def sampling(self):
         """
         Generates uniform sampling points in a hypercube and scales the points
         to the bound limits.
@@ -63,39 +66,60 @@ class TGO(object):
 
         return self.C
 
+    def subspace(self):
+        """Find subspace of feasible points from g_func definition"""
+        self.C =  self.C[self.g_func(self.C)]  # Subspace of feasible points.
+        return self.C
 
-    def t_matrix(H, F):
+    def topograph(self):
         """
         Returns the topographical matrix with True boolean values indicating
         positive entries and False ref. values indicating negative values.
         """
-        return (H.T > F.T).T
+
+        self.Y = scipy.spatial.distance.cdist(self.C, self.C, 'euclidean')
+        self.Z = numpy.argsort(self.Y, axis=-1)
+        self.A = numpy.delete(self.Z, 0, axis=-1)  # Topographical matrix
+                                                   #  without signs
+        # Obj. function returns to be used as reference table.:
+        self.F = numpy.zeros(numpy.shape(self.C)[0])
+        for i in range(numpy.shape(self.C)[0]):
+            self.F[i] = self.func(self.C[i,:], *self.args)
+        # TODO: see scipy.spatial.KDTree for F lookup?
+
+        # %% Create float value and bool topograph:
+        self.H = self.F[self.A] # This replaces all index values in A with the
+                           # function result
+
+        self.T = (self.H.T > self.F.T).T  # Topograph with Boolean entries
+        return self.T, self.H, self.F
 
 
-    def k_t_matrix(T, k):  # TODO: Replace delete with simpler array access
+
+    def k_t_matrix(self, T, k):  # TODO: Replace delete with simpler array access
         """Returns the k-t topograph matrix"""
         return numpy.delete(T, numpy.s_[k:numpy.shape(T)[1]], axis=-1)
 
 
-    def minimizers(K):
+    def minimizers(self, K):
         """Returns the minimizer indexes of a k-t matrix"""
         Minimizers = numpy.all(K, axis=-1)
         # Find data point indexes of minimizers:
         return numpy.where(Minimizers)[0]
 
 
-    def K_optimal(T): # TODO: Recheck correct implementation, compare with HS19
+    def K_optimal(self): # TODO: Recheck correct implementation, compare with HS19
         """
         Returns the optimimal k-t topograph with the semi-empircal correlation
         proposed by Henderson et. al. (2015)
         """
-        K_1 = k_t_matrix(T, 1)  # 1-t topograph
-        k_1 = len(minimizers(K_1))
+        K_1 = self.k_t_matrix(self.T, 1)  # 1-t topograph
+        k_1 = len(self.minimizers(K_1))
         k_i = k_1
         i = 2
         while k_1 == k_i:
-            K_i = k_t_matrix(T, i)
-            k_i = len(minimizers(K_i))
+            K_i = self.k_t_matrix(self.T, i)
+            k_i = len(self.minimizers(K_i))
             i += 1
 
         ep = i * k_i / (k_1 - k_i)
@@ -103,13 +127,41 @@ class TGO(object):
                           / 2.0)
 
         k_opt = int(k_c + 1)
-        if k_opt > numpy.shape(T)[1]:  # If size of k_opt exceeds t-graph size.
-            k_opt = int(numpy.shape(T)[1])
+        if k_opt > numpy.shape(self.T)[1]:  # If size of k_opt exceeds t-graph size.
+            k_opt = int(numpy.shape(self.T)[1])
 
-        K_opt = k_t_matrix(T, k_opt)
-        return K_opt
+        self.K_opt = self.k_t_matrix(self.T, k_opt)
+        return self.K_opt
 
+    def l_minima(self):
+        """
+        Find the local minima using the chosen local minimisation method with
+        the minimisers as starting points.
+        """
+        Min_ind = self.minimizers(self.K_opt)
+        self.x_vals = []
+        self.Func_min = numpy.zeros_like(Min_ind)
+        for i, ind in zip(range(len(Min_ind)), Min_ind):
+            # Find minimum x vals
+            #print scipy.optimize.minimize(self.func, self.C[ind,:],
+            #                                method='L-BFGS-B',
+            #                                bounds=self.bounds,
+            #                                args=self.args)
+            lres = scipy.optimize.minimize(self.func, self.C[ind,:],
+                                            method='L-BFGS-B',
+                                            bounds=self.bounds,
+                                            args=self.args)
+            x_min = lres.x
 
+            self.x_vals.append(x_min)
+            # Find func float vals
+            self.Func_min[i] = lres.fun
+            #self.Func_min[i] = self.func(x_min, *args)
+
+        # Find global of all minimizers
+        i_glob = numpy.argsort(self.Func_min)[0]
+        x_global_min = self.x_vals[i_glob]
+        return x_global_min
 
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
         callback=None, minimizer_kwargs=None, disp=False):
@@ -237,60 +289,35 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     TGOc = TGO(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1,
                k_t=None, callback=None, minimizer_kwargs=None, disp=False)
 
+    TGOc.func
+
+
     # Generate sampling points
     TGOc.sampling()
 
     # Find subspace of feasible points
     if g_func is not None: # TODO: Improve
-        C =  C[g_func(C)]  # Subspace of feasible points.
+        TGOc.subspace()
 
-    Y = scipy.spatial.distance.cdist(C, C, 'euclidean')
-    Z = numpy.argsort(Y, axis=-1)
-    A = numpy.delete(Z, 0, axis=-1)  # Topographical matrix without signs
+    # Find topograph
+    TGOc.topograph()
 
-    # %% Obj. function returns to be used as reference table.:
-    F = numpy.zeros(numpy.shape(C)[0])
-    for i in range(numpy.shape(C)[0]):
-        F[i] = func(C[i,:], *args)
-    # TODO: see scipy.spatial.KDTree for F lookup?
-
-    # %% Create float value and bool topograph:
-    H = F[A] # This replaces all index values in A with the function result
-    #
-    T = t_matrix(H, F)  # Topograph with Boolean entries
-    # %% Find the optimial k+ topograph
+    ## Find the optimial k+ topograph
     # Find epsilon_i parameter for current system
     if k_t is None:
-        K_opt = K_optimal(T)
-    else:
-        K_opt = k_t
+        K_opt = TGOc.K_optimal()
+
     # %% Local Search: Find the minimzer float values and
 
 #TODO: IMPROVE
 
-    Min_ind = minimizers(K_opt)
-    x_vals = []
-    Func_min = numpy.zeros_like(Min_ind)
-    for i, ind in zip(range(len(Min_ind)), Min_ind):
-        # Find minimum x vals
-        x_min = scipy.optimize.minimize(func, C[ind,:],
-                                        method='L-BFGS-B',
-                                        bounds=bounds,
-                                        args=args)['x']
-        x_vals.append(x_min)
-        # Find func float vals
-        Func_min[i] = func(x_min, *args)
-
-    # Find global of all minimizers
-    i_glob = numpy.argsort(Func_min)[0]
-    x_global_min = x_vals[i_glob]
-
+    TGOc.l_minima()
 
     # Initialize return object
    # self.res = scipy.optimize.OptimizeResult()
   #  self.res.nfev = n # Include each sampling point as func evaluation
 
-    return x_global_min
+    return TGOc.l_minima()
 
     
 if __name__ == '__main__':
