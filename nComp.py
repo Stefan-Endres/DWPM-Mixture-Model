@@ -733,9 +733,9 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     
     Parameters
     ----------
-    X_d : vector (1xn array)
-          Contains the current composition point in the overall dual 
-          optimisation to be optimised to the minimum value of the lbd.
+    X : vector (1xn array)
+        Contains the current composition point in the overall dual
+        optimisation to be optimised to the minimum value of the lbd.
 
     g_x_func : function
                Returns the gibbs energy at a the current composition 
@@ -771,9 +771,8 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     lbd : scalar
           Value of the lower bounding problem at X.
     """
-    Xn = X
     # Update system to new composition.
-    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)
+    s.update_state(s, p,  X = X, phase=k, Force_Update=True)
 
     return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
 
@@ -840,11 +839,12 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     Returns
     -------
-        
-    s.m['X_I'] : vector
-                 Contains the first optimised equilibrium point. 
-    s.m['X_II'] : vector
-                  Contains the second optimised equilibrium poin. 
+
+    s.m['Z_eq'] : vector
+                 Contains the first optimised equilibrium point.
+    s.m['Lambda_d'] : vector
+                      Contains the optimised lagrange multipliers of the
+                      solution hyperplane.
 
               
     """
@@ -1030,7 +1030,7 @@ TODO: Check method for changing lambda to change goal func to a global minima
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
                tol=1e-9, Print_Results=False, Plot_Results=False):
     """
-    This function uses the duality formulation to caculate two equilibrium
+    This function uses the duality formulation to calculate two equilibrium
     points from an unstable feed point Z_0.
 
     Parameters
@@ -1075,11 +1075,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                    If True the g_mix curve with tie lines will be plotted for 
                    binary and trenary systems.
                    
-    Returns  # TODO
+    Returns
     -------
-    
-    
-    
+    s.m['X_I'] : vector
+                 Contains the first optimised equilibrium point.
+    s.m['X_II'] : vector
+                  Contains the second optimised equilibrium poin.
+
     """
     # Calculate first minimizer
     from tgo import tgo
@@ -1146,7 +1148,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                     ] 
             s.m['Lambda_d']
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
-        
+
+
         # Error func
         s.m['Lambda_d'] = Lambda_d 
         s.m['Z_eq'] = X_I
@@ -1159,6 +1162,56 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     
     return s
 
+# %% Multi-minimiser approach to phase equil. calculation
+
+def dual_plane(X, s, p, g_x_func, Z_0, tol=1e-2):
+    """
+    Returns the scalar output of the dual solution hyperplane at X
+
+    Parameters
+    ----------
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+
+    p : class
+        Contains the dictionary describing the parameters.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+
+    k : list, optional
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.
+
+    P : scalar, optional
+        Pressure (Pa), if unspecified the current state pressure will be used.
+
+    T : scalar, optional
+        Temperature (K), if unspecified  the current state temperature will be
+        used.
+
+    Z_0 : vector
+          Contains the feed composition point (must be and unstable point to
+          find multiphase equilibria).
+
+    tol : scalar, optional
+          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+
+    Dependencies
+    ------------
+    numpy
+
+    Returns
+    -------
+    """
+    #s.m['Z_eq']
+    #s.m['Lambda_d']
+    s.update_state(s, p,  X = X, phase=k, Force_Update=True)
+    return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
 
 # %%  Numerical FD estimates for validation
 def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):  
@@ -1477,7 +1530,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                               P=P, T=T, 
                                               tol=1e-9, 
                                               Print_Results=False, 
-                                              Plot_Results=False) 
+                                              Plot_Results=False)
                     
                     s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
                     # TODO: Improve finding feasible subspace of points.

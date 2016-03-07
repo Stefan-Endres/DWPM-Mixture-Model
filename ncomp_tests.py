@@ -164,10 +164,10 @@ class TestNcompFuncsBin(unittest.TestCase):
                                            P=24e5, T=263.1,
                                            tol=1e-9,
                                            Print_Results=False,
-                                           Plot_Results=True)
+                                           Plot_Results=False)
 
         numpy.testing.assert_allclose([s2.m['X_I'][0], s2.m['X_II'][0]],
-                                      [0.28226453, 0.25], rtol=5e-02)
+                                      [0.28226453, 0.25], rtol=1e-03)
 
 
     def test_b3(self):
@@ -185,7 +185,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         numpy.testing.assert_allclose(Fd.m['mph equil P'],
                                       [numpy.array([ 0.19469983]),
                                       numpy.array([ 0.30628315])],
-                                      rtol=5e-02)
+                                      rtol=9e-03)
 
 
     def test_b4(self):
@@ -219,7 +219,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                        [numpy.array([ 0.5824251]),
                                         numpy.array([ 0.93304455])
                                         ]],
-                                      rtol=1e-01)
+                                      rtol=9e-02)
 
 
 class TestNcompFuncsTern(unittest.TestCase):
@@ -263,7 +263,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                           P=101e3, T=300.0,
                                           tol=1e-9,
                                           Print_Results=False,
-                                          Plot_Results=True)
+                                          Plot_Results=False)
 
         numpy.testing.assert_allclose(s.m['X_I'],
                                       [1.00000000e-05, 9.99990000e-01],
