@@ -10,8 +10,7 @@ htmlcov/
 
 # Test scripts
 Sobol_Tests.py
-dev.py
-dev2.py
+dev*.py
 DWPM Object Tutorial.ipynb
 
 # Personal configs

@@ -4,10 +4,43 @@
 """
 #from __future__ import division, print_function, absolute_import
 from UQToolbox.sobol_lib import i4_sobol_generate
+ # TODO: Replace with latinhypercube sampling used in differentialevolution.py
 import numpy
-import scipy
 import scipy.spatial
 import scipy.optimize
+
+
+
+# %% Define tgo class
+class TGO(object):
+    """
+    This class implements the tgo routine
+    """
+
+    def __init__(self, func, bounds, args=(), g_func=None, g_args=(), n=100,
+                 skip=1, k_t=None, callback=None, minimizer_kwargs=None,
+                 disp=False):
+
+        self.func = func
+        self.bounds = bounds
+        self.args = args
+        self.g_func = g_func
+        self.g_args = g_args
+        self.n = n
+        self.skip = skip
+        self.k_t = k_t
+        self.callback = callback
+        self.minimizer_kwargs = minimizer_kwargs
+        self.disp = disp
+
+        # Initialize return object
+        self.res = scipy.optimize.OptimizeResult()
+        #self.res.func
+
+
+
+
+    pass
 
 
 # %% Define funcs # TODO: Create tgo class to wrap all funcs
