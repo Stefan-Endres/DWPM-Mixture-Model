@@ -143,24 +143,30 @@ class TGO(object):
         self.Func_min = numpy.zeros_like(Min_ind)
         for i, ind in zip(range(len(Min_ind)), Min_ind):
             # Find minimum x vals
-            #print scipy.optimize.minimize(self.func, self.C[ind,:],
-            #                                method='L-BFGS-B',
-            #                                bounds=self.bounds,
-            #                                args=self.args)
             lres = scipy.optimize.minimize(self.func, self.C[ind,:],
                                             method='L-BFGS-B',
                                             bounds=self.bounds,
                                             args=self.args)
-            x_min = lres.x
 
-            self.x_vals.append(x_min)
-            # Find func float vals
+            self.x_vals.append(lres.x)
             self.Func_min[i] = lres.fun
-            #self.Func_min[i] = self.func(x_min, *args)
+
+            # Local function evals for all minimisers
+            self.res.nlfev += lres.nfev
+            #self.res.nljev = 0  # Local jacobian evals for all minimisers
+
+        self.x_vals = numpy.array(self.x_vals)
+        # Sort and save
+        ind_sorted = numpy.argsort(self.Func_min)  # Sorted indexes in Func_min
+
+        # Save ordered list of minima
+        self.res.xl = self.x_vals[ind_sorted]  # Ordered x vals
+        self.res.funl = self.Func_min[ind_sorted]  # Ordered fun values
 
         # Find global of all minimizers
-        i_glob = numpy.argsort(self.Func_min)[0]
-        x_global_min = self.x_vals[i_glob]
+        self.res.x = self.x_vals[ind_sorted[0]]  # Save global minima
+        x_global_min = self.x_vals[ind_sorted[0]]
+        self.res.x = self.Func_min[ind_sorted[0]]  # Save global fun value
         return x_global_min
 
 def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
@@ -313,11 +319,11 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
 
     TGOc.l_minima()
 
-    # Initialize return object
-   # self.res = scipy.optimize.OptimizeResult()
-  #  self.res.nfev = n # Include each sampling point as func evaluation
+    # Confirm the routine ran succesfully
+    TGOc.res.message = 'Optimization terminated successfully.'
+    TGOc.res.succes = True
 
-    return TGOc.l_minima()
+    return TGOc.res
 
     
 if __name__ == '__main__':
