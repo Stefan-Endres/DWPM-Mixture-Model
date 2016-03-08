@@ -114,8 +114,10 @@ class TestTgoSubFuncs(unittest.TestCase):
                          [0, 1, 1, 1, 1],
                          [1, 0, 0, 0, 0],
                          [1, 1, 1, 1, 1],
-                         [0, 0, 1, 0, 1],
+                         [0, 0, 0, 0, 1],
                          [1, 1, 0, 1, 0]])
+
+    T_Ans = T_Ans.astype(bool)
 
     # Known order of sampling points
     A = numpy.array([[2, 1, 5, 3, 4],
@@ -150,7 +152,8 @@ class TestTgoSubFuncs(unittest.TestCase):
 
     #T = t_matrix(H, F).astype(int)
     T, H, F = TGOc.topograph()
-
+    print T
+    print T_Ans
     def test_t1(self):
         """t-matrix construction:"""
         numpy.testing.assert_array_equal(self.T, self.T_Ans)
