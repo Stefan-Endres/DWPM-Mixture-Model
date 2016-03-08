@@ -31,6 +31,12 @@ test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
 test1_2 = Test1(bounds=[(0, 1), (0, 1)],
                 expected=[0, 0])
 
+class Test2(TestFunction):
+    """
+    Scalar function with several minima to test all minimiser retrievals
+    """
+    def f(self, x, r, s):
+        return (x - 30) * numpy.sin(x)
 #class Test2(TestFunction):
 
 
@@ -152,8 +158,7 @@ class TestTgoSubFuncs(unittest.TestCase):
 
     #T = t_matrix(H, F).astype(int)
     T, H, F = TGOc.topograph()
-    print T
-    print T_Ans
+
     def test_t1(self):
         """t-matrix construction:"""
         numpy.testing.assert_array_equal(self.T, self.T_Ans)

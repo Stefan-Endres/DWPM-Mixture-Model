@@ -132,8 +132,9 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
 
     """
     # Initiate TGO class
-    TGOc = TGO(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1,
-               k_t=None, callback=None, minimizer_kwargs=None, disp=False)
+    TGOc = TGO(func, bounds, args=args, g_func=g_func, g_args=g_args, n=n,
+               skip=skip, k_t=k_t, callback=callback,
+               minimizer_kwargs=minimizer_kwargs, disp=disp)
 
     # Generate sampling points
     TGOc.sampling()
