@@ -129,7 +129,8 @@ class state:
                     Sigma_x_dep = 0.0 # Sum of dependent components
                     for i in range(1, p.m['n']):
                         if size(X) == 1:   # Ugly fix because of the zip 
-                            X = array([X])  # conversion to float or list
+                            X = array([X])  # c
+                            # onversion to float or list
                             
                         s.c[i][ph] = X[i-1] 
                         Sigma_x_dep += X[i-1]
@@ -944,7 +945,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                                  g_func=x_lim,
                                  n = 100,
-                                 skip=2)
+                                 skip=2).x
         # Calculate LBD
         LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k) 
         X_D.append(X_sol)
@@ -1109,7 +1110,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # Calculate second point from redifined gobal func. 
     Args = (g_x_func, Lambda_d, X_I, s, p, ['All'])
     print Bounds
-    X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5)
+    X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5).x
     
     # Find phase of eq. point II
     s.update_state(s, p, X = X_II, Force_Update=True)  
@@ -1605,7 +1606,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     # (if all values are not greater than or less than zero)
                     Bounds = [(1e-6, 0.99999)]
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
-                    Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5)
+                    Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
 
                     s = phase_equilibrium_calculation(s, p, g_x_func, Z_0,
                           P=P, T=T, 

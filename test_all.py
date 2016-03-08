@@ -13,9 +13,9 @@ from pure_tests import pure_suite
 from ncomp_tests import ncomp_suite
 
 
-class AllTestCases(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, False)
+#class AllTestCases(unittest.TestCase):
+#    def test_something(self):
+#        self.assertEqual(True, False)
 
     #TestFunctions
 
