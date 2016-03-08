@@ -13,10 +13,13 @@ import numpy
 from tgo import *
 
 class TestFunction(object):
-    def __init__(self, bounds, expected):
+    def __init__(self, bounds, expected_x, expected_fun=None,
+                 expected_xl=None, expected_funl=None):
         self.bounds = bounds
-        self.expected = expected
-
+        self.expected_x = expected_x
+        self.expected_fun = expected_fun
+        self.expected_xl = expected_xl
+        self.expected_funl = expected_funl
 
 class Test1(TestFunction):
     def f(self, x, r, s):
@@ -25,20 +28,41 @@ class Test1(TestFunction):
     def g(self, C):
         return numpy.sum(C, axis=1) - 6.0 <= 0.0
 
-
 test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
-                expected=[0, 0])
+                expected_x=[0, 0])
 test1_2 = Test1(bounds=[(0, 1), (0, 1)],
-                expected=[0, 0])
+                expected_x=[0, 0])
 
 class Test2(TestFunction):
     """
     Scalar function with several minima to test all minimiser retrievals
     """
-    def f(self, x, r, s):
-        return (x - 30) * numpy.sin(x)
-#class Test2(TestFunction):
+    g = None
 
+    def f(self, x):
+        return (x - 30) * numpy.sin(x)
+
+test2 = Test2(bounds=[(0, 60)],
+              expected_x = [1.53567906],
+              expected_fun = [-28],  # Important to test that fun return is in
+                                     # the correct order
+              expected_xl = numpy.array([[  1.53567906],
+                                         [ 55.01782167],
+                                         [  7.80894889],
+                                         [ 48.74797493],
+                                         [ 14.07445705],
+                                         [ 42.4913859 ],
+                                         [ 20.31743841],
+                                         [ 36.28607535],
+                                         [ 26.43039605],
+                                         [ 30.76371366]]),
+
+              expected_funl = numpy.array([-28.44677132, -24.99785984,
+                                           -22.16855376, -18.72136195,
+                                           -15.89423937, -12.45154942,
+                                           -9.63133158,  -6.20801301,
+                                           -3.43727232,  -0.46353338])
+              )
 
 class Test3(TestFunction):
     """
@@ -48,7 +72,6 @@ class Test3(TestFunction):
         f_test_3([14.095, 0.84296]) = -6961.814744487831
 
     """
-
     def f(self, x):     # TODO: Add f bounds from original problem
         return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
 
@@ -57,10 +80,9 @@ class Test3(TestFunction):
                 & ((C[:, 0] - 6)**2 - (C[:, 1] - 5)**2 - 82.81 <= 0.0))
 
 
-# FIXME: The bounds appear not to include the expected value
+# FIXME: The bounds appear not to include the expected_x value
 test3 = Test3(bounds=[(13.0, 100.0), (0.0, 100.0)],
-              expected=[14.095, 0.84296])
-
+              expected_x=[14.095, 0.84296])
 
 class Rosenbrock(TestFunction):
     """ Rosenbrock's function  Ans x1 = 1, x2 = 1, f = 0 """
@@ -71,14 +93,15 @@ class Rosenbrock(TestFunction):
 
 
 rosen = Rosenbrock(bounds=[(-3.0, 3.0), (-3.0, 3.0)],
-                   expected=[1, 1])
+                   expected_x=[1, 1])
 
 test_atol = 1e-5
 
 
 def run_test(test, args=()):
-    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500).x
-    numpy.testing.assert_allclose(x, test.expected, atol=test_atol)
+    res = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500)
+    x = res.x
+    numpy.testing.assert_allclose(x, test.expected_x, atol=test_atol)
 
 # $ python2 -m unittest -v tgo_tests.TestTgoFuncs
 class TestTgoFuncs(unittest.TestCase):
@@ -89,6 +112,9 @@ class TestTgoFuncs(unittest.TestCase):
         r = [1, 2, 3]  # random args for test func tuple
         s = True
         run_test(test1_1, args=(r, s))
+
+    #def test_f2(self):
+    #    run_test(test_2)
 
     @unittest.skip("OverflowError")
     def test_f3(self):

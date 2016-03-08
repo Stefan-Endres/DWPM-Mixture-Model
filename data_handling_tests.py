@@ -13,7 +13,7 @@ import numpy
 
 def test_data_type(self, data, d_key, data_type=str):
     """
-    Test that the loaded data is the expected object type.
+    Test that the loaded data is the expected_x object type.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def test_container_string(data_keys, expected_string):
 
 class TestDataLoad(unittest.TestCase):
     """
-    Known data loading as expected
+    Known data loading as expected_x
     """
     import numpy
     data = data_handling.ImportData()
@@ -125,7 +125,7 @@ class TestDataLoad(unittest.TestCase):
 
 class TestNewData(unittest.TestCase):
     """
-    Test if newly added data is loading as expected.
+    Test if newly added data is loading as expected_x.
     TODO: Add simple argparse/config options to test new data
     """
     import numpy

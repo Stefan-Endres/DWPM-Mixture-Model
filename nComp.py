@@ -139,7 +139,7 @@ class state:
             elif phase[0] is 'All':
                 if len(X) != len(p.m['Valid phases']): # Check for dimensions
                     raise IOError('The array of X specified does not match'
-                                   +' the number of phases expected. len(X) = '
+                                   +' the number of phases expected_x. len(X) = '
                                    '{} .'.format(len(X))
                                    +'len(p.m[\'Valid phases\']) = {}'
                                     .format(len(p.m['Valid phases'])))
@@ -159,7 +159,7 @@ class state:
             elif phase is not None:
                 if len(X) != len(phase): # Check for dimensions
                     raise IOError('The array of X specified does not match'
-                                   +' the number of phases expected. len(X) = '
+                                   +' the number of phases expected_x. len(X) = '
                                    '{} .'.format(len(X))
                                    +'len(phase) = {}'
                                     .format(len(phase)))

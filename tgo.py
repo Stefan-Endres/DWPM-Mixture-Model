@@ -95,8 +95,13 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     -------
     res : OptimizeResult
         The optimization result represented as a `OptimizeResult` object.
-        Important attributes are: ``x`` the solution array, ``success`` a
-        Boolean flag indicating if the optimizer exited successfully and
+        Important attributes are:
+        ``x`` the solution array corresponding to the global minimum,
+        ``fun`` the function output at the global solution,
+        ``xl`` an ordered list of local minima solutions,
+        ``funl`` the function output at the corresponding local solutions,
+        ``success`` a Boolean flag indicating if the optimizer exited
+        successfully and
         ``message`` which describes the cause of the termination. See
         `OptimizeResult` for a description of other attributes. If `polish`
         was employed, then OptimizeResult also contains the `jac` attribute.
@@ -292,7 +297,7 @@ class TGO(object):
         """
         Min_ind = self.minimizers(self.K_opt)
         self.x_vals = []
-        self.Func_min = numpy.zeros_like(Min_ind)
+        self.Func_min = numpy.zeros_like(Min_ind, dtype=float)
         for i, ind in zip(range(len(Min_ind)), Min_ind):
             # Find minimum x vals
             lres = scipy.optimize.minimize(self.func, self.C[ind,:],
@@ -317,7 +322,7 @@ class TGO(object):
 
         # Find global of all minimizers
         self.res.x = self.x_vals[ind_sorted[0]]  # Save global minima
-        x_global_min = self.x_vals[ind_sorted[0]]
+        x_global_min = self.x_vals[ind_sorted[0]][0]
         self.res.fun = self.Func_min[ind_sorted[0]]  # Save global fun value
         return x_global_min
 
