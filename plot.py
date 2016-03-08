@@ -276,7 +276,7 @@ def plot_ep(func, X_r, s, p, args=()):
                     p.c[2]['name'][0],
                     s.m['T'],
                     s.m['P']))
-        #plot.show()
+        plot.show()
     return
 
 

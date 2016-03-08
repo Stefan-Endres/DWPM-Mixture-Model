@@ -962,19 +962,16 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         print 'Final Lambda_d = {}'.format(Lambda_d)
         
     # Returns
-    s.m['Z_eq'] = X_sol
-    s.m['Lambda_d'] = Lambda_d
-    s.m['G_sol'] = d_res.fun  # Gibbs energy at solution point
+    s.m['Z_eq'] = X_sol  # Equilibrium solution for calculated hyperplane
+    s.m['Lambda_d'] = Lambda_d  # Lambda (chemical potential) sol.
+    s.m['lbd_sol'] = d_res.fun  # lbd plane solution at equil point
     s.m['Z_eql'] = d_res.xl  # Other local composition solutions from final tgo
-    s.m['G_soll'] = d_res.funl  # Gibbs energy at local composition solutions
+    s.m['lbd_soll'] = d_res.funl  # lbd plane at local composition solutions
 
-    print '='*100
-    print d_res.xl
-    print d_res.funl
-    print '='*100
     return s
 
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
+    # TODO: (Old function to be deleted soon if plane method is working)
     """
     
 TODO: Why does returning the natiove present an objective function with the
@@ -1037,8 +1034,9 @@ TODO: Check method for changing lambda to change goal func to a global minima
                - g_x_func(s, p).m['g_mix']['t'] )])
                
                
-def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
+def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                tol=1e-9, Print_Results=False, Plot_Results=False):
+    # TODO: (Old function to be deleted soon if plane method is working)
     """
     This function uses the duality formulation to calculate two equilibrium
     points from an unstable feed point Z_0.
@@ -1103,10 +1101,10 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     s = dual_equal(s, p, g_x_func, Z_0 , tol=tol)
     X_I = s.m['Z_eq']
     Lambda_d = s.m['Lambda_d']
-    G_sol = s.m['G_sol']
+    #G_sol = s.m['G_sol']
 
-    Args_plane = (g_x_func, Z_0, Lambda_d, G_sol, s, p, ['All'])
-    Args_zero_plane  = (g_x_func, Z_0, Lambda_d, G_sol, s, p, ['All'])
+    #Args_plane = (Z_0, Lambda_d, G_sol, s, p, ['All'])
+    #Args_zero_plane  = (g_x_func, Z_0, Lambda_d, G_sol, s, p, ['All'])
 
 
 
@@ -1172,29 +1170,34 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         X_r = linspace(1e-5, 0.9999, 1000)    
         plot.plot_ep(eq_sol, X_r, s, p, args=Args)
 
-        plot.plot_ep(dual_plane, X_r, s, p, args=Args_plane)
-        plot.plot_ep(zero_plane, X_r, s, p, args=Args_zero_plane)
+        #plot.plot_ep(dual_plane, X_r, s, p, args=Args_plane)
+        #plot.plot_ep(zero_plane, X_r, s, p, args=Args_zero_plane)
     # Save returns in state dictionary.
     s.m['X_I'] = X_I
     s.m['X_II'] = X_II
     
     return s
 
-# %% Multi-minimiser approach to phase equil. calculation
 
-def dual_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
+# %% Multi-minimiser approach to phase equil. calculation
+def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=None,
+                                  tol=1e-9, gtol=1e-2, phase_tol=1e-4,
+                                  Print_Results=False,
+                                  Plot_Results=False):
+    # TODO: Remove the roman numeral comp. returns and change the way
+    # phase_seperation_detection works to iterate along all points found
+    # the plane instead.
+
     """
-    Returns the scalar output of the dual solution hyperplane at X
+    This function uses the duality formulation to calculate all equilibrium
+    points from an unstable feed point Z_0.
 
     Parameters
     ----------
-    X : vector
-        Contains an input composition point to calculate the plane scalar
-        output at X.
-
     s : class
         Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
+        NOTE: Must be updated to system state before call at P, T, {x}, {y}
+              if "P" and "T "are not specified.
 
     p : class
         Contains the dictionary describing the parameters.
@@ -1204,18 +1207,163 @@ def dual_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
                point. Should accept s, p as first two arguments.
                Returns a class containing scalar value .m['g_mix']['t']
 
+    Z_0 : 1xn vector
+          Contains the feed composition point (must be and unstable point to
+          find multiphase equilibria).
+
     k : list, optional
         List contain valid phases for the current equilibrium calculation.
         ex. k = ['x', 'y']
         If default value None is the value in p.m['Valid phases'] is retained.
 
+    P : scalar, optional
+        Pressure (Pa), if unspecified the current state pressure will be used.
 
-    Z_0 : vector
-          Contains the feed composition point (must be and unstable point to
-          find multiphase equilibria).
+    T : scalar, optional
+        Temperature (K), if unspecified  the current state temperature will be
+        used.
 
     tol : scalar, optional
-          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+          Tolerance used in dual_equal, if epsilon >= UBD - LBD that will
+          terminate the routine.
+
+    g_tol : scalar, optional
+          Minimum tolerance between Gibbs surface at solution and
+          Note: The Dual solution is not perfect so a low tolerance is
+          required, but a too low tol could potentially include points that do
+          not truly lie on the equilibrium plane within the considered
+          instability region.
+
+    phase_tol : scalar, optional
+                The minimum seperation between equilibrium planes required to
+                be considered a phase. Defaults to 0.001
+
+    Print_Results : boolean, optional
+                    If True the results of the calculation will be printed in
+                    the console.
+
+    Plot_Results : boolean, optional
+                   If True the g_mix curve with tie lines will be plotted for
+                   binary and trenary systems.
+
+    Returns
+    -------
+    s.m['X_I'] : vector
+                 Contains the first optimised equilibrium point in the dual
+                 problem function.
+    s.m['X_II'] : vector
+                  Contains the second optimised equilibrium point with the
+                  lowest surface tolerance.
+
+    s.m['X_EQ'] : list of vector
+                  Contains all points in equilibrium in the region of the dual
+                  plane.
+    """
+    import numpy
+    s.m['X_EQ'] = []  # Empty list storing equilibrium points
+
+    # Calculate hyperplane at Z_0
+    s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)
+    s = dual_equal(s, p, g_x_func, Z_0, tol=tol)
+    # Returns:
+     #s.m['Z_eq'] = X_sol  # Equilibrium solution for calculated hyperplane
+     #s.m['Lambda_d'] = Lambda_d  # Lambda (chemical potential) sol.
+     #s.m['lbd_sol'] = d_res.fun  # lbd plane solution at equil point
+     #s.m['Z_eql'] = d_res.xl  # Other local composition solutions from final tgo
+     #s.m['lbd_soll'] = d_res.funl  # lbd plane at local composition solutions
+
+    s.m['X_I'] = s.m['Z_eq']
+    s.m['X_EQ'].append(s.m['X_I'])  # Add first point to solution set
+
+    if len(s.m['Z_eql']) < 2:
+        print "Less than 2 equilibrium points found in DUAL" # dev; DELETE
+        return  s # TODO: Do another global minimisation, if no equil. point is
+                  # found then point is stable, add flag and functionality in
+                  # phase_seperation_detection
+
+    # TODO: Find more efficient way to exclude minima points within a tolerance
+    # numpy.allclose
+    # Returns True if two arrays are element-wise equal within a tolerance.
+    Flag = []  # Flag index for deletion from solution array
+    print
+    for i in range(len(s.m['Z_eql'])):
+        for j in range(i + 1, len(s.m['Z_eql'])):
+            if numpy.allclose(s.m['Z_eql'][i],
+                              s.m['Z_eql'][j],
+                              rtol=phase_tol,
+                              atol=phase_tol):
+                Flag.append(j)  # Flag index j for deletion
+
+    # delete composition rows (lists are converted to arrays in func)
+    s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
+    s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
+
+    # Calculate the difference between the Gibbs surface and the plane solution
+    # at every point and add the points within a tolerance to the final
+    # solution set.
+    #TODO: s.m['lbd_soll'] Already contains this information? Just find differne
+    # between
+    for i in range(1, len(s.m['lbd_soll'])):
+        if abs(s.m['lbd_sol'] - s.m['lbd_soll'][i]) < gtol:
+            s.m['X_EQ'].append(s.m['Z_eql'][i])
+        # Find plane solution value at X
+        #plane_x = dual_plane(s.m['Z_eql'][i],
+        #                     Z_0, s.m['Lambda_d'], s.m['G_sol'],
+        #                     s, p, k=['All'])
+
+        # If the Gibbs solution - plane solution is within tolerance add the
+        # equilibrium point
+        #print '='*20
+        #print plane_x - s.m['G_soll'][i]
+        #print '='*20
+       # if abs(plane_x - s.m['G_soll'][i] ) < phase_tol:
+        #    s.m['X_EQ'].append(s.m['Z_eql'][i])
+
+    ############################3
+    #s.update_state(s, p, P=P, T=T,  X = s.m['X_I'], Force_Update=True)
+    #s.m['G_sol'] = g_x_func(s, p).m['g_mix']['t']
+
+    #Args_zero_plane  = (g_x_func, Z_0, s.m['Lambda_d'],
+    #                    s.m['G_sol'], s, p, ['All'])
+    #X_r = numpy.linspace(1e-5, 0.9999, 1000)
+    #plot.plot_ep(zero_plane, X_r, s, p, args=Args_zero_plane)
+    ############################3
+
+    if len(s.m['X_EQ']) < 2:
+        print "Less than 2 equilibrium points found in SEP" # dev; DELETE
+        return s# TODO Add flag no equil point found in tolerance\
+
+    s.m['X_II'] = s.m['X_EQ'][1]  # arbitrarily add the second point to solution
+    return s
+
+
+def dual_plane(X, Z_0, Lambda_d, G_sol, s, p, k=['All']):
+    """
+    Returns the scalar output of the dual solution hyperplane at X
+
+    Parameters
+    ----------
+    X : vector
+        Contains an input composition point to calculate the plane scalar
+        output at X.
+
+    Z_0 : vector
+    Contains the feed composition point (must be and unstable point to
+    find multiphase equilibria).
+
+#TODO: Finish doc strings
+
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+
+    p : class
+        Contains the dictionary describing the parameters.
+
+    k : list, optional
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.
 
     Dependencies
     ------------
@@ -1280,7 +1428,9 @@ def zero_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
     #return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
 
     # Gibbs surface minus the hyperplane:
-    return G_sol - (g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X)))
+    #return G_sol - (g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X)))
+    #return g_x_func(s, p).m['g_mix']['t'] - (G_sol + sum(Lambda_d * (Z_0 - X)))
+    return g_x_func(s, p).m['g_mix']['t'] - (G_sol + sum(Lambda_d * (Z_0 - X)))
 
 # %%  Numerical FD estimates for validation
 def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):  
