@@ -789,7 +789,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             hyperplanes.
           -Construct bounds which is a list of tuples in [0,1] \in R^n
           -UBD X_d[0] --> X_d
-          -Lambda_Sol: Allow for multiple solutions and impliment bounds to
+          -Lambda_Sol: Allow for multiple solutions and implement bounds to
                         find any other solutions if they exist.
           -Lambda_Sol bounds method: The current implementation is only viable
                                       for binary systems. Improve.
@@ -937,15 +937,17 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)
         Lambda_sol = numpy.delete(lp_sol.x, numpy.shape(lp_sol.x)[0] - 1)
 
-        Lambda_d = numpy.array(Lambda_sol)  # If float convert back to 1x1 array
+        Lambda_d = numpy.array(Lambda_sol) # If float convert back to 1x1 array
 
         UBD = -lp_sol.fun
 
         # Solve LBD
-        X_sol = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
+        d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                                  g_func=x_lim,
                                  n = 100,
-                                 skip=2).x
+                                 skip=2)
+
+        X_sol = d_res.x
         # Calculate LBD
         LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k) 
         X_D.append(X_sol)
@@ -962,8 +964,15 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # Returns
     s.m['Z_eq'] = X_sol
     s.m['Lambda_d'] = Lambda_d
-    return s
+    s.m['G_sol'] = d_res.fun  # Gibbs energy at solution point
+    s.m['Z_eql'] = d_res.xl  # Other local composition solutions from final tgo
+    s.m['G_soll'] = d_res.funl  # Gibbs energy at local composition solutions
 
+    print '='*100
+    print d_res.xl
+    print d_res.funl
+    print '='*100
+    return s
 
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     """
@@ -1089,12 +1098,18 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     if True: # Print time
         import timeit
         A = timeit.time.time()
-        
-    s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)  
+
+    s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)
     s = dual_equal(s, p, g_x_func, Z_0 , tol=tol)
     X_I = s.m['Z_eq']
     Lambda_d = s.m['Lambda_d']
-    
+    G_sol = s.m['G_sol']
+
+    Args_plane = (g_x_func, Z_0, Lambda_d, G_sol, s, p, ['All'])
+    Args_zero_plane  = (g_x_func, Z_0, Lambda_d, G_sol, s, p, ['All'])
+
+
+
     # Find phase of eq. point I
     s.update_state(s, p, X = X_I, Force_Update=True)  
     s.m['Phase eq. I'] = g_x_func(s, p).m['g_mix']['ph min']
@@ -1157,6 +1172,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         X_r = linspace(1e-5, 0.9999, 1000)    
         plot.plot_ep(eq_sol, X_r, s, p, args=Args)
 
+        plot.plot_ep(dual_plane, X_r, s, p, args=Args_plane)
+        plot.plot_ep(zero_plane, X_r, s, p, args=Args_zero_plane)
     # Save returns in state dictionary.
     s.m['X_I'] = X_I
     s.m['X_II'] = X_II
@@ -1165,12 +1182,16 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 # %% Multi-minimiser approach to phase equil. calculation
 
-def dual_plane(X, s, p, g_x_func, Z_0, tol=1e-2):
+def dual_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
     """
     Returns the scalar output of the dual solution hyperplane at X
 
     Parameters
     ----------
+    X : vector
+        Contains an input composition point to calculate the plane scalar
+        output at X.
+
     s : class
         Contains the dictionaries with the system state information.
         NOTE: Must be updated to system state at P, T, {x}, {y}...
@@ -1188,12 +1209,6 @@ def dual_plane(X, s, p, g_x_func, Z_0, tol=1e-2):
         ex. k = ['x', 'y']
         If default value None is the value in p.m['Valid phases'] is retained.
 
-    P : scalar, optional
-        Pressure (Pa), if unspecified the current state pressure will be used.
-
-    T : scalar, optional
-        Temperature (K), if unspecified  the current state temperature will be
-        used.
 
     Z_0 : vector
           Contains the feed composition point (must be and unstable point to
@@ -1212,7 +1227,60 @@ def dual_plane(X, s, p, g_x_func, Z_0, tol=1e-2):
     #s.m['Z_eq']
     #s.m['Lambda_d']
     s.update_state(s, p,  X = X, phase=k, Force_Update=True)
-    return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
+    #return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
+   # return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
+    return G_sol + sum(Lambda_d * (Z_0 - X))
+
+def zero_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
+    """
+    Returns the LHS - RHS the dual solution hyperplane at X
+
+    Parameters
+    ----------
+    X : vector
+        Contains an input composition point to calculate the plane scalar
+        output at X.
+
+    s : class
+        Contains the dictionaries with the system state information.
+        NOTE: Must be updated to system state at P, T, {x}, {y}...
+
+    p : class
+        Contains the dictionary describing the parameters.
+
+    g_x_func : function
+               Returns the gibbs energy at a the current composition
+               point. Should accept s, p as first two arguments.
+               Returns a class containing scalar value .m['g_mix']['t']
+
+    k : list, optional
+        List contain valid phases for the current equilibrium calculation.
+        ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.
+
+
+    Z_0 : vector
+          Contains the feed composition point (must be and unstable point to
+          find multiphase equilibria).
+
+    tol : scalar, optional
+          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+
+    Dependencies
+    ------------
+    numpy
+
+    Returns
+    -------
+    """
+    #s.m['Z_eq']
+    #s.m['Lambda_d']
+    s.update_state(s, p,  X = X, phase=k, Force_Update=True)
+    #return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
+    #return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
+
+    # Gibbs surface minus the hyperplane:
+    return G_sol - (g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X)))
 
 # %%  Numerical FD estimates for validation
 def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):  

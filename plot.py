@@ -261,7 +261,10 @@ def plot_ep(func, X_r, s, p, args=()):
         ep = []
         for X in X_r:
             s.update_state(s, p,  X = X, phase = ['All'], Force_Update=True)
-            ep.append(func(X, *args)[0])
+            try:
+                ep.append(func(X, *args)[0])
+            except(IndexError):
+                ep.append(func(X, *args)) # Scalar outputs
             #ep.append(func(X, *args))
 
         plot.figure()
@@ -273,7 +276,7 @@ def plot_ep(func, X_r, s, p, args=()):
                     p.c[2]['name'][0],
                     s.m['T'],
                     s.m['P']))
-        plot.show()
+        #plot.show()
     return
 
 
