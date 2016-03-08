@@ -71,7 +71,7 @@ test_atol = 1e-5
 
 
 def run_test(test, args=()):
-    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500)
+    x = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500).x
     numpy.testing.assert_allclose(x, test.expected, atol=test_atol)
 
 # $ python2 -m unittest -v tgo_tests.TestTgoFuncs
@@ -105,6 +105,10 @@ class TestTgoSubFuncs(unittest.TestCase):
     """
     TGO subfunction tests using known solution (test_f1)
     """
+    # Init tgo class
+    # Note: Using ints for irrelevant class inits like func
+    TGOc = TGO(1, 1)
+    #TGOc = TGO()
     # int bool solution for known sampling points
     T_Ans = numpy.array([[0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -124,8 +128,29 @@ class TestTgoSubFuncs(unittest.TestCase):
     # function values at test points
     F = numpy.array([29, 5, 25.81, 1, 25, 20])
 
-    H = F[A]
-    T = t_matrix(H, F).astype(int)
+    # Sampling points used in Henderson example
+    TGOc.C = numpy.array([[2, 5],  # P1
+                          [1, 2],  # P2
+                          [3, 4],  # P3
+                          [0, 1],  # P4
+                          [5, 0],  # P5
+                          [4, 2]   # P6
+                          ])
+    # func used
+    def f_sub(x):
+        return x[0]**2 + x[1]**2
+
+    TGOc.func = f_sub
+    # TODO Test that A and F from this is correct, change recorded vals
+    # to answers
+
+
+    #t_matrix = TGOc.topograph()
+    #H = F[A]
+
+    #T = t_matrix(H, F).astype(int)
+    T, H, F = TGOc.topograph()
+
     def test_t1(self):
         """t-matrix construction:"""
         numpy.testing.assert_array_equal(self.T, self.T_Ans)
@@ -134,23 +159,23 @@ class TestTgoSubFuncs(unittest.TestCase):
 
     def test_t2(self):
         """k-1 topograph"""
-        K_1 = k_t_matrix(self.T, 1).T[0] #
+        K_1 = self.TGOc.k_t_matrix(self.T, 1).T[0] #
         numpy.testing.assert_array_equal(K_1 , self.T_Ans[:,0])
 
     def test_t3(self):
         """k-3 topograph"""
-        K_3 = k_t_matrix(self.T, 3)
+        K_3 = self.TGOc.k_t_matrix(self.T, 3)
         Ans = numpy.delete(self.T_Ans, numpy.s_[3:numpy.shape(self.T_Ans)[1]]
                      , axis=-1)
         numpy.testing.assert_array_equal(K_3, Ans)
 
     def test_t4(self):
         """Minimizer function"""
-        self.assertEqual(numpy.float32(minimizers(self.T_Ans)), 3)
+        self.assertEqual(numpy.float32(self.TGOc.minimizers(self.T_Ans)), 3)
 
     def test_t5(self):
         """K_optimal"""
-        numpy.testing.assert_array_equal(K_optimal(self.T), self.T_Ans)
+        numpy.testing.assert_array_equal(self.TGOc.K_optimal(), self.T_Ans)
 
 def tgo_suite():
     """
