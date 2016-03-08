@@ -44,8 +44,8 @@ class Test2(TestFunction):
 
 test2 = Test2(bounds=[(0, 60)],
               expected_x = [1.53567906],
-              expected_fun = [-28],  # Important to test that fun return is in
-                                     # the correct order
+              expected_fun = [-28.44677132],  # Important to test that fun
+                                              # return is in the correct order
               expected_xl = numpy.array([[  1.53567906],
                                          [ 55.01782167],
                                          [  7.80894889],
@@ -99,9 +99,25 @@ test_atol = 1e-5
 
 
 def run_test(test, args=()):
-    res = tgo(test.f, test.bounds, args=args, g_func=test.g, n=500)
+    res = tgo(test.f, test.bounds, args=args, g_func=test.g)
     x = res.x
-    numpy.testing.assert_allclose(x, test.expected_x, atol=test_atol)
+    numpy.testing.assert_allclose(res.x, test.expected_x, atol=test_atol)
+
+    # (Optional tests)
+    if test.expected_fun is not None:
+        numpy.testing.assert_allclose(res.fun,
+                                      test.expected_fun,
+                                      atol=test_atol)
+
+    if test.expected_xl is not None:
+        numpy.testing.assert_allclose(res.xl,
+                                      test.expected_xl,
+                                      atol=test_atol)
+
+    if test.expected_funl is not None:
+        numpy.testing.assert_allclose(res.funl,
+                                      test.expected_funl,
+                                      atol=test_atol)
 
 # $ python2 -m unittest -v tgo_tests.TestTgoFuncs
 class TestTgoFuncs(unittest.TestCase):
@@ -113,8 +129,8 @@ class TestTgoFuncs(unittest.TestCase):
         s = True
         run_test(test1_1, args=(r, s))
 
-    #def test_f2(self):
-    #    run_test(test_2)
+    def test_f2(self):
+        run_test(test2)
 
     @unittest.skip("OverflowError")
     def test_f3(self):
