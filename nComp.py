@@ -1034,7 +1034,7 @@ TODO: Check method for changing lambda to change goal func to a global minima
                - g_x_func(s, p).m['g_mix']['t'] )])
                
                
-def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
+def phase_equilibrium_calculation_old(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                tol=1e-9, Print_Results=False, Plot_Results=False):
     # TODO: (Old function to be deleted soon if plane method is working)
     """
@@ -1120,7 +1120,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         if Z_0[i] > X_I[i]:
             Bounds.append((Z_0[i], 0.99999))
 
-    # Calculate second point from redifined gobal func. 
+    # Calculate second point from redefined global func.
     Args = (g_x_func, Lambda_d, X_I, s, p, ['All'])
     print Bounds
     X_II = tgo(eq_sol, Bounds, args=Args, n=100, k_t = 5).x
@@ -1180,8 +1180,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
 # %% Multi-minimiser approach to phase equil. calculation
-def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=None,
-                                  tol=1e-9, gtol=1e-2, phase_tol=1e-4,
+def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
+                                  tol=1e-9, gtol=1e-2, phase_tol=1e-3,
                                   Print_Results=False,
                                   Plot_Results=False):
     # TODO: Remove the roman numeral comp. returns and change the way
@@ -1244,7 +1244,7 @@ def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=N
 
     Plot_Results : boolean, optional
                    If True the g_mix curve with tie lines will be plotted for
-                   binary and trenary systems.
+                   binary and ternary systems.
 
     Returns
     -------
@@ -1275,6 +1275,11 @@ def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=N
     s.m['X_I'] = s.m['Z_eq']
     s.m['X_EQ'].append(s.m['X_I'])  # Add first point to solution set
 
+    #Find and return Gibbs funciton information of compound I
+    s.update_state(s, p, P=P, T=T,  X = s.m['X_I'], Force_Update=True)
+    s.m['G I'] = g_x_func(s, p).m['g_mix']
+    s.m['Phase eq. I'] = s.m['G I']['ph min']
+
     if len(s.m['Z_eql']) < 2:
         print "Less than 2 equilibrium points found in DUAL" # dev; DELETE
         return  s # TODO: Do another global minimisation, if no equil. point is
@@ -1282,21 +1287,45 @@ def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=N
                   # phase_seperation_detection
 
     # TODO: Find more efficient way to exclude minima points within a tolerance
-    # numpy.allclose
+    # Note: numpy.allclose
     # Returns True if two arrays are element-wise equal within a tolerance.
     Flag = []  # Flag index for deletion from solution array
-    print
+
+    # Exclude same composition points within tolerance.
     for i in range(len(s.m['Z_eql'])):
         for j in range(i + 1, len(s.m['Z_eql'])):
-            if numpy.allclose(s.m['Z_eql'][i],
-                              s.m['Z_eql'][j],
-                              rtol=phase_tol,
-                              atol=phase_tol):
+
+            if numpy.allclose(s.m['Z_eql'][i], s.m['Z_eql'][j],
+                              rtol=phase_tol, atol=phase_tol):
                 Flag.append(j)  # Flag index j for deletion
 
     # delete composition rows (lists are converted to arrays in func)
+    print 'FLAG TEST '*20
+    print '='*20
+    print 'Z_eql = {}'.format(s.m['Z_eql'])
+    print 'lbd_soll = {}'.format(s.m['lbd_soll'])
+    print 'Flag = {}'.format(Flag)
+
     s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
     s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
+    print 'New Z_eql = {}'.format(s.m['Z_eql'])
+    print 'New lbd_soll = {}'.format(s.m['lbd_soll'])
+    print '='*20
+
+    # Exclude any Sigma X_i > 1 (happens with unbounded solvers)
+    Flag = []
+    for i in range(len(s.m['Z_eql'])):
+        print sum(s.m['Z_eql'][i])
+        if sum(s.m['Z_eql'][i]) > 1.1: # 1.1 is an approx. tol, should be 1.0
+            Flag.append(i)
+
+    s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
+    s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
+
+    print 'New2 Z_eql = {}'.format(s.m['Z_eql'])
+    print 'New2 lbd_soll = {}'.format(s.m['lbd_soll'])
+    print '='*20
+    print 'END FLAG TEST '*20
 
     # Calculate the difference between the Gibbs surface and the plane solution
     # at every point and add the points within a tolerance to the final
@@ -1334,6 +1363,45 @@ def phase_equilibrium_calculation_plane(s, p, g_x_func, Z_0, k=None, P=None, T=N
         return s# TODO Add flag no equil point found in tolerance\
 
     s.m['X_II'] = s.m['X_EQ'][1]  # arbitrarily add the second point to solution
+    s.update_state(s, p, P=P, T=T,  X = s.m['X_II'], Force_Update=True)
+    s.m['G II'] = g_x_func(s, p).m['g_mix']
+    s.m['Phase eq. II'] = s.m['G I']['ph min']
+
+    # Find Gibbs and phase info for each point
+    s.m['G_EQ'] = []
+    s.m['Phase EQ'] = []
+    for i in range(len(s.m['X_EQ'])):
+        s.update_state(s, p, P=P, T=T,  X = s.m['X_EQ'][i], Force_Update=True)
+        s.m['G_EQ'].append(g_x_func(s, p).m['g_mix'])
+        s.m['Phase EQ'].append(s.m['G_EQ'][i]['ph min'])
+
+
+    if Plot_Results:
+        Z_0 = s.m['Z_eq']
+
+        # Gibbs mix func with Tie lines
+        from scipy import linspace
+        print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
+        print [[s.m['X_II'], s.m['X_I']]]
+        if p.m['n'] == 2: # Plot binary tie lines
+            plot.plot_g_mix(s, p, g_x_func, Tie =[[s.m['X_II'], s.m['X_I']]]
+                            , x_r=1000)
+
+        if p.m['n'] == 3: # Plot ternary tie lines
+            s.update_state(s, p, P=P, T=T,  X = s.m['X_I'], Force_Update=True)
+            G_P = g_x_func(s, p).m['g_mix']['t']
+            print G_P
+            Tie = [[G_P,# -0.3247905329, # G_P #
+                    s.m['X_I'][0],         # x_1
+                    s.m['Lambda_d'][0],    # lambda_1
+                    s.m['X_I'][1],         # x_2
+                    s.m['Lambda_d'][1]]    # lambda_2
+                    ]
+            s.m['Lambda_d']
+            plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
+
+
+
     return s
 
 
