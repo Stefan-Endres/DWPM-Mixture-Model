@@ -164,7 +164,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                            P=24e5, T=263.1,
                                            tol=1e-9,
                                            Print_Results=False,
-                                           Plot_Results=True)
+                                           Plot_Results=False)
 
         numpy.testing.assert_allclose([s2.m['X_I'][0], s2.m['X_II'][0]],
                                       #[0.28226453, 0.25],
@@ -201,13 +201,13 @@ class TestNcompFuncsBin(unittest.TestCase):
                                               k=None,
                                               tol=1e-9,
                                               Print_Results=False,
-                                              Plot_Results=True)
+                                              Plot_Results=False)
 
         #numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
 
                                       
     def test_b5(self):
-        """
+        """sw
         Phase sep. Mitsos et al. (2007) test 1 bin
         """
         self.p.m['Valid phases'] = ['x']
@@ -266,17 +266,31 @@ class TestNcompFuncsTern(unittest.TestCase):
                                           P=101e3, T=300.0,
                                           tol=1e-9,
                                           Print_Results=False,
-                                          Plot_Results=True)
+                                          Plot_Results= True)
+
         print '='*20
         print 'New solution:'
+        print 'Z_eql ='
         print s.m['Z_eql']
+        print 'X_I ='
+        print s.m['X_I']
+        print 'X_II ='
+        print s.m['X_II']
         print '='*20
+        # Order phases correctly:
+        if s.m['X_I'][0] < 0.1:
+            Ans_X_I = [1.00000000e-05, 9.99990000e-01]
+            Ans_X_II = [0.3, 0.07964059]
+        else:
+            Ans_X_I = [0.3, 0.07964059]
+            Ans_X_II = [1.00000000e-05, 9.99990000e-01]
+
         numpy.testing.assert_allclose(s.m['X_I'],
-                                      [1.00000000e-05, 9.99990000e-01],
+                                      Ans_X_I,
                                       rtol=1e-01)
 
         numpy.testing.assert_allclose(s.m['X_II'],
-                                      [0.3, 0.07964059],
+                                      Ans_X_II,
                                       rtol=1e-01)
 
 def ncomp_suite():

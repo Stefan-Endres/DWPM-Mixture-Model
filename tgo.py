@@ -36,20 +36,20 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
     g_func : callable, optional
         Function used to define a limited subset to defining the feasible set
         of solutions in R^n in the form g(x) <= 0 applied as g : R^n -> R^m
-        ex 1. To impose the constraint  x[0] + x[1] + x[2] - 1 <= 0
+        ex 1. To impose the constraint  x[0] + x[1] + x[2] - 1 >= 0
               Use the function definition
 
               def g_func(A):  # A is an input array of sample points in R^m*n
-                  return numpy.sum(A, axis=1) - 1.0#
+                  return -numpy.sum(A, axis=1) + 1.0#
 
         ex 2. To impose the constraints:
-              -(x[0] - 5)**2 - (x[1] - 5)**2  - 100 <= 0
-              (x[0] - 6)**2 - (x[1] - 5)**2  - 82.81 <= 0
+              (x[0] - 5)**2 + (x[1] - 5)**2  + 100 >= 0
+              -(x[0] - 6)**2 + (x[1] - 5)**2  + 82.81 >= 0
               Use the function definition
 
               def g_func(A):
-                  return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 <= 0.0)
-                         & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 <= 0.0))
+                  return ((-(C[:,0] - 5)**2 - (C[:,1] - 5)**2  - 100.0 >= 0.0)
+                         & ((C[:,0] - 6)**2 - (C[:,1] - 5)**2  - 82.81 >= 0.0))
 
 
     g_args : tuple, optional
@@ -65,10 +65,10 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
 
     k : int, optional
         Defines the number of columns constructed in the k-t matrix. The higher
-        k is the lower the amount of minimizers will be used for local search
-        routines. If None the empircal model of Henderson et. al. (2015) will
+        k is the lower the amount of minimisers will be used for local search
+        routines. If None the empirical model of Henderson et. al. (2015) will
         be used. (Note: Lower k values decrease performance, but could
-        potentially be more robust due to testing more local minimizers in the
+        potentially be more robust due to testing more local minimisers in the
         function hypersuface)
 
 # TODO:    disp : bool, optional
@@ -86,7 +86,7 @@ def tgo(func, bounds, args=(), g_func=None, g_args=(), n=100, skip=1, k_t=None,
         ``scipy.optimize.minimize()`` Some important options could be:
 
             method : str
-                The minimization method (e.g. ``"L-BFGS-B"``)
+                The minimization method (e.g. ``SLSQP``)
             args : tuple
                 Extra arguments passed to the objective function (``func``) and
                 its derivatives (Jacobian, Hessian).
@@ -200,6 +200,15 @@ class TGO(object):
         self.res.nljev = 0  # Local jacobian evals for all minimisers
         #self.res.func
 
+        # Define constraint function used in local minimisation
+        if g_func is not None:
+            self.cons = ({'type' : 'ineq',  # g_i(x) >= 0,  i = 1,...,m
+                          'fun' : g_func,  # The function defining the constraint.
+                          'args' : g_args
+                          })
+        else:
+            self.cons = ()
+
     # %% Define funcs # TODO: Create tgo class to wrap all funcs
     def sampling(self):
         """
@@ -217,7 +226,7 @@ class TGO(object):
         # Distribute over bounds
         # TODO: Find a better way to do this
         for i in range(len(self.bounds)):
-            self.C[:,i] = (self.C[:,i] *
+            self.C[:, i] = (self.C[:, i] *
                            (self.bounds[i][1] - self.bounds[i][0])
                            + self.bounds[i][0] )
 
@@ -225,8 +234,8 @@ class TGO(object):
 
     def subspace(self):
         """Find subspace of feasible points from g_func definition"""
-        self.C =  self.C[self.g_func(self.C)]  # Subspace of feasible points.
-        return self.C
+         # Subspace of feasible points.
+        self.C =  self.C[self.g_func(self.C, *self.g_args) >= 0.0]
 
     def topograph(self):
         """
@@ -298,12 +307,20 @@ class TGO(object):
         Min_ind = self.minimizers(self.K_opt)
         self.x_vals = []
         self.Func_min = numpy.zeros_like(Min_ind, dtype=float)
+
+
+        options = {'ftol' : 1e-12}
         for i, ind in zip(range(len(Min_ind)), Min_ind):
             # Find minimum x vals
             lres = scipy.optimize.minimize(self.func, self.C[ind,:],
-                                            method='L-BFGS-B',
-                                            bounds=self.bounds,
-                                            args=self.args)
+                                           args=self.args,
+                                           #method='L-BFGS-B',
+                                           method='SLSQP',
+                                           bounds=self.bounds,
+                                           options=options,
+                                           constraints=self.cons
+                                           )
+
 
             self.x_vals.append(lres.x)
             self.Func_min[i] = lres.fun
@@ -320,7 +337,7 @@ class TGO(object):
         self.res.xl = self.x_vals[ind_sorted]  # Ordered x vals
         self.res.funl = self.Func_min[ind_sorted]  # Ordered fun values
 
-        # Find global of all minimizers
+        # Find global of all minimisers
         self.res.x = self.x_vals[ind_sorted[0]]  # Save global minima
         x_global_min = self.x_vals[ind_sorted[0]][0]
         self.res.fun = self.Func_min[ind_sorted[0]]  # Save global fun value

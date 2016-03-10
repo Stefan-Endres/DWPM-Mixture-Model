@@ -26,7 +26,8 @@ class Test1(TestFunction):
         return x[0]**2 + x[1]**2
 
     def g(self, C):
-        return numpy.sum(C, axis=1) - 6.0 <= 0.0
+        #return -(numpy.sum(C, axis=1) - 6.0)
+        return -(numpy.sum(C, axis=-1) - 6.0)
 
 test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
                 expected_x=[0, 0])
@@ -42,7 +43,10 @@ class Test2(TestFunction):
     def f(self, x):
         return (x - 30) * numpy.sin(x)
 
-test2 = Test2(bounds=[(0, 60)],
+    def g(self, x):
+        return 58 - numpy.sum(x, axis=-1)
+
+test2_1 = Test2(bounds=[(0, 60)],
               expected_x = [1.53567906],
               expected_fun = [-28.44677132],  # Important to test that fun
                                               # return is in the correct order
@@ -76,8 +80,8 @@ class Test3(TestFunction):
         return (x[0] - 10.0)**3.0 + (x[1] - 20.0)**3.0
 
     def g(self, C):
-        return ((-(C[:, 0] - 5)**2 - (C[:, 1] - 5)**2 - 100.0 <= 0.0)
-                & ((C[:, 0] - 6)**2 - (C[:, 1] - 5)**2 - 82.81 <= 0.0))
+        return (-(-(C[:, 0] - 5)**2 - (C[:, 1] - 5)**2 - 100.0)
+                & -((C[:, 0] - 6)**2 - (C[:, 1] - 5)**2 - 82.81))
 
 
 # FIXME: The bounds appear not to include the expected_x value
@@ -98,8 +102,8 @@ rosen = Rosenbrock(bounds=[(-3.0, 3.0), (-3.0, 3.0)],
 test_atol = 1e-5
 
 
-def run_test(test, args=()):
-    res = tgo(test.f, test.bounds, args=args, g_func=test.g)
+def run_test(test, args=(), g_args=()):
+    res = tgo(test.f, test.bounds, args=args, g_func=test.g, g_args=g_args)
     x = res.x
     numpy.testing.assert_allclose(res.x, test.expected_x, atol=test_atol)
 
@@ -130,7 +134,7 @@ class TestTgoFuncs(unittest.TestCase):
         run_test(test1_1, args=(r, s))
 
     def test_f2(self):
-        run_test(test2)
+        run_test(test2_1)
 
     @unittest.skip("OverflowError")
     def test_f3(self):

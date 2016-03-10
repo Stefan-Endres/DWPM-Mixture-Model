@@ -1300,17 +1300,9 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                 Flag.append(j)  # Flag index j for deletion
 
     # delete composition rows (lists are converted to arrays in func)
-    print 'FLAG TEST '*20
-    print '='*20
-    print 'Z_eql = {}'.format(s.m['Z_eql'])
-    print 'lbd_soll = {}'.format(s.m['lbd_soll'])
-    print 'Flag = {}'.format(Flag)
 
     s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
     s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
-    print 'New Z_eql = {}'.format(s.m['Z_eql'])
-    print 'New lbd_soll = {}'.format(s.m['lbd_soll'])
-    print '='*20
 
     # Exclude any Sigma X_i > 1 (happens with unbounded solvers)
     Flag = []
@@ -1322,11 +1314,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
     s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
 
-    print 'New2 Z_eql = {}'.format(s.m['Z_eql'])
-    print 'New2 lbd_soll = {}'.format(s.m['lbd_soll'])
-    print '='*20
-    print 'END FLAG TEST '*20
-
     # Calculate the difference between the Gibbs surface and the plane solution
     # at every point and add the points within a tolerance to the final
     # solution set.
@@ -1335,28 +1322,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     for i in range(1, len(s.m['lbd_soll'])):
         if abs(s.m['lbd_sol'] - s.m['lbd_soll'][i]) < gtol:
             s.m['X_EQ'].append(s.m['Z_eql'][i])
-        # Find plane solution value at X
-        #plane_x = dual_plane(s.m['Z_eql'][i],
-        #                     Z_0, s.m['Lambda_d'], s.m['G_sol'],
-        #                     s, p, k=['All'])
-
-        # If the Gibbs solution - plane solution is within tolerance add the
-        # equilibrium point
-        #print '='*20
-        #print plane_x - s.m['G_soll'][i]
-        #print '='*20
-       # if abs(plane_x - s.m['G_soll'][i] ) < phase_tol:
-        #    s.m['X_EQ'].append(s.m['Z_eql'][i])
-
-    ############################3
-    #s.update_state(s, p, P=P, T=T,  X = s.m['X_I'], Force_Update=True)
-    #s.m['G_sol'] = g_x_func(s, p).m['g_mix']['t']
-
-    #Args_zero_plane  = (g_x_func, Z_0, s.m['Lambda_d'],
-    #                    s.m['G_sol'], s, p, ['All'])
-    #X_r = numpy.linspace(1e-5, 0.9999, 1000)
-    #plot.plot_ep(zero_plane, X_r, s, p, args=Args_zero_plane)
-    ############################3
 
     if len(s.m['X_EQ']) < 2:
         print "Less than 2 equilibrium points found in SEP" # dev; DELETE
@@ -1377,8 +1342,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 
     if Plot_Results:
-        Z_0 = s.m['Z_eq']
-
         # Gibbs mix func with Tie lines
         from scipy import linspace
         print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
@@ -1399,8 +1362,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                     ]
             s.m['Lambda_d']
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
-
-
 
     return s
 
@@ -1718,7 +1679,7 @@ def stability(X, g_x_func, s, p, k):
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                VLE_only=False):
     """
-    Detect and calculate phase seperations in hte composition space at the 
+    Detect and calculate phase separations in hte composition space at the
     current thermodynamic state.
     
     Parameters
