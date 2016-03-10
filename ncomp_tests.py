@@ -266,7 +266,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                           P=101e3, T=300.0,
                                           tol=1e-9,
                                           Print_Results=False,
-                                          Plot_Results= True)
+                                          Plot_Results=False)
 
         print '='*20
         print 'New solution:'
