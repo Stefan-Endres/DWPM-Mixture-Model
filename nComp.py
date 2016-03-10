@@ -1118,18 +1118,11 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     d_res.funl  = numpy.delete(d_res.funl , Flag, axis=0)
 
 
-
     # Find the differences in plane solutions at each minima and add the
     # solutions withing tolerance to the solution set.
     for i in range(1, len(d_res.funl)):
         if abs(d_res.fun - d_res.funl[i]) < gtol:
             X_eq.append(d_res.xl[i])
-
-    print 'Dual sol:'*100
-    print X_sol
-    print d_res.xl
-    print X_eq
-    print d_res.fun
 
     if len(X_eq) < 2:
         print "Less than 2 equilibrium points found in SEP" # dev; DELETE
@@ -1162,7 +1155,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             s.update_state(s, p, P=P, T=T,  X = X_sol, Force_Update=True)
             G_P = g_x_func(s, p).m['g_mix']['t']
             print G_P
-            Tie = [[G_P,# -0.3247905329, # G_P #
+            Tie = [[G_P,              # G_P
                     X_eq[0],          # x_1
                     Lambda_sol[0],    # lambda_1
                     X_eq[1],          # x_2
