@@ -159,14 +159,17 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['k'][1][2] = 0.124
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
         Z_0 = numpy.array([0.25])
-        s2 = phase_equilibrium_calculation(self.s, self.p, g_mix, Z_0,
-                                           k=None,
-                                           P=24e5, T=263.1,
-                                           tol=1e-9,
-                                           Print_Results=False,
-                                           Plot_Results=False)
 
-        numpy.testing.assert_allclose([s2.m['X_I'][0], s2.m['X_II'][0]],
+        X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
+                                                           g_mix,
+                                                           Z_0,
+                                                           k=None,
+                                                           P=24e5, T=263.1,
+                                                           tol=1e-9,
+                                                           Print_Results=False,
+                                                           Plot_Results=False)
+
+        numpy.testing.assert_allclose([X_eq[0], X_eq[1]],
                                       #[0.28226453, 0.25],
                                       [ 0.193647,  0.308676],
                                       #More accurate, see plot
@@ -197,11 +200,13 @@ class TestNcompFuncsBin(unittest.TestCase):
         """
         Z_0 = numpy.array([0.5])
         self.p.m['Valid phases'] = ['x']
-        s = phase_equilibrium_calculation(self.s, self.p, g_x_test_func, Z_0,
-                                              k=None,
-                                              tol=1e-9,
-                                              Print_Results=False,
-                                              Plot_Results=False)
+        X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
+                                                           g_x_test_func,
+                                                           Z_0,
+                                                           k=None,
+                                                           tol=1e-9,
+                                                           Print_Results=False,
+                                                           Plot_Results=False)
 
         #numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
 

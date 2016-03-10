@@ -948,7 +948,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
 
 
 # %% Dual plane eta for optim visualization
-def dual_plane(X, Z_0, g_x_func, s, p, k=['All']):
+def dual_plane(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
     """          Lambda_d, G_sol,
     Returns the scalar output of the dual solution hyperplane at X
 
@@ -984,7 +984,7 @@ def dual_plane(X, Z_0, g_x_func, s, p, k=['All']):
     -------
     """
     s.update_state(s, p,  X = X, phase=k, Force_Update=True)
-    return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
+    return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_sol * (Z_0 - X))
 
 # %% Multi-minimiser approach to phase equil. calculation
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
@@ -1074,7 +1074,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     # Calculate hyperplane at Z_0
     s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)
-
     X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0, tol=tol)
     # X_sol : the dual solution used as a reference point
     # Usable returns:
@@ -1108,6 +1107,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # Delete the corresponding dual plane function values
     d_res.funl  = numpy.delete(d_res.funl, Flag, axis=0)
 
+
     # Exclude any Sigma X_i > 1 (happens with unbounded local solvers etc.)
     Flag = []
     for i in range(len(d_res.xl)):
@@ -1117,11 +1117,19 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
     d_res.funl  = numpy.delete(d_res.funl , Flag, axis=0)
 
+
+
     # Find the differences in plane solutions at each minima and add the
     # solutions withing tolerance to the solution set.
     for i in range(1, len(d_res.funl)):
         if abs(d_res.fun - d_res.funl[i]) < gtol:
-            X_eq.append(d_res.funl[i])
+            X_eq.append(d_res.xl[i])
+
+    print 'Dual sol:'*100
+    print X_sol
+    print d_res.xl
+    print X_eq
+    print d_res.fun
 
     if len(X_eq) < 2:
         print "Less than 2 equilibrium points found in SEP" # dev; DELETE
@@ -1147,7 +1155,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
             from scipy import linspace
             X_r = linspace(1e-5, 0.9999, 4000)
-            plane_args = (Z_0, g_x_func, s, p, ['All'])
+            plane_args = (Z_0, Lambda_sol, g_x_func, s, p, ['All'])
             plot.plot_ep(dual_plane, X_r, s, p, args=plane_args)
 
         if p.m['n'] == 3: # Plot ternary tie lines
