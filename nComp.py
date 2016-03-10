@@ -627,7 +627,6 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
 
     except(ValueError, ZeroDivisionError):
         s.m['g_mix'] = {}
-        g_min = []
         s.s['Math Error'] = True
         logging.error('Math Domain error in g_mix(s,p)')
         for ph in p.m['Valid phases']:
@@ -646,15 +645,12 @@ def ubd(X_D, Z_0, g_x_func, s, p, k=None):
     used
     Parameters
     ----------
-    X_d : vector (1xn array)
+    X_D : vector (1xn array)
           Contains the current composition point in the overall dual
           optimisation. Constant for the upper bounding problem.
 
     Z_0 : vector (1xn array)
           Feed composition. Constant.
-
-    X_bounds : list of vectors
-               Material constraint bounds on composition.
 
     g_x_func : function
                Returns the gibbs energy at a the current composition
@@ -789,7 +785,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
           -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
             hyperplanes.
           -Construct bounds which is a list of tuples in [0,1] \in R^n
-\
+
     NOTES: -Strictly the composition in all phases in should be specified in
             X_d, refer to older versions of this script when different comp.
             spaces need to be used.
@@ -1059,88 +1055,94 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     Returns
     -------
-    X_EQ : list of vectors
+    X_eq : list of vectors
            Contains all points in equilibrium in the region of the dual plane.
-    """
+
+    g_eq : dict containing scalars and vectors
+           Contains the Gibbs evaluation at equil. each point including keys:
+           'ph min' : phase key returning the minimum phase string information.
+           't' : Gibbs energy key returning the minimum Gibbs scalar value.
+
+    phase_eq : list of strings
+               Contains the information on the phase of the equilibrium point
+    '"""
     import numpy
-    X_EQ  = []  # Empty list storing equilibrium points
+    # init
+    X_eq  = []  # Empty list storing equilibrium points
+    g_eq = []
+    phase_eq = []  # Empty list storing the phase strings
 
     # Calculate hyperplane at Z_0
     s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)
-    s = dual_equal(s, p, g_x_func, Z_0, tol=tol)
-    # Returns:
-     #s.m['Z_eq'] = X_sol  # Equilibrium solution for calculated hyperplane
-     #s.m['Lambda_d'] = Lambda_d  # Lambda (chemical potential) sol.
-     #s.m['lbd_sol'] = d_res.fun  # lbd plane solution at equil point
-     #s.m['Z_eql'] = d_res.xl  # Other local composition solutions from final tgo
-     #s.m['lbd_soll'] = d_res.funl  # lbd plane at local composition solutions
 
-    X_I = s.m['Z_eq']  # The dual solution used as a reference point
-    X_EQ.append(X_I)  # Add first point to solution set
+    X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0, tol=tol)
+    # X_sol : the dual solution used as a reference point
+    # Usable returns:
+     # X_sol  # Equilibrium solution for calculated hyperplane
+     # Lambda_sol  # Lambda (chemical potential) sol.
+     # d_res.fun  # lbd plane solution at equil point
+     # d_res.xl  # Other local composition solutions from final tgo
+     # d_res.funl  # lbd plane at local composition solutions
 
-    if len(s.m['Z_eql']) < 2:
+    X_eq.append(X_sol)  # Add first point to solution set
+
+    if len(d_res.xl) < 2:
         print "Less than 2 equilibrium points found in dual" # dev; DELETE
         return  s # TODO: Do another global minimisation, if no equil. point is
                   # found then point is stable, add flag and functionality in
                   # phase_seperation_detection
 
-    # TODO: Find more efficient way to exclude minima points within a tolerance
-    # Note: numpy.allclose
-    # Returns True if two arrays are element-wise equal within a tolerance.
-    Flag = []  # Flag index for deletion from solution array
     # Exclude same composition points within tolerance.
-    for i in range(len(s.m['Z_eql'])):
-        for j in range(i + 1, len(s.m['Z_eql'])):
-            if numpy.allclose(s.m['Z_eql'][i], s.m['Z_eql'][j],
+    # TODO: Find more efficient way to exclude minima points within a tolerance
+    Flag = []  # Flag index for deletion from solution array
+    for i in range(len(d_res.xl)):
+        for j in range(i + 1, len(d_res.xl)):
+            if numpy.allclose(d_res.xl[i], d_res.xl[j],
                               rtol=phase_tol, atol=phase_tol):
-                Flag.append(j)  # Flag index j for deletion
+                Flag.append(j)  # Flag index j for deletion if points are
+                                # within a the specified phase tolerance from
+                                # each other
 
-    # delete composition rows (lists are converted to arrays in func)
-
-    s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
-    s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
+    # Delete composition rows (lists are converted to arrays in func)
+    d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
+    # Delete the corresponding dual plane function values
+    d_res.funl  = numpy.delete(d_res.funl, Flag, axis=0)
 
     # Exclude any Sigma X_i > 1 (happens with unbounded local solvers etc.)
     Flag = []
-    for i in range(len(s.m['Z_eql'])):
-        print sum(s.m['Z_eql'][i])
-        if sum(s.m['Z_eql'][i]) > 1.1: # 1.1 is an approx. tol, should be 1.0
+    for i in range(len(d_res.xl)):
+        if sum(d_res.xl[i]) > 1.1:  # 1.1 is an approx. tol, should be 1.0
             Flag.append(i)
 
-    s.m['Z_eql'] = numpy.delete(s.m['Z_eql'], Flag, axis=0)
-    s.m['lbd_soll'] = numpy.delete(s.m['lbd_soll'], Flag, axis=0)
+    d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
+    d_res.funl  = numpy.delete(d_res.funl , Flag, axis=0)
 
     # Find the differences in plane solutions at each minima and add the
     # solutions withing tolerance to the solution set.
-    for i in range(1, len(s.m['lbd_soll'])):
-        if abs(s.m['lbd_sol'] - s.m['lbd_soll'][i]) < gtol:
-            s.m['X_EQ'].append(s.m['Z_eql'][i])
+    for i in range(1, len(d_res.funl)):
+        if abs(d_res.fun - d_res.funl[i]) < gtol:
+            X_eq.append(d_res.funl[i])
 
-    if len(s.m['X_EQ']) < 2:
+    if len(X_eq) < 2:
         print "Less than 2 equilibrium points found in SEP" # dev; DELETE
         return s  # TODO Add flag no equil point found in tolerance\
 
-    s.m['X_II'] = s.m['X_EQ'][1]  # arbitrarily add the second point to solution
-    s.update_state(s, p, P=P, T=T,  X = s.m['X_II'], Force_Update=True)
-    s.m['G II'] = g_x_func(s, p).m['g_mix']
-    s.m['Phase eq. II'] = s.m['G I']['ph min']
-
     # Find Gibbs and phase info for each point
-    s.m['G_EQ'] = []
-    s.m['Phase EQ'] = []
-    for i in range(len(s.m['X_EQ'])):
-        s.update_state(s, p, P=P, T=T,  X = s.m['X_EQ'][i], Force_Update=True)
-        s.m['G_EQ'].append(g_x_func(s, p).m['g_mix'])
-        s.m['Phase EQ'].append(s.m['G_EQ'][i]['ph min'])
+    # Note: We need the phase information at each point which requires a
+    #       calculation of the Gibbs energy to find the minimum phase.
+    for i in range(len(X_eq)):
+        s.update_state(s, p, P=P, T=T,  X = X_eq[i], Force_Update=True)
+        g_eq.append(g_x_func(s, p).m['g_mix'])
+        phase_eq.append(g_eq[i]['ph min'])
 
 
     if Plot_Results:
         # Gibbs mix func with Tie lines
         from scipy import linspace
-        print 'Feeding Lamda_d = {} to ep. func.'.format(s.m['Lambda_d'])
-        print [[s.m['X_II'], s.m['X_I']]]
+        print 'Feeding Lamda_d = {} to ep. func.'.format(Lambda_sol)
+        print [[X_eq[1], X_eq[0]]]  # TODO: Allow for more points?
         if p.m['n'] == 2: # Plot binary tie lines
-            plot.plot_g_mix(s, p, g_x_func, Tie =[[s.m['X_II'], s.m['X_I']]]
+            plot.plot_g_mix(s, p, g_x_func, Tie =[[X_eq[1], X_eq[0]]]
                             , x_r=1000)
 
             from scipy import linspace
@@ -1149,20 +1151,19 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             plot.plot_ep(dual_plane, X_r, s, p, args=plane_args)
 
         if p.m['n'] == 3: # Plot ternary tie lines
-            s.update_state(s, p, P=P, T=T,  X = s.m['X_I'], Force_Update=True)
+            s.update_state(s, p, P=P, T=T,  X = X_sol, Force_Update=True)
             G_P = g_x_func(s, p).m['g_mix']['t']
             print G_P
             Tie = [[G_P,# -0.3247905329, # G_P #
-                    s.m['X_I'][0],         # x_1
-                    s.m['Lambda_d'][0],    # lambda_1
-                    s.m['X_I'][1],         # x_2
-                    s.m['Lambda_d'][1]]    # lambda_2
+                    X_eq[0],         # x_1
+                    Lambda_sol[0],    # lambda_1
+                    X_eq[1],         # x_2
+                    Lambda_sol[1]]    # lambda_2
                     ]
 
-            s.m['Lambda_d']
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
 
-    return s
+    return X_eq, g_eq, phase_eq
 
 # Phase seperation detection
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
@@ -1782,7 +1783,6 @@ def hessian(f, s, p, dx=1e-6, gmix=False, k =['All']):
     return H
 
 
-
 # %% Data range calculations
 def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
                       PT_Range=None, LLE_only=False, VLE_only=False):
@@ -1827,6 +1827,8 @@ def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
         print s.m['mph phase']
                                        
     return s
+
+
 # %% Parameter goal Functions
 
 if __name__ == '__main__':
