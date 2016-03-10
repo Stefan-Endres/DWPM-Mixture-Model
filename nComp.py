@@ -1163,9 +1163,9 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             G_P = g_x_func(s, p).m['g_mix']['t']
             print G_P
             Tie = [[G_P,# -0.3247905329, # G_P #
-                    X_eq[0],         # x_1
+                    X_eq[0],          # x_1
                     Lambda_sol[0],    # lambda_1
-                    X_eq[1],         # x_2
+                    X_eq[1],          # x_2
                     Lambda_sol[1]]    # lambda_2
                     ]
 

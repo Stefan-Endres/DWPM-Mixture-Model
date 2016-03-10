@@ -168,12 +168,13 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            tol=1e-9,
                                                            Print_Results=False,
                                                            Plot_Results=False)
-
+        print X_eq[0]
         numpy.testing.assert_allclose([X_eq[0], X_eq[1]],
                                       #[0.28226453, 0.25],
-                                      [ 0.193647,  0.308676],
+                                      [[0.193647],  [0.308676]],
                                       #More accurate, see plot
-                                      rtol=1e-03)
+                                      rtol=1e-03,
+                                      atol=1e-03)
 
 
     def test_b3(self):
