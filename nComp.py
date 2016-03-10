@@ -1366,102 +1366,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     return s
 
-
-def dual_plane(X, Z_0, Lambda_d, G_sol, s, p, k=['All']):
-    """
-    Returns the scalar output of the dual solution hyperplane at X
-
-    Parameters
-    ----------
-    X : vector
-        Contains an input composition point to calculate the plane scalar
-        output at X.
-
-    Z_0 : vector
-    Contains the feed composition point (must be and unstable point to
-    find multiphase equilibria).
-
-#TODO: Finish doc strings
-
-    s : class
-        Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
-
-    p : class
-        Contains the dictionary describing the parameters.
-
-    k : list, optional
-        List contain valid phases for the current equilibrium calculation.
-        ex. k = ['x', 'y']
-        If default value None is the value in p.m['Valid phases'] is retained.
-
-    Dependencies
-    ------------
-    numpy
-
-    Returns
-    -------
-    """
-    #s.m['Z_eq']
-    #s.m['Lambda_d']
-    s.update_state(s, p,  X = X, phase=k, Force_Update=True)
-    #return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
-   # return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
-    return G_sol + sum(Lambda_d * (Z_0 - X))
-
-def zero_plane(X, g_x_func, Z_0, Lambda_d, G_sol, s, p, k=['All']):
-    """
-    Returns the LHS - RHS the dual solution hyperplane at X
-
-    Parameters
-    ----------
-    X : vector
-        Contains an input composition point to calculate the plane scalar
-        output at X.
-
-    s : class
-        Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
-
-    p : class
-        Contains the dictionary describing the parameters.
-
-    g_x_func : function
-               Returns the gibbs energy at a the current composition
-               point. Should accept s, p as first two arguments.
-               Returns a class containing scalar value .m['g_mix']['t']
-
-    k : list, optional
-        List contain valid phases for the current equilibrium calculation.
-        ex. k = ['x', 'y']
-        If default value None is the value in p.m['Valid phases'] is retained.
-
-
-    Z_0 : vector
-          Contains the feed composition point (must be and unstable point to
-          find multiphase equilibria).
-
-    tol : scalar, optional
-          Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
-
-    Dependencies
-    ------------
-    numpy
-
-    Returns
-    -------
-    """
-    #s.m['Z_eq']
-    #s.m['Lambda_d']
-    s.update_state(s, p,  X = X, phase=k, Force_Update=True)
-    #return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
-    #return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
-
-    # Gibbs surface minus the hyperplane:
-    #return G_sol - (g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X)))
-    #return g_x_func(s, p).m['g_mix']['t'] - (G_sol + sum(Lambda_d * (Z_0 - X)))
-    return g_x_func(s, p).m['g_mix']['t'] - (G_sol + sum(Lambda_d * (Z_0 - X)))
-
 # %%  Numerical FD estimates for validation
 def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):  
     """"
@@ -1479,7 +1383,7 @@ def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):
     
     p : class
         Contains the dictionary describing the parameters.
-        
+        git
     d : int. optional
         Differential order (1-2)
         
