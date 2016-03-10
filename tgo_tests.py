@@ -68,6 +68,15 @@ test2_1 = Test2(bounds=[(0, 60)],
                                            -3.43727232,  -0.46353338])
               )
 
+test2_2 = Test2(bounds=[(0, 4.5)],
+              expected_x = [1.53567906],
+              expected_fun = [-28.44677132],  # Important to test that fun
+                                              # return is in the correct order
+              expected_xl = numpy.array([[1.53567906]]),
+              expected_funl = numpy.array([-28.44677132])
+              )
+
+
 class Test3(TestFunction):
     """
     Hock and Schittkowski 19 problem (HS19). Hoch and Schittkowski (1991)
@@ -135,6 +144,7 @@ class TestTgoFuncs(unittest.TestCase):
 
     def test_f2(self):
         run_test(test2_1)
+        run_test(test2_2)
 
     @unittest.skip("OverflowError")
     def test_f3(self):

@@ -855,7 +855,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     
     def x_lim(X): # limiting function used in TGO
         import numpy
-        return numpy.sum(X, axis=1) - 1.0 <= 0.0
+        #return numpy.sum(X.T, axis=-1) - 1.0
+        return -numpy.sum(X, axis=-1) + 1.0
     
     if k == None:
         k = p.m['Valid phases']
@@ -1159,7 +1160,7 @@ def phase_equilibrium_calculation_old(s, p, g_x_func, Z_0, k=None, P=None, T=Non
                     s.m['Lambda_d'][0],    # lambda_1
                     X_I[1],                # x_2
                     s.m['Lambda_d'][1]]    # lambda_2
-                    ] 
+                    ]
             s.m['Lambda_d']
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
 
