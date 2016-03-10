@@ -950,69 +950,6 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
     # Returns
     return X_sol, Lambda_sol, d_res
 
-def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
-    # TODO: (Old function to be deleted soon if plane method is working)
-    """
-    
-TODO: Why does returning the natiove present an objective function with the
-    second minimizer of the equilibrium problem as the global minima?
-    Is this true for all systems?
-
-TODO: Check method for changing lambda to change goal func to a global minima
-       of corressponding solution.
-
-
-    Returns the lower bounding problem of the dual extremum.
-    
-    Parameters
-    ----------
-    X : vector (1xn array)
-        Contains the current composition point the solution of which is the
-        point in equilibrium with X_I. 
-
-    g_x_func : function
-               Returns the gibbs energy at a the current composition 
-               point. Should accept s, p as first two arguments.
-               Returns a class containing scalar value .m['g_mix']['t']
-                        
-    Lambda_d : vector (1xn array)
-               Contains the solution diality multipliers Lambda \in R^m.
-               Constant for the lower bounding problem.
-             
-    X_I : vector (1xn array)
-          First equilibrium solution point. Constant.
-    
-    s : class
-        Contains the dictionaries with the system state information.
-        NOTE: Must be updated to system state at P, T, {x}, {y}...
-    
-    p : class
-        Contains the dictionary describing the parameters.
-        
-    k : list, optional
-        List contain valid phases for the current equilibrium calculation.
-        ex. k = ['x', 'y']
-        If default value None is the value in p.m['Valid phases'] is retained.  
-        
-    Dependencies
-    ------------
-    numpy.array
-
-    Returns
-    -------
-    lbd : scalar
-          Value of the lower bounding problem at X.
-    """
-    import numpy
-    Xn = X_I
- 
-    Xn = numpy.array(X)
-    s.update_state(s, p,  X = Xn, phase=k, Force_Update=True)  
-   
-    # Note that G_I is constant for all X and does not need to be calculated.
-    return numpy.array([-(sum(Lambda_d * (X - X_I))
-               - g_x_func(s, p).m['g_mix']['t'] )])
-               
                
 def phase_equilibrium_calculation_old(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                tol=1e-9, Print_Results=False, Plot_Results=False):
