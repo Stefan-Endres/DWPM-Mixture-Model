@@ -778,22 +778,18 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
 
      
-def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, 
-               tol=1e-2):
+def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
     """
     Dev notes and TODO list
     -----------------------
-    TODO: -Look into using X_bounds scheme of Pereira instead for low mole Z_0
+    TODO: -The material bounds is too high since (Mitsos')  \hat{X} is the true
+            upper limit for a given feedpoint
+          -Look into using X_bounds scheme of Pereira instead for low mole Z_0
           -Add valid phases option.
           -Add constraints to x_i =/= 0 or 1 for all i to prevent vertical
             hyperplanes.
           -Construct bounds which is a list of tuples in [0,1] \in R^n
-          -UBD X_d[0] --> X_d
-          -Lambda_Sol: Allow for multiple solutions and implement bounds to
-                        find any other solutions if they exist.
-          -Lambda_Sol bounds method: The current implementation is only viable
-                                      for binary systems. Improve.
-                                      
+\
     NOTES: -Strictly the composition in all phases in should be specified in
             X_d, refer to older versions of this script when different comp.
             spaces need to be used.
@@ -840,22 +836,27 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     Returns
     -------
+    X_sol : vector
+            Contains the first optimised equilibrium point of the dual problem
 
-    s.m['Z_eq'] : vector
-                 Contains the first optimised equilibrium point.
-    s.m['Lambda_d'] : vector
-                      Contains the optimised lagrange multipliers of the
-                      solution hyperplane.
+    Lambda_sol : vector
+                 Contains the optimised lagrange multipliers (partial chemical
+                 potential) sol. of the dual solution hyperplane
 
-              
+    d_res : optimisation object return
+            Contains the final solution to the dual problem with the
+            following values:
+                d_res.fun : lbd plane solution at equil point
+                d_res.xl : Other local composition solutions from final tgo
+                d_res.funl : lbd plane at local composition solutions
+
     """
     import numpy
-    from scipy.optimize import minimize, linprog
+    from scipy.optimize import linprog
     from tgo import tgo
     
-    def x_lim(X): # limiting function used in TGO
+    def x_lim(X): # limiting function used in TGO defining material constraints
         import numpy
-        #return numpy.sum(X.T, axis=-1) - 1.0
         return -numpy.sum(X, axis=-1) + 1.0
     
     if k == None:
@@ -871,8 +872,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     Lambda_d = numpy.zeros_like(Z_0)
 
     # X bounds used in UBD optimization
-    X_bounds = [[], # Upper bound (bar x)
-                []  # Lower bound (hat x)
+    X_bounds = [[],  # Upper bound (bar x)
+                []   # Lower bound (hat x)
                 ]
 
     for i in range(p.m['n']-1):
@@ -896,21 +897,13 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         X_bounds[0][i][i] = 1.0 - Sigma_ind # change from Z_0[k]
 
     # Construct physical bounds x \in [0, 1] for all independent components
-    # (used in differential_evolution)
     Bounds = []
     L_bounds = [] # Lambda inf bounds used in linprog.
     for i in range(p.m['n'] - 1):
-        #Bounds.append((0, 1))
-        Bounds.append((1e-5, 0.99999))
+        Bounds.append((1e-10, 0.99999999))
         L_bounds.append((-numpy.inf, numpy.inf))
-        #L_bounds.append((None, None))
 
     L_bounds.append((-numpy.inf, numpy.inf)) # Append extra bound set for eta
-
-    # Construct composition container from X_d for all phases. (REMOVED)
-    #X_d = X_bounds[0]
-    #X_d = numpy.array(Z_0)
-    #X_d = numpy.array(X_bounds[1][0]) # TEST
 
     # Update state to random X to initialise state class.
     X_sol = numpy.array(X_bounds[1][0])  # set X_sol to lower bounds
@@ -922,39 +915,31 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         X_D.append(X_bounds[0][i])
         X_D.append(X_bounds[1][i])
 
-    #print '~!!!!!!!!!!!   x_D = {}'.format(X_D)
     #%% Normal calculation of daul problem if Z_0 is unstable.
-    tol = 1e-3 # TEST DELETE
     while abs(UBD - LBD) >= tol:
         # Solve UBD
-         # Update system to new composition.
-         # (Comp. invariant in UBD)
-
-
         # Find new bounds for linprog
-                      #(X_D, Z_0, X_bounds, g_x_func, s, p, k=None):
         c, A, b = ubd(X_D, Z_0, g_x_func, s, p)
         # Find mulitpliers with max problem.
         lp_sol = linprog(c, A_ub=A, b_ub=b, bounds=L_bounds)
         Lambda_sol = numpy.delete(lp_sol.x, numpy.shape(lp_sol.x)[0] - 1)
+        # If float convert back to 1x1 array
+        Lambda_sol = numpy.array(Lambda_sol)
 
-        Lambda_d = numpy.array(Lambda_sol) # If float convert back to 1x1 array
-
-        UBD = -lp_sol.fun
+        UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
         # Solve LBD
-        d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
+        d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_sol, Z_0, s, p, k),
                                  g_func=x_lim,
                                  n = 100,
                                  skip=2)
 
         X_sol = d_res.x
         # Calculate LBD
-        LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k) 
+        LBD = lbd(X_sol, g_x_func, Lambda_sol, Z_0, s, p, k)
         X_D.append(X_sol)
         # End
        
-
     if False:  # Print results optional
         print 'Final UBD = {}'.format(UBD)
         print 'Final LBD = {}'.format(LBD)
@@ -963,13 +948,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         print 'Final Lambda_d = {}'.format(Lambda_d)
         
     # Returns
-    s.m['Z_eq'] = X_sol  # Equilibrium solution for calculated hyperplane
-    s.m['Lambda_d'] = Lambda_d  # Lambda (chemical potential) sol.
-    s.m['lbd_sol'] = d_res.fun  # lbd plane solution at equil point
-    s.m['Z_eql'] = d_res.xl  # Other local composition solutions from final tgo
-    s.m['lbd_soll'] = d_res.funl  # lbd plane at local composition solutions
-
-    return s
+    return X_sol, Lambda_sol, d_res
 
 def eq_sol(X, g_x_func, Lambda_d, X_I, s, p, k=['All']):
     # TODO: (Old function to be deleted soon if plane method is working)
@@ -1215,12 +1194,8 @@ def dual_plane(X, Z_0, g_x_func, s, p, k=['All']):
     Returns
     -------
     """
-    #s.m['Z_eq']
-    #s.m['Lambda_d']
     s.update_state(s, p,  X = X, phase=k, Force_Update=True)
     return g_x_func(s, p).m['g_mix']['t'] + sum(s.m['Lambda_d'] * (Z_0 - X))
-   # return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
-    #return G_sol + sum(Lambda_d * (Z_0 - X))
 
 # %% Multi-minimiser approach to phase equil. calculation
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
@@ -1491,12 +1466,12 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         import numpy
         for i in range(p.m['n']-1):
             P_new_low = Points[Points[:,i] <
-                            #min(X_I[i], X_II[i])]
-                            min(EQ[i][1] for i in range(len(EQ)))]
+                               #min(X_I[i], X_II[i])]
+                               min(EQ[i][1] for i in range(len(EQ)))]
 
 
             P_new_high = Points[Points[:,i] >
-                            max(EQ[i][1] for i in range(len(EQ)))]
+                                max(EQ[i][1] for i in range(len(EQ)))]
 
             return numpy.append(P_new_low, P_new_high, axis=0)
 
