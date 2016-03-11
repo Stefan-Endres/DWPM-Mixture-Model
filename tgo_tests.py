@@ -230,7 +230,7 @@ class TestTgoSubFuncs(unittest.TestCase):
         """k-3 topograph"""
         K_3 = self.TGOc.k_t_matrix(self.T, 3)
         Ans = numpy.delete(self.T_Ans, numpy.s_[3:numpy.shape(self.T_Ans)[1]]
-                     , axis=-1)
+                           , axis=-1)
         numpy.testing.assert_array_equal(K_3, Ans)
 
     def test_t4(self):

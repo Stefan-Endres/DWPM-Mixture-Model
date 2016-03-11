@@ -1169,7 +1169,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 # Phase seperation detection
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                VLE_only=False, tol=1e-9, gtol=1e-2,
-                               phase_tol=1e-3):
+                               phase_tol=1e-3, Print_Results=False,
+                               Plot_Results=False):
     """
     Detect and calculate phase separations in hte composition space at the
     current thermodynamic state.
@@ -1262,11 +1263,10 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         for i in range(p.m['n']-1):
             P_new_low = Points[Points[:,i] <
                                #min(X_I[i], X_II[i])]
-                               min(EQ[i][1] for i in range(len(EQ)))]
-
+                             min(EQ[j][i] - phase_tol for j in range(len(EQ)))]
 
             P_new_high = Points[Points[:,i] >
-                                max(EQ[i][1] for i in range(len(EQ)))]
+                             max(EQ[j][i] + phase_tol for j in range(len(EQ)))]
 
             return numpy.append(P_new_low, P_new_high, axis=0)
 
@@ -1282,11 +1282,12 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 # Test for instability at current equilibrium point.
                 S[i] = stability(X, g_x_func, s, p, k=ph)
                 if not S[i]: # If point is unstable find equilibrium point.
-                    s = phase_equilibrium_calculation(s, p, g_x_func, X, k=k,
-                                              P=P, T=T,
-                                              tol=1e-9,
-                                              Print_Results=False,
-                                              Plot_Results=False)
+                    X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
+                                                      g_x_func, X, k=k,
+                                                      P=P, T=T,
+                                                      tol=1e-9,
+                                                      Print_Results=Print_Results,
+                                                      Plot_Results=Plot_Results)
 
                     s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
                     # TODO: Improve finding feasible subspace of points.

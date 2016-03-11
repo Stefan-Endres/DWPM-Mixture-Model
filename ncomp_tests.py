@@ -166,6 +166,8 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            k=None,
                                                            P=24e5, T=263.1,
                                                            tol=1e-9,
+                                                           gtol=1e-2,
+                                                           phase_tol=1e-3,
                                                            Print_Results=False,
                                                            Plot_Results=False)
         print X_eq[0]
