@@ -211,6 +211,8 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            Z_0,
                                                            k=None,
                                                            tol=1e-9,
+                                                           gtol=1e-6,
+                                                           phase_tol=1e-5,
                                                            Print_Results=False,
                                                            Plot_Results=False)
 
@@ -222,12 +224,14 @@ class TestNcompFuncsBin(unittest.TestCase):
         Phase sep. Mitsos et al. (2007) test 1 bin
         """
         self.p.m['Valid phases'] = ['x']
-        s = phase_seperation_detection(g_x_test_func, self.s, self.p,
-                                               P=101e3, T=300.0,
-                                               n=100,
-                                               LLE_only=True)
+        ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_test_func,
+                                                           self.s, self.p,
+                                                           P=101e3, T=300.0,
+                                                           n=100,
+                                                           LLE_only=True,
+                                                           Plot_Results=False)
 
-        numpy.testing.assert_allclose(s.m['ph equil']['x'],
+        numpy.testing.assert_allclose(ph_eq['x'],
                                       [[numpy.array([ 0.58775493]),
                                         numpy.array([ 0.0045433])],
                                        [numpy.array([ 0.5824251]),
@@ -272,37 +276,30 @@ class TestNcompFuncsTern(unittest.TestCase):
         Equil. Mitsos et al. (2007) test 2 tern
         """
         Z_0 = numpy.array([0.3, 0.2])
-        s = phase_equilibrium_calculation(self.s, self.p, g_x_test_func2, Z_0,
-                                          k=None,
-                                          P=101e3, T=300.0,
-                                          tol=1e-9,
-                                          Print_Results=False,
-                                          Plot_Results=False)
-
-        print '='*20
-        print 'New solution:'
-        print 'Z_eql ='
-        print s.m['Z_eql']
-        print 'X_I ='
-        print s.m['X_I']
-        print 'X_II ='
-        print s.m['X_II']
-        print '='*20
+        ph_eq, mph_eq, mph_ph = phase_equilibrium_calculation(self.s, self.p,
+                                                          g_x_test_func2,
+                                                          Z_0,
+                                                          k=None,
+                                                          P=101e3, T=300.0,
+                                                          tol=1e-9,
+                                                          Print_Results=False,
+                                                          Plot_Results=True)
+        print ph_eq
         # Order phases correctly:
-        if s.m['X_I'][0] < 0.1:
+        if ph_eq[0][0] < 0.1:
             Ans_X_I = [1.00000000e-05, 9.99990000e-01]
             Ans_X_II = [0.3, 0.07964059]
         else:
             Ans_X_I = [0.3, 0.07964059]
             Ans_X_II = [1.00000000e-05, 9.99990000e-01]
 
-        numpy.testing.assert_allclose(s.m['X_I'],
+        numpy.testing.assert_allclose(ph_eq[0],
                                       Ans_X_I,
-                                      rtol=1e-01)
+                                      rtol=1e-02)
 
-        numpy.testing.assert_allclose(s.m['X_II'],
+        numpy.testing.assert_allclose(ph_eq[1],
                                       Ans_X_II,
-                                      rtol=1e-01)
+                                      rtol=1e-02)
 
 def ncomp_suite():
     """

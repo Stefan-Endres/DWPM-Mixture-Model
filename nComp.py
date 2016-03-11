@@ -927,7 +927,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
         # Solve LBD
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_sol, Z_0, s, p, k),
                                  g_func=x_lim,
-                                 n = 100,
+                                 n = 100 + 100*(p.m['n'] - 1),
                                  skip=2)
 
         X_sol = d_res.x
@@ -1155,11 +1155,15 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             s.update_state(s, p, P=P, T=T,  X = X_sol, Force_Update=True)
             G_P = g_x_func(s, p).m['g_mix']['t']
             print G_P
-            Tie = [[G_P,              # G_P
-                    X_eq[0],          # x_1
-                    Lambda_sol[0],    # lambda_1
-                    X_eq[1],          # x_2
-                    Lambda_sol[1]]    # lambda_2
+            print '='*100
+            print X_eq[0]
+            print X_eq[1]
+            print '='*100
+            Tie = [[G_P,                           # G_P
+                    numpy.array(X_eq[0]),          # x_1
+                    Lambda_sol[0],                 # lambda_1
+                    numpy.array(X_eq[1]),          # x_2
+                    Lambda_sol[1]]                 # lambda_2
                     ]
 
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
@@ -1296,7 +1300,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     # noinspection PyTupleAssignmentBalance
                     X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
                                                    g_x_func, X, k=k, P=P, T=T,
-                                                   tol=tol, zgtol=gtol,
+                                                   tol=tol, gtol=gtol,
+                                                   phase_tol=phase_tol,
                                                    Print_Results=Print_Results,
                                                    Plot_Results=Plot_Results)
 
@@ -1376,6 +1381,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
                                               g_x_func, Z_0, P=P, T=T,
                                               tol=tol, gtol=gtol,
+                                              phase_tol=phase_tol,
                                               Print_Results=Print_Results,
                                               Plot_Results=Plot_Results)
 
