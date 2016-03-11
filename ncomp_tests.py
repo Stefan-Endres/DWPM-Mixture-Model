@@ -160,7 +160,6 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
         Z_0 = numpy.array([0.25])
 
-        # noinspection PyTupleAssignmentBalance
         X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
                                                            g_mix,
                                                            Z_0,
@@ -171,9 +170,6 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            phase_tol=1e-4,
                                                            Print_Results=False,
                                                            Plot_Results=False)
-
-        print X_eq
-        print phase_eq
 
         numpy.testing.assert_allclose([X_eq[0], X_eq[1]],
                                       #[0.28226453, 0.25],
@@ -190,12 +186,14 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['r'], self.p.m['s'] = 1.0, 1.0
         self.p.m['k'][1][2] = 0.124
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
-        Fd = phase_seperation_detection(g_mix, self.s, self.p,
-                                       P=24e5, T=263.1,
-                                       n=100,
-                                       VLE_only=True)
+        ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_mix, self.s,
+                                                           self.p,
+                                                           P=24e5, T=263.1,
+                                                           n=100,
+                                                           VLE_only=True,
+                                                           Plot_Results=False)
 
-        numpy.testing.assert_allclose(Fd.m['mph equil P'],
+        numpy.testing.assert_allclose(mph_eq[0],
                                       [numpy.array([ 0.19469983]),
                                       numpy.array([ 0.30628315])],
                                       rtol=9e-03)

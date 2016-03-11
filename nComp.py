@@ -1249,11 +1249,15 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
              equilibrium point
     """
     # TODO: Update this documentation
-
-    # Generate sampling points.
     import numpy
     from UQToolbox.sobol_lib import i4_sobol_generate
     from tgo import tgo
+    # init returns
+    ph_eq = {}
+    mph_eq = []
+    mph_ph = []
+
+    # Generate sampling points.
     m = p.m['n'] - 1
     skip = 4
     Points = i4_sobol_generate(m, n, skip)
@@ -1291,9 +1295,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 if not S[i]: # If point is unstable find equilibrium point.
                     # noinspection PyTupleAssignmentBalance
                     X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
-                                                   g_x_func, X, k=k,
-                                                   P=P, T=T,
-                                                   tol=1e-9,
+                                                   g_x_func, X, k=k, P=P, T=T,
+                                                   tol=tol, zgtol=gtol,
                                                    Print_Results=Print_Results,
                                                    Plot_Results=Plot_Results)
 
@@ -1370,13 +1373,11 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
 
-                    # noinspection PyTupleAssignmentBalance
                     X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
-                                              g_x_func, Z_0,
-                                              P=P, T=T,
-                                              tol=1e-2,
-                                              Print_Results=False,
-                                              Plot_Results=False)
+                                              g_x_func, Z_0, P=P, T=T,
+                                              tol=tol, gtol=gtol,
+                                              Print_Results=Print_Results,
+                                              Plot_Results=Plot_Results)
 
                     mph_eq.append(X_eq)
                     mph_ph.append(phase_eq)
