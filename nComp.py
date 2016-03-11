@@ -774,7 +774,7 @@ def lbd(X, g_x_func, Lambda_d, Z_0, s, p, k=['All']):
     return g_x_func(s, p).m['g_mix']['t'] + sum(Lambda_d * (Z_0 - X))
 
      
-def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
+def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
     """
     Dev notes and TODO list
     -----------------------
@@ -825,6 +825,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
           
     tol : scalar, optional
           Tolerance, if epsilon >= UBD - LBD that will terminate the routine.
+
+    n : scalar, optional
+        Number of sampling points used in the tgo routine in solving LBD of the
+        dual problem.
+        Note: It is recommended to use at least ``100 + p.m['n'] * 100``
           
     Dependencies
     ------------
@@ -927,7 +932,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9):
         # Solve LBD
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_sol, Z_0, s, p, k),
                                  g_func=x_lim,
-                                 n = 100 + 100*(p.m['n'] - 1),
+                                 n = n,
+                                 #n = 100 + 100*(p.m['n'] - 1),
                                  skip=2)
 
         X_sol = d_res.x
@@ -988,7 +994,7 @@ def dual_plane(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
 
 # %% Multi-minimiser approach to phase equil. calculation
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
-                                  tol=1e-9, gtol=1e-2, phase_tol=1e-3,
+                                  tol=1e-9, gtol=1e-2, n=100, phase_tol=1e-3,
                                   Print_Results=False,
                                   Plot_Results=False):
     # TODO: Remove the roman numeral comp. returns and change the way
@@ -1041,6 +1047,11 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
           not truly lie on the equilibrium plane within the considered
           instability region.
 
+    n : scalar, optional
+        Number of sampling points used in the tgo routine in solving LBD of the
+        dual problem.
+        Note: It is recommended to use at least ``100 + p.m['n'] * 100``
+
     phase_tol : scalar, optional
                 The minimum seperation between equilibrium planes required to
                 be considered a phase. Defaults to 0.001
@@ -1074,7 +1085,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     # Calculate hyperplane at Z_0
     s.update_state(s, p, P=P, T=T,  X = Z_0, Force_Update=True)
-    X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0, tol=tol)
+    X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0, tol=tol, n=n)
     # X_sol : the dual solution used as a reference point
     # Usable returns:
      # X_sol  # Equilibrium solution for calculated hyperplane
@@ -1167,7 +1178,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 # Phase seperation detection
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
-                               VLE_only=False, tol=1e-9, gtol=1e-2,
+                               VLE_only=False, tol=1e-9, gtol=1e-2, n_dual=100,
                                phase_tol=1e-3, Print_Results=False,
                                Plot_Results=False):
     """
@@ -1217,6 +1228,11 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
           required, but a too low tol could potentially include points that do
           not truly lie on the equilibrium plane within the considered
           instability region.
+
+    n_dual : scalar, optional
+            Number of sampling points used in the tgo routine in solving LBD
+            of the dual problem.
+            Note: It is recommended to use at least ``100 + p.m['n'] * 100``
 
     phase_tol : scalar, optional
                 The minimum seperation between equilibrium planes required to
@@ -1375,7 +1391,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
                     X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
                                               g_x_func, Z_0, P=P, T=T,
-                                              tol=tol, gtol=gtol,
+                                              tol=tol, gtol=gtol, n=n,
                                               phase_tol=phase_tol,
                                               Print_Results=Print_Results,
                                               Plot_Results=Plot_Results)

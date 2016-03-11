@@ -220,7 +220,7 @@ class TestNcompFuncsBin(unittest.TestCase):
 
                                       
     def test_b5(self):
-        """sw
+        """
         Phase sep. Mitsos et al. (2007) test 1 bin
         """
         self.p.m['Valid phases'] = ['x']
@@ -281,18 +281,21 @@ class TestNcompFuncsTern(unittest.TestCase):
                                                           Z_0,
                                                           k=None,
                                                           P=101e3, T=300.0,
-                                                          tol=1e-9,
+                                                          tol=1e-12,
+                                                          phase_tol=1e-5,
+                                                          n = 100 + 100 * 3,
                                                           Print_Results=False,
-                                                          Plot_Results=True)
-        print ph_eq
+                                                          Plot_Results=False)
+
         # Order phases correctly:
         if ph_eq[0][0] < 0.1:
-            Ans_X_I = [1.00000000e-05, 9.99990000e-01]
-            Ans_X_II = [0.3, 0.07964059]
+            Ans_X_I = [9.0e-05, 9.99990000e-01]
+            Ans_X_II = [0.346864,  0.075812]
         else:
-            Ans_X_I = [0.3, 0.07964059]
-            Ans_X_II = [1.00000000e-05, 9.99990000e-01]
+            Ans_X_I = [0.346864,  0.075812]
+            Ans_X_II = [9.0e-05, 9.99990000e-01]
 
+        # Note: There is some decimal rounding in the [9.0e-05, 9.9999e-01] ans
         numpy.testing.assert_allclose(ph_eq[0],
                                       Ans_X_I,
                                       rtol=1e-02)
