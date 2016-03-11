@@ -1749,8 +1749,39 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
 
     return P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph
 
-
 # %% Parameter goal Functions
+def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
+                        VLE_only=False, res=100, tol=1e-9, gtol=1e-2,
+                        n_dual=100, phase_tol=1e-3, Print_Results=False,
+                        Plot_Results=False):
+    """
+    Calculates the error function over a range of data with at the current
+    parameter set ``Params``.
+
+    Parameters
+    ----------
+    Params : list or numpy array
+    g_x_func
+    s
+    p
+    n
+    LLE_only
+    VLE_only
+    res
+    tol
+    gtol
+    n_dual
+    phase_tol
+    Print_Results
+    Plot_Results
+
+    Returns
+    -------
+
+    """
+    pass
+
+
 
 if __name__ == '__main__':
     pass
