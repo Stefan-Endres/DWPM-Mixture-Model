@@ -160,6 +160,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
         Z_0 = numpy.array([0.25])
 
+        # noinspection PyTupleAssignmentBalance
         X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
                                                            g_mix,
                                                            Z_0,
@@ -167,10 +168,13 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            P=24e5, T=263.1,
                                                            tol=1e-9,
                                                            gtol=1e-2,
-                                                           phase_tol=1e-3,
+                                                           phase_tol=1e-4,
                                                            Print_Results=False,
                                                            Plot_Results=False)
-        print X_eq[0]
+
+        print X_eq
+        print phase_eq
+
         numpy.testing.assert_allclose([X_eq[0], X_eq[1]],
                                       #[0.28226453, 0.25],
                                       [[0.193647],  [0.308676]],
@@ -203,6 +207,7 @@ class TestNcompFuncsBin(unittest.TestCase):
         """
         Z_0 = numpy.array([0.5])
         self.p.m['Valid phases'] = ['x']
+        # noinspection PyTupleAssignmentBalance
         X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
                                                            g_x_test_func,
                                                            Z_0,

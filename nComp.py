@@ -1232,14 +1232,21 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     -------
     s : class instance output.
         Contains the following values:
-    s.m['ph equil R'][ph] : list containing 2 composition vectors
-                       Contains a list of equilibrium points of phase
-                       seperations in the same volume root of the EOS (ex. LLE)
 
-    s.m['mph equil R'] : list containing 2 composition vectors
-                        Contains a list of equilibrium points of phase
-                        seperations in different volume root of the EOS
-                        (ex. VLE)
+    ph_eq : dict containing keys for each phase in p.m['Valid phases'], ex:
+        ph_eq[ph] : list containing composition vectors
+                    Contains a list of equilibrium points of phase (ph)
+                    seperations in the same volume root of the EOS
+                    (ex. LLE type)
+
+    mph_eq : list containing composition vectors
+             contains a list of equilibrium points of phase
+             seperations in different volume roots of the EOS (mph)
+             (ex. VLE type)
+
+    mph_ph : list containing strings
+             containts the phase string of the corresponding ``mph_eq``
+             equilibrium point
     """
     # TODO: Update this documentation
 
@@ -1282,46 +1289,45 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 # Test for instability at current equilibrium point.
                 S[i] = stability(X, g_x_func, s, p, k=ph)
                 if not S[i]: # If point is unstable find equilibrium point.
-                    X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
-                                                      g_x_func, X, k=k,
-                                                      P=P, T=T,
-                                                      tol=1e-9,
-                                                      Print_Results=Print_Results,
-                                                      Plot_Results=Plot_Results)
+                    # noinspection PyTupleAssignmentBalance
+                    X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
+                                                   g_x_func, X, k=k,
+                                                   P=P, T=T,
+                                                   tol=1e-9,
+                                                   Print_Results=Print_Results,
+                                                   Plot_Results=Plot_Results)
 
-                    s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
+                    #s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
+                    ph_eq_P = X_eq
                     # TODO: Improve finding feasible subspace of points.
                     P_new = Points[(i+1):]
-
-                    P_new = subset_eqp(P_new, s.m['X_I'], s.m['X_II'])
+                    P_new = subset_eqp(P_new, X_eq)
 
                     # Stop if no values in subset
                     if numpy.shape(P_new)[0] == 0:
                         Stop = True
 
-                    return P_new, s.m['ph equil P'], Stop
+                    return P_new, ph_eq_P, Stop
 
             # If no instability was found, stop the main for loop and set eq.
             #  point to None.
-            s.m['ph equil P'] = None
+            ph_eq_P = None
             Stop = True
-            return Points, s.m['ph equil P'], Stop
+            return Points, ph_eq_P, Stop
 
         # Main looping
-        s.m['ph equil'] = {} # Range of equilibrium points.
+        ph_eq = {} # Range of equilibrium points.
         for ph in p.m['Valid phases']:
             Stop = False
-            s.m['ph equil'][ph] = []
+            ph_eq[ph] = []
             while not Stop:
-                Points, s.m['ph equil P'], Stop = instability_point_calc(
-                                                      Points,
-                                                      g_x_func,
-                                                      s, p, n, ph)
+                Points, ph_eq_P, Stop = instability_point_calc(Points,g_x_func,
+                                                               s, p, n, ph)
 
                 # Save an equilibrium point to the range of points in the
                 # current phase if found.
-                if s.m['ph equil P'] is not None:
-                    s.m['ph equil'][ph].append(s.m['ph equil P'])
+                if ph_eq_P is not None:
+                    ph_eq[ph].append(ph_eq_P)
 
 
     # Detect phase seperation accross volume root phases:
@@ -1347,8 +1353,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
         # Calculated difference of Gibbs energies between all phases at all
         # sampling points.
-        s.m['mph equil'] = []
-        s.m['mph phase'] = []
+        mph_eq = []
+        mph_ph = []
         for i in range(len(p.m['Valid phases'])):
             for j in range(i + 1, len(p.m['Valid phases'])):
                 ph1 = p.m['Valid phases'][i]
@@ -1364,17 +1370,19 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
 
-                    s = phase_equilibrium_calculation(s, p, g_x_func, Z_0,
-                          P=P, T=T,
-                          tol=1e-2,
-                          Print_Results=False,
-                          Plot_Results=False)
+                    # noinspection PyTupleAssignmentBalance
+                    X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
+                                              g_x_func, Z_0,
+                                              P=P, T=T,
+                                              tol=1e-2,
+                                              Print_Results=False,
+                                              Plot_Results=False)
 
-                    s.m['mph equil P'] = [s.m['X_I'], s.m['X_II']]
-                    s.m['mph equil'].append(s.m['mph equil P'])
-                    s.m['mph phase'].append([s.m['Phase eq. I'],
-                                             s.m['Phase eq. II']])
-    return s
+                    mph_eq.append(X_eq)
+                    mph_ph.append(phase_eq)
+
+
+    return ph_eq, mph_eq, mph_ph
 
 def phase_seperation_detection_old(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                VLE_only=False):
