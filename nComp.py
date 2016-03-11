@@ -1238,6 +1238,14 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 The minimum seperation between equilibrium planes required to
                 be considered a phase. Defaults to 0.001
 
+    Print_Results : boolean, optional
+                    If True the results of the calculation will be printed in
+                    the console.
+
+    Plot_Results : boolean, optional
+                   If True the g_mix curve with tie lines will be plotted for
+                   binary and ternary systems.
+
     Dependencies
     ------------
     numpy
@@ -1245,9 +1253,6 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
     Returns
     -------
-    s : class instance output.
-        Contains the following values:
-
     ph_eq : dict containing keys for each phase in p.m['Valid phases'], ex:
         ph_eq[ph] : list containing composition vectors
                     Contains a list of equilibrium points of phase (ph)
@@ -1620,11 +1625,19 @@ def hessian(f, s, p, dx=1e-6, gmix=False, k =['All']):
     return H
 
 
-# %% Data range calculations
-def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
-                      PT_Range=None, LLE_only=False, VLE_only=False):
+def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
+                      LLE_only=False, VLE_only=False, res=100, tol=1e-9,
+                      gtol=1e-2, n_dual=100, phase_tol=1e-3,
+                      Print_Results=False, Plot_Results=False):
+    #TODO: Define a new function with a full phase envelope calculation method
+    #      which detects the limits ex. Henderson 2004
     """
-    Calculates at 
+    Calculates the equilibrium composition points over a range of P, T values,
+    if ``Data_Range`` is specified as True then the equilibrium only at each
+    P, T datapoint wil be calculated, otherwise a range of P, T values will be
+    calculated over the min-max pairs of the data or ``PT_Range`` can be used
+    to specify a specific range of points.
+
     Parameters
     ----------
     g_x_func : function
@@ -1639,7 +1652,14 @@ def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
     p : class
         Contains the dictionary describing the parameters.
 
-       
+    Data_Range : boolean, optional
+                 Specify true
+
+
+    PT_Range : list of tuples
+               Specify ranges as [(P_min, P_max), (T_min, T_max)]
+               ex. [(1, 101e3), (100, 273.15)]
+
     n : int, optional
         Number of sampling points to be tested for in the R^(p.m['n'] - 1)
         Note. For higher component systems higher numbers of n are recommended.
@@ -1651,19 +1671,83 @@ def equilibrium_range(g_x_func, s, p, n=100, Data_Range=False,
     VLE_only : boolean, optional
                If True then phase seperation of same volume root instability 
                will be ignored.
+
+    res : integer
+          Specifies the number of data points to be simulated within the
+          specified range.
+
+    tol : scalar, optional
+          Tolerance used in ``dual_equal``, if epsilon >= UBD - LBD that will
+          terminate the routine.
+
+    gtol : scalar, optional
+          Minimum tolerance between hyperplane solution
+          Note: The Dual solution is not perfect so a low tolerance is
+          required, but a too low tol could potentially include points that do
+          not truly lie on the equilibrium plane within the considered
+          instability region.
+
+    n_dual : scalar, optional
+            Number of sampling points used in the tgo routine in solving LBD
+            of the dual problem.
+            Note: It is recommended to use at least ``100 + p.m['n'] * 100``
+
+    phase_tol : scalar, optional
+                The minimum seperation between equilibrium planes required to
+                be considered a phase. Defaults to 0.001
+
+    Print_Results : boolean, optional
+                    If True the results of the calculation will be printed in
+                    the console.
+
+    Plot_Results : boolean, optional
+                   If True the g_mix curve with tie lines will be plotted for
+                   binary and ternary systems.
+
+    Dependencies
+    ------------
+    numpy
+    scipy
+
+    Returns
+    -------
+
     """
     import numpy
+    import scipy
     Store = numpy.array([numpy.shape(p.m['P'])[0], (p.m['n'] -1 )])
-    for P, T in zip(p.m['P'], p.m['T']):
-        #s.update_state(s, p, P=P, T=T)  # Updated in psd; no need
-        print 'test'
-        s = phase_seperation_detection(g_x_func, s, p, P=P, T=T, n=n, 
-                                       LLE_only=LLE_only,
-                                       VLE_only=VLE_only)
-                                       
-        print s.m['mph phase']
-                                       
-    return s
+
+    # Find limits
+    if Data_Range:
+        P_range, T_range = p.m['P'], p.m['T']
+    elif PT_Range is not None:
+        P_range = scipy.linspace(PT_Range[0][0], PT_Range[0][1], res)
+        T_range = scipy.linspace(PT_Range[1][0], PT_Range[1][1], res)
+    else:
+        P_range = scipy.linspace(min(p.m['P']), max(p.m['P']), res)
+        T_range = scipy.linspace(min(p.m['T']), max(p.m['T']), res)
+
+    # init stores
+    r_ph_eq = []
+    r_mph_eq = []
+    r_mph_ph = []
+
+    for P, T in zip(P_range, T_range):
+        #s.update_state(s, p, P=P, T=T)  # Updated in psd; not need
+
+        ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_func, s, p,
+                                                           P=P, T=T, n=n,
+                                       LLE_only=LLE_only, VLE_only=VLE_only,
+                                       tol=tol, gtol=gtol, n_dual=n_dual,
+                                       phase_tol=phase_tol,
+                                       Print_Results=Print_Results,
+                                       Plot_Results=Plot_Results)
+
+        r_ph_eq.append(ph_eq)
+        r_mph_eq.append(mph_eq)
+        r_mph_ph.append(mph_ph)
+
+    return P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph
 
 
 # %% Parameter goal Functions
