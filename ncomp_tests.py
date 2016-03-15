@@ -255,7 +255,6 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            gtol=1e-2,
                                                            LLE_only=True,
                                                            Plot_Results=False)
-        print ph_eq['x']
 
         numpy.testing.assert_allclose(ph_eq['x'],
                                       numpy.array([[[ 0.591987],
