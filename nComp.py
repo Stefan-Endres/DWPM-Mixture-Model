@@ -1178,7 +1178,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
 # Phase seperation detection
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
-                               VLE_only=False, tol=1e-9, gtol=1e-2, n_dual=100,
+                               VLE_only=False, tol=1e-9, gtol=1e-3, n_dual=100,
                                phase_tol=1e-3, Print_Results=False,
                                Plot_Results=False):
     """
@@ -1344,6 +1344,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         for ph in p.m['Valid phases']:
             Stop = False
             ph_eq[ph] = []
+
             while not Stop:
                 Points, ph_eq_P, Stop = instability_point_calc(Points,g_x_func,
                                                                s, p, n, ph)

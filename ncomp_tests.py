@@ -221,15 +221,18 @@ class TestNcompFuncsBin(unittest.TestCase):
                                       
     def test_b5(self):
         """
-        Phase sep. Mitsos et al. (2007) test 1 bin
+        Phase sep. Mitsos et al. (2007) test 1 bin with gtol = 1e-4 to find two
+        plane with 2 equilibrium solutions only.
         """
         self.p.m['Valid phases'] = ['x']
         ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_test_func,
                                                            self.s, self.p,
                                                            P=101e3, T=300.0,
                                                            n=100,
+                                                           gtol=1e-4,
                                                            LLE_only=True,
                                                            Plot_Results=False)
+        print ph_eq['x']
 
         numpy.testing.assert_allclose(ph_eq['x'],
                                       [[numpy.array([ 0.58775493]),
@@ -238,6 +241,27 @@ class TestNcompFuncsBin(unittest.TestCase):
                                         numpy.array([ 0.93304455])
                                         ]],
                                       rtol=9e-02)
+
+    def test_b6(self):
+        """
+        Phase sep. Mitsos et al. (2007) test 1 bin with gtol = 1e-2 to find
+        three equilibrium solutions on the plane.
+        """
+        self.p.m['Valid phases'] = ['x']
+        ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_test_func,
+                                                           self.s, self.p,
+                                                           P=101e3, T=300.0,
+                                                           n=100,
+                                                           gtol=1e-2,
+                                                           LLE_only=True,
+                                                           Plot_Results=False)
+        print ph_eq['x']
+
+        numpy.testing.assert_allclose(ph_eq['x'],
+                                      numpy.array([[[ 0.591987],
+                                                    [ 0.004557],
+                                                    [ 0.934769]]])
+                                      , rtol=9e-02)
 
 
 class TestNcompFuncsTern(unittest.TestCase):
@@ -276,7 +300,7 @@ class TestNcompFuncsTern(unittest.TestCase):
         Equil. Mitsos et al. (2007) test 2 tern
         """
         Z_0 = numpy.array([0.3, 0.2])
-        ph_eq, mph_eq, mph_ph = phase_equilibrium_calculation(self.s, self.p,
+        X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
                                                           g_x_test_func2,
                                                           Z_0,
                                                           k=None,
@@ -288,7 +312,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                                           Plot_Results=False)
 
         # Order phases correctly:
-        if ph_eq[0][0] < 0.1:
+        if X_eq[0][0] < 0.1:
             Ans_X_I = [9.0e-05, 9.99990000e-01]
             Ans_X_II = [0.346864,  0.075812]
         else:
@@ -296,11 +320,11 @@ class TestNcompFuncsTern(unittest.TestCase):
             Ans_X_II = [9.0e-05, 9.99990000e-01]
 
         # Note: There is some decimal rounding in the [9.0e-05, 9.9999e-01] ans
-        numpy.testing.assert_allclose(ph_eq[0],
+        numpy.testing.assert_allclose(X_eq[0],
                                       Ans_X_I,
                                       rtol=1e-02)
 
-        numpy.testing.assert_allclose(ph_eq[1],
+        numpy.testing.assert_allclose(X_eq[1],
                                       Ans_X_II,
                                       rtol=1e-02)
 
