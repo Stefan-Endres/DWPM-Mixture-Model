@@ -1625,7 +1625,7 @@ def hessian(f, s, p, dx=1e-6, gmix=False, k =['All']):
 
     return H
 
-
+# Equilibrium range function
 def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
                       LLE_only=False, VLE_only=False, res=100, tol=1e-9,
                       gtol=1e-2, n_dual=100, phase_tol=1e-3,
@@ -1749,6 +1749,8 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
         r_mph_ph.append(mph_ph)
 
     return P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph
+
+# Sort points into ordered dicts
 
 # %% Parameter goal Functions
 def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,

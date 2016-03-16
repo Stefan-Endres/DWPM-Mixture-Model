@@ -46,6 +46,8 @@ if __name__ == '__main__':
                         help='Actvity coefficient model')
 
     #TODO Add k_ij array input and processing
+    parser.add_argument('-kij', '--k_params', nargs='+',
+                        help='Force value of interaction parameters')
 
     parser.add_argument('-T', '--temperature', type=float,
                         help='Temperature for point simulation')
