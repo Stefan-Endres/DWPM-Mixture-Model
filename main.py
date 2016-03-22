@@ -138,25 +138,44 @@ if __name__ == '__main__':
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = 0.124
 
-            ph_eq, mph_eq, mph_ph = psd(g_x_func, s, p,
-                                        P=24e5, T=263.1,
-                                        n=100,
-                                       VLE_only=True,
-                                       Plot_Results=False)
+            # ph_eq, mph_eq, mph_ph = psd(g_x_func, s, p,
+            #                             P=24e5, T=263.1,
+            #                             n=200,
+            #                            VLE_only=True,
+            #                            Plot_Results=False)
+            #
+            # P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func, s, p,
+            #                                                    Data_Range=True)
+            # print 'P_range ='
+            # print P_range
+            # print 'T_range ='
+            # print T_range
+            # print 'r_ph_eq ='
+            # print r_ph_eq
+            # print 'r_mph_eq ='
+            # print r_mph_eq
+            # print 'r_mph_ph ='
+            # print r_mph_ph
+            # pass #TODO
 
-            P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func, s, p,
-                                                               Data_Range=True)
-            print 'P_range ='
-            print P_range
-            print 'T_range ='
-            print T_range
-            print 'r_ph_eq ='
-            print r_ph_eq
-            print 'r_mph_eq ='
-            print r_mph_eq
-            print 'r_mph_ph ='
-            print r_mph_ph
-            pass #TODO
+            from tgo import tgo
+            from nComp import parameter_goal_func as pgf
+            Bounds = [(-5.0, 5.0),  # r
+                      (-5.0, 5.0),  # s
+                      (0.0, 1.0),   # k12
+                      (0.0, 1.0),   # k21
+                      ]
+            optimres = tgo(pgf, Bounds,
+                           args=(g_x_func, s, p,
+                                 200, # n
+                                 False,
+                                 True),  # VLE only
+                                 #g_func=x_lim,
+                                 n = 100,
+                                 skip=2)
+
+            print optimres.x
+
 
         # Simulate specifications
         if data.P is not None and data.T is not None and data.Z_0 is None:

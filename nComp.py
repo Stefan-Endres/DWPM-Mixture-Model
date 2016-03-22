@@ -855,6 +855,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
     import numpy
     from scipy.optimize import linprog
     from tgo import tgo
+    tol=1e-5
     
     def x_lim(X): # limiting function used in TGO defining material constraints
         import numpy
@@ -1078,6 +1079,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                Contains the information on the phase of the equilibrium point
     '"""
     import numpy
+    import logging
     # init
     X_eq  = []  # Empty list storing equilibrium points
     g_eq = []
@@ -1097,7 +1099,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     X_eq.append(X_sol)  # Add first point to solution set
 
     if len(d_res.xl) < 2:
-        import logging
         logging.basicConfig(level=logging.DEBUG)
         logging.warn('Less than 2 equilibrium points found in dual, increasing'
                      ' duality sampling points to n=n * p.m[\'n\'] * 10')
@@ -1110,6 +1111,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             return  X_eq, g_eq, phase_eq
         else:
             logging.info('Succesfully converged to new equilibrium point')
+            print d_res.xl
 
 
     # Exclude any Sigma X_i > 1 (happens with unbounded local solvers etc.)
@@ -1124,7 +1126,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     # Exclude same composition points within tolerance.
     # TODO: Find more efficient way to exclude minima points within a tolerance
-    def g_plane_tol(xl, phase_tol):
+    def x_plane_tol(xl, phase_tol):
         Flag = []  # Flag index for deletion from solution array
         for i in range(len(d_res.xl)):
             for j in range(i + 1, len(xl)):
@@ -1136,31 +1138,57 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
         return Flag
 
-    Flag = g_plane_tol(d_res.xl, phase_tol)
+    Flag = x_plane_tol(d_res.xl, phase_tol)
 
     # Check of all points are flagged for deletion with no equilibrium point.
     if len(Flag) == len(d_res.xl):
         logging.warn('All equilibrium points excluded with current phase'
-                     'tolerance, temporarily increasing gtol.')
+                     'tolerance, temporarily lowering phase_tol')
+        Flag = x_plane_tol(d_res.xl, phase_tol * 1e-1)
+        if len(Flag) == len(d_res.xl):
+            Flag = x_plane_tol(d_res.xl, phase_tol * 1e-2)
+            if len(Flag) == len(d_res.xl):
+                logging.warn('Failed to find equilibrium point within '
+                             'phase_tol')
 
-
+                return X_eq, g_eq, phase_eq
+            else:
+                logging.info('Succesfully converged to new equilibrium point '
+                             'within phase_tol * 1e-2 tolerance')
+        else:
+            logging.info('Succesfully converged to new equilibrium point'
+                         'within phase_tol * 1e-1 tolerance')
 
     # Delete composition rows (lists are converted to arrays in func)
     d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
     # Delete the corresponding dual plane function values
-    d_res.funl  = numpy.delete(d_res.funl, Flag, axis=0)
+    d_res.funl = numpy.delete(d_res.funl, Flag, axis=0)
 
 
     # Find the differences in plane solutions at each minima and add the
     # solutions withing tolerance to the solution set.
-    for i in range(1, len(d_res.funl)):
-        if abs(d_res.fun - d_res.funl[i]) < gtol:
-            X_eq.append(d_res.xl[i])
+    def x_plane(X_eq, fun, funl, xl, gtol):
+        for i in range(1, len(funl)):
+            if abs(fun - funl[i]) < gtol:
+                X_eq.append(xl[i])
+
+        return X_eq
+
+    X_eq = x_plane(X_eq, d_res.fun, d_res.funl, d_res.xl, gtol)
 
     if len(X_eq) < 2:
-        logging.warn('Less than 2 equilibrium points found witin dual plane '
-                     'tolerance')
-        return X_eq, g_eq, phase_eq  # TODO Add flag no equil point found in tolerance\
+        logging.warn('Less than 2 equilibrium points found within dual plane '
+                     'within surface tolerance, temporarily increasing gtol')
+
+        X_eq = x_plane(X_eq, d_res.fun, d_res.funl, d_res.xl, gtol*1e2)
+
+        if len(X_eq) < 2:
+            #print d_res.fun
+            #print d_res.funl
+            return X_eq, g_eq, phase_eq
+        else:
+            logging.info('Succesfully converged to new equilibrium point'
+                         'within gtol*1e2')
 
     # Find Gibbs and phase info for each point
     # Note: We need the phase information at each point which requires a
@@ -1789,7 +1817,7 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
 
 # %% Parameter goal Functions
 def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
-                        VLE_only=False, res=100, tol=1e-9, gtol=1e-2,
+                        VLE_only=False, res=100, tol=1e-5, gtol=1e-2,
                         n_dual=100, phase_tol=1e-3, Print_Results=False,
                         Plot_Results=False):
     """
@@ -1799,6 +1827,12 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
     Parameters
     ----------
     Params : list or 1xn numpy array
+             DWPM-EOS: [p.m['r'], p.m['s'],
+                        p.m['k'][1][i], ... for all i \in N <= p.m['n']
+                        p.m['k'][2][i], ... for all i \in N <= p.m['n']
+                        ...
+                        p.m['k'][n][i], ... for all i \in N <= p.m['n']
+                        ]
     g_x_func
     s
     p
@@ -1817,9 +1851,61 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
     -------
 
     """
-    pass
+    # Set params to new state
+    p.m['r'], p.m['s'] = Params[0], Params[1]
+    pint = 2
+    for i in range(1, p.m['n'] + 1):
+        for j in range(1, p.m['n'] + 1):
+            if i == j:
+                pass
+            else:
+                p.m['k'][i][j] = Params[pint]
+                pint += 1
 
 
+    if abs(p.m['r']) <= 1e-10:  # Avoid singularities
+        p.m['r'] = 1e-3
+    if abs(p.m['s']) <= 1e-10:
+        p.m['s'] = 1e-3
+
+    # Find points in data range
+    P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
+        equilibrium_range(g_mix, s, p,
+                          Data_Range=True,
+                          PT_Range=None,
+                          n=n,
+                          LLE_only=LLE_only,
+                          VLE_only=VLE_only,
+                          res=res,
+                          tol=tol,
+                          gtol=gtol,
+                          n_dual=n_dual,
+                          phase_tol=phase_tol,
+                          Print_Results=Print_Results,
+                          Plot_Results=Plot_Results)
+
+    # Find data error for VLE (r_mph_eq)
+    epsilon = 0
+    for ph in p.m['Valid phases']:
+        for c in range(1, p.m['n']): # Cycle through
+            for ph_c_data_i, i in zip(p.m[ph][c], range(len(p.m[ph][c]))):
+                #TODO: Cycle through each point found instead of r_mph_ph[i][0]
+                # and then use the minimum error
+                if len(r_mph_ph[i]) > 0:
+                    for nph, j in zip(r_mph_ph[i][0],
+                                      range(len(r_mph_ph[i][0]))):
+                        if nph == ph:
+                            epsilon = abs(ph_c_data_i - r_mph_eq[i][0][j]) ** 2.0
+
+                else:
+                    epsilon += 1.0 # Maximum error when no equilibrium point
+                                   # was found
+
+            #if x_data == 0.0 or x_data == 1.0: # Ignore purs
+            #    break
+
+           # for i in
+    return epsilon
 
 if __name__ == '__main__':
     pass
