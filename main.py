@@ -123,6 +123,7 @@ if __name__ == '__main__':
     if len(data.comps) > 1:  # multi component simulation.
         from nComp import phase_equilibrium_calculation as pec
         from nComp import phase_seperation_detection as psd
+        from nComp import equilibrium_range as er
         from nComp import g_mix as g_x_func
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
@@ -132,6 +133,29 @@ if __name__ == '__main__':
 
         # Parameter optimisation
         if data.optimise:
+            p.m['r'] = 1.0
+            p.m['s'] = 1.0
+            p.m['k'][1][2] = 0.124
+            p.m['k'][2][1] = 0.124
+
+            ph_eq, mph_eq, mph_ph = psd(g_x_func, s, p,
+                                        P=24e5, T=263.1,
+                                        n=100,
+                                       VLE_only=True,
+                                       Plot_Results=False)
+
+            P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func, s, p,
+                                                               Data_Range=True)
+            print 'P_range ='
+            print P_range
+            print 'T_range ='
+            print T_range
+            print 'r_ph_eq ='
+            print r_ph_eq
+            print 'r_mph_eq ='
+            print r_mph_eq
+            print 'r_mph_ph ='
+            print r_mph_ph
             pass #TODO
 
         # Simulate specifications

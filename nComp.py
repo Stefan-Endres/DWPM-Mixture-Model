@@ -1091,42 +1091,64 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
      # X_sol  # Equilibrium solution for calculated hyperplane
      # Lambda_sol  # Lambda (chemical potential) sol.
      # d_res.fun  # lbd plane solution at equil point
-     # d_res.xl  # Other local composition solutions from final tgo
+     # d_res.xl  # local composition solutions from final tgo
      # d_res.funl  # lbd plane at local composition solutions
 
     X_eq.append(X_sol)  # Add first point to solution set
 
     if len(d_res.xl) < 2:
-        print "Less than 2 equilibrium points found in dual" # dev; DELETE
-        return  s # TODO: Do another global minimisation, if no equil. point is
-                  # found then point is stable, add flag and functionality in
-                  # phase_seperation_detection
-
-    # Exclude same composition points within tolerance.
-    # TODO: Find more efficient way to exclude minima points within a tolerance
-    Flag = []  # Flag index for deletion from solution array
-    for i in range(len(d_res.xl)):
-        for j in range(i + 1, len(d_res.xl)):
-            if numpy.allclose(d_res.xl[i], d_res.xl[j],
-                              rtol=phase_tol, atol=phase_tol):
-                Flag.append(j)  # Flag index j for deletion if points are
-                                # within a the specified phase tolerance from
-                                # each other
-
-    # Delete composition rows (lists are converted to arrays in func)
-    d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
-    # Delete the corresponding dual plane function values
-    d_res.funl  = numpy.delete(d_res.funl, Flag, axis=0)
+        import logging
+        logging.basicConfig(level=logging.DEBUG)
+        logging.warn('Less than 2 equilibrium points found in dual, increasing'
+                     ' duality sampling points to n=n * p.m[\'n\'] * 10')
+        # Change n and tol
+        X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0,
+                                              tol= tol,
+                                              n=n * p.m['n'] * 10)
+        if len(d_res.xl) < 2:
+            logging.warn('Less than 2 equilibrium points found in dual')
+            return  X_eq, g_eq, phase_eq
+        else:
+            logging.info('Succesfully converged to new equilibrium point')
 
 
     # Exclude any Sigma X_i > 1 (happens with unbounded local solvers etc.)
     Flag = []
     for i in range(len(d_res.xl)):
-        if sum(d_res.xl[i]) > 1.1:  # 1.1 is an approx. tol, should be 1.0
+        if sum(d_res.xl[i]) > 1.01:  # 1.1 is an approx. tol, should be 1.0
             Flag.append(i)
 
     d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
     d_res.funl  = numpy.delete(d_res.funl , Flag, axis=0)
+
+
+    # Exclude same composition points within tolerance.
+    # TODO: Find more efficient way to exclude minima points within a tolerance
+    def g_plane_tol(xl, phase_tol):
+        Flag = []  # Flag index for deletion from solution array
+        for i in range(len(d_res.xl)):
+            for j in range(i + 1, len(xl)):
+                if numpy.allclose(xl[i], xl[j],
+                                  rtol=phase_tol, atol=phase_tol):
+                    Flag.append(j)  # Flag index j for deletion if points are
+                                    # within a the specified phase tolerance from
+                                    # each other
+
+        return Flag
+
+    Flag = g_plane_tol(d_res.xl, phase_tol)
+
+    # Check of all points are flagged for deletion with no equilibrium point.
+    if len(Flag) == len(d_res.xl):
+        logging.warn('All equilibrium points excluded with current phase'
+                     'tolerance, temporarily increasing gtol.')
+
+
+
+    # Delete composition rows (lists are converted to arrays in func)
+    d_res.xl = numpy.delete(d_res.xl, Flag, axis=0)
+    # Delete the corresponding dual plane function values
+    d_res.funl  = numpy.delete(d_res.funl, Flag, axis=0)
 
 
     # Find the differences in plane solutions at each minima and add the
@@ -1136,8 +1158,9 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             X_eq.append(d_res.xl[i])
 
     if len(X_eq) < 2:
-        print "Less than 2 equilibrium points found in SEP" # dev; DELETE
-        return s  # TODO Add flag no equil point found in tolerance\
+        logging.warn('Less than 2 equilibrium points found witin dual plane '
+                     'tolerance')
+        return X_eq, g_eq, phase_eq  # TODO Add flag no equil point found in tolerance\
 
     # Find Gibbs and phase info for each point
     # Note: We need the phase information at each point which requires a
@@ -1395,12 +1418,12 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
 
-                    X_eq, g_eq, phase_eq  = phase_equilibrium_calculation(s, p,
-                                              g_x_func, Z_0, P=P, T=T,
-                                              tol=tol, gtol=gtol, n=n,
-                                              phase_tol=phase_tol,
-                                              Print_Results=Print_Results,
-                                              Plot_Results=Plot_Results)
+                    X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
+                                                   g_x_func, Z_0, P=P, T=T,
+                                                   tol=tol, gtol=gtol, n=n,
+                                                   phase_tol=phase_tol,
+                                                   Print_Results=Print_Results,
+                                                   Plot_Results=Plot_Results)
 
                     mph_eq.append(X_eq)
                     mph_ph.append(phase_eq)
@@ -1735,18 +1758,30 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
 
     for P, T in zip(P_range, T_range):
         #s.update_state(s, p, P=P, T=T)  # Updated in psd; not need
+        try:
+            ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_func, s, p,
+                                                               P=P, T=T, n=n,
+                                           LLE_only=LLE_only, VLE_only=VLE_only,
+                                           tol=tol, gtol=gtol, n_dual=n_dual,
+                                           phase_tol=phase_tol,
+                                           Print_Results=Print_Results,
+                                          # Plot_Results=True)
+                                           Plot_Results=Plot_Results)
 
-        ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_x_func, s, p,
-                                                           P=P, T=T, n=n,
-                                       LLE_only=LLE_only, VLE_only=VLE_only,
-                                       tol=tol, gtol=gtol, n_dual=n_dual,
-                                       phase_tol=phase_tol,
-                                       Print_Results=Print_Results,
-                                       Plot_Results=Plot_Results)
+        except(numpy.linalg.linalg.LinAlgError):
+            pass
+            ph_eq = []
+            mph_eq = []
+            mph_ph = []
 
+        #try:
         r_ph_eq.append(ph_eq)
         r_mph_eq.append(mph_eq)
         r_mph_ph.append(mph_ph)
+        # except(UnboundLocalError):
+        #     r_ph_eq.append(None)
+        #     r_mph_eq.append(None)
+        #     r_mph_ph.append(None)
 
     return P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph
 
@@ -1763,7 +1798,7 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
 
     Parameters
     ----------
-    Params : list or numpy array
+    Params : list or 1xn numpy array
     g_x_func
     s
     p
