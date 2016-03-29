@@ -161,10 +161,21 @@ if __name__ == '__main__':
             from tgo import tgo
             from nComp import parameter_goal_func as pgf
             Bounds = [(-5.0, 5.0),  # r
-                      (-5.0, 5.0),  # s
-                      (0.0, 1.0),   # k12
-                      (0.0, 1.0),   # k21
-                      ]
+                      (-5.0, 5.0)]#,  # s
+                     # (0.0, 0.999),   # k12
+                     # (0.0, 0.999),   # k21
+                     # ]
+
+            #p.m['r'], p.m['s'] = -3.75,  1.25
+           # p.m['k'][1][2] = 0.874125
+            #p.m['k'][2][1] = 0.874125
+
+            #Params =  [-3.75, 1.25, 0.874125, 0.874125]
+
+            #print pgf( Params, g_x_func, s, p, 200, # n
+            #                     False,
+             #                    True),
+
             optimres = tgo(pgf, Bounds,
                            args=(g_x_func, s, p,
                                  200, # n
@@ -192,4 +203,5 @@ if __name__ == '__main__':
             plot.plot_g_mix(s, p, options, figno=None)
 
         if data.plot_iso:
+            print 'test'
             pass #TODO

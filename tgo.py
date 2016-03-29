@@ -241,6 +241,8 @@ class TGO(object):
         """
         Returns the topographical matrix with True boolean values indicating
         positive entries and False ref. values indicating negative values.
+
+        NOTE: numpy.nan values are always false
         """
 
         self.Y = scipy.spatial.distance.cdist(self.C, self.C, 'euclidean')
@@ -255,7 +257,7 @@ class TGO(object):
 
         # %% Create float value and bool topograph:
         self.H = self.F[self.A] # This replaces all index values in A with the
-                           # function result
+                                # function result
 
         self.T = (self.H.T > self.F.T).T  # Topograph with Boolean entries
         return self.T, self.H, self.F
@@ -292,11 +294,19 @@ class TGO(object):
         k_c = numpy.floor((-(ep - 1) + numpy.sqrt((ep - 1.0)**2 + 80.0 * ep))
                           / 2.0)
 
-        k_opt = int(k_c + 1)
-        if k_opt > numpy.shape(self.T)[1]:  # If size of k_opt exceeds t-graph size.
-            k_opt = int(numpy.shape(self.T)[1])
+        self.k_opt = int(k_c + 1)
+        if self.k_opt > numpy.shape(self.T)[1]:  # If size of k_opt exceeds t-graph size.
+            self.k_opt = int(numpy.shape(self.T)[1])
 
-        self.K_opt = self.k_t_matrix(self.T, k_opt)
+        self.K_opt = self.k_t_matrix(self.T, self.k_opt)
+        return self.K_opt
+
+    def increase_min(self):  # Increase K_opt to find more minimizers
+        import logging
+        self.k_opt -= 1
+        self.K_opt = self.k_t_matrix(self.T, self.k_opt)
+        logging.warn('Inadequate amount of minimizers found, '
+                     'increasing K_opt to {}'.format(self.K_opt))
         return self.K_opt
 
     def l_minima(self):
@@ -304,14 +314,34 @@ class TGO(object):
         Find the local minima using the chosen local minimisation method with
         the minimisers as starting points.
         """
-        Min_ind = self.minimizers(self.K_opt)
+        #Min_ind = self.minimizers(self.K_opt)
+
+        loop = True
+
+        while loop:  # Ensure that minimizers is not zero
+            Min_ind = self.minimizers(self.K_opt)
+            #print 'len(Min_ind)'
+            #print len(Min_ind)
+            #print 'TEST'
+            if len(Min_ind) == 0:
+                print "#Dev Failed to find min, increasing K_opt"
+                self.K_opt = self.increase_min()
+                Min_ind = self.minimizers(self.K_opt)
+            else:
+                loop = False
+
         self.x_vals = []
         self.Func_min = numpy.zeros_like(Min_ind, dtype=float)
 
 
         options = {'ftol' : 1e-12}
+        #print 'Min_ind ='
+        #print Min_ind
         for i, ind in zip(range(len(Min_ind)), Min_ind):
             # Find minimum x vals
+            #print 'args fed to SLSQP:'
+            #print self.func
+            #print self.C[ind,:]
             lres = scipy.optimize.minimize(self.func, self.C[ind,:],
                                            args=self.args,
                                            #method='L-BFGS-B',
@@ -336,8 +366,31 @@ class TGO(object):
         # Save ordered list of minima
         self.res.xl = self.x_vals[ind_sorted]  # Ordered x vals
         self.res.funl = self.Func_min[ind_sorted]  # Ordered fun values
+        #print "Topograph ="
+        #print  self.T
+
+        #print 'self.F.T'
+        #print self.F.T
+
+        #print "self.K_opt ="
+        #print self.K_opt
+
+        #print "self.H ="
+        #print self.H
 
         # Find global of all minimisers
+        #print '=-'*100
+       # print 'ind_sorted ='
+        #print ind_sorted
+        #print '=-'*10
+        #print 'sefl.x_vals = '
+        #print  self.x_vals
+       # print '=='*100
+        if self.x_vals == []:
+            #print 'TEST'
+            #self.res.fun = 1e99
+            return [0.0]
+
         self.res.x = self.x_vals[ind_sorted[0]]  # Save global minima
         x_global_min = self.x_vals[ind_sorted[0]][0]
         self.res.fun = self.Func_min[ind_sorted[0]]  # Save global fun value

@@ -251,6 +251,8 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                       +'in R^3.')
 
 
+
+
 def plot_ep(func, X_r, s, p, args=()):
     """
     Plot the speficied single var input error function over a range X_r

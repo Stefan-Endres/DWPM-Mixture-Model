@@ -1111,7 +1111,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             return  X_eq, g_eq, phase_eq
         else:
             logging.info('Succesfully converged to new equilibrium point')
-            print d_res.xl
+            #print d_res.xl
 
 
     # Exclude any Sigma X_i > 1 (happens with unbounded local solvers etc.)
@@ -1854,13 +1854,13 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
     # Set params to new state
     p.m['r'], p.m['s'] = Params[0], Params[1]
     pint = 2
-    for i in range(1, p.m['n'] + 1):
-        for j in range(1, p.m['n'] + 1):
-            if i == j:
-                pass
-            else:
-                p.m['k'][i][j] = Params[pint]
-                pint += 1
+   # for i in range(1, p.m['n'] + 1):
+   #     for j in range(1, p.m['n'] + 1):
+   #         if i == j:
+   #             pass
+   #         else:
+   #             p.m['k'][i][j] = Params[pint]
+   #             pint += 1
 
 
     if abs(p.m['r']) <= 1e-10:  # Avoid singularities
@@ -1868,22 +1868,31 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
     if abs(p.m['s']) <= 1e-10:
         p.m['s'] = 1e-3
 
-    # Find points in data range
-    P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
-        equilibrium_range(g_mix, s, p,
-                          Data_Range=True,
-                          PT_Range=None,
-                          n=n,
-                          LLE_only=LLE_only,
-                          VLE_only=VLE_only,
-                          res=res,
-                          tol=tol,
-                          gtol=gtol,
-                          n_dual=n_dual,
-                          phase_tol=phase_tol,
-                          Print_Results=Print_Results,
-                          Plot_Results=Plot_Results)
+    print 'Params = '
+    print Params
+    print p.m['r']
+    print p.m['s']
+    print p.m['k'][1][2]
+    print p.m['k'][2][1]
 
+    # Find points in data range
+    try:
+        P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
+            equilibrium_range(g_mix, s, p,
+                              Data_Range=True,
+                              PT_Range=None,
+                              n=n,
+                              LLE_only=LLE_only,
+                              VLE_only=VLE_only,
+                              res=res,
+                              tol=tol,
+                              gtol=gtol,
+                              n_dual=n_dual,
+                              phase_tol=phase_tol,
+                              Print_Results=Print_Results,
+                              Plot_Results=Plot_Results)
+    except(IndexError):
+        return len(p.m['x'][1])
     # Find data error for VLE (r_mph_eq)
     epsilon = 0
     for ph in p.m['Valid phases']:
@@ -1895,7 +1904,7 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
                     for nph, j in zip(r_mph_ph[i][0],
                                       range(len(r_mph_ph[i][0]))):
                         if nph == ph:
-                            epsilon = abs(ph_c_data_i - r_mph_eq[i][0][j]) ** 2.0
+                            epsilon += abs(ph_c_data_i - r_mph_eq[i][0][j]) ** 2.0
 
                 else:
                     epsilon += 1.0 # Maximum error when no equilibrium point
@@ -1905,6 +1914,10 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
             #    break
 
            # for i in
+    print 'Params = '
+    print Params
+    print 'epsilon = '
+    print epsilon
     return epsilon
 
 if __name__ == '__main__':
