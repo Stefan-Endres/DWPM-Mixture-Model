@@ -251,7 +251,8 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                       +'in R^3.')
 
 
-
+def plot_iso(s, p, g_x_func, Tie=None, x_r=1000):
+    pass
 
 def plot_ep(func, X_r, s, p, args=()):
     """

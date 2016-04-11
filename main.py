@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
             #print pgf( Params, g_x_func, s, p, 200, # n
             #                     False,
-             #                    True),
+             #                    True),def
 
             optimres = tgo(pgf, Bounds,
                            args=(g_x_func, s, p,
