@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # (TODO)
-import van_der_waals
+from models import van_der_waals
 VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions

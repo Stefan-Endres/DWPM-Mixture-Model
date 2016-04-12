@@ -4,7 +4,7 @@
 
 import unittest
 import data_handling
-import van_der_waals
+from models import van_der_waals
 import numpy
 import main
 from ncomp import *

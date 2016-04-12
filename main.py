@@ -16,7 +16,7 @@ import os
 import numpy
 import scipy
 import scipy.interpolate
-import van_der_waals
+from models import van_der_waals
 VdW = van_der_waals.VdW()
 import argparse
 

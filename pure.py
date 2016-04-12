@@ -11,7 +11,7 @@ import data_handling
 import numpy
 import scipy
 #from common import parameters
-import van_der_waals
+from models import van_der_waals
 VdW = van_der_waals.VdW()
 
 #%% Functions
