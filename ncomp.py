@@ -20,7 +20,10 @@ class state:
         self.s = {}  # System state vars
         self.c = []  # creates a new empty list for components
         self.c.append('nan')  # Define an empty set in index 0
-       
+
+        # Define the dynamically
+        self.update_dp = None
+
 
     def mixed(self):
         self.m = {}  # Mixture states
@@ -215,9 +218,12 @@ class state:
   
         return s
 
-
 # Define multi component initialisation
 def n_comp_init(data):
+    """
+    Initiate state and parameter class objects based on specified data
+    input.
+    """
     # Define parameter class
     p = data_handling.MixParameters()
     p.mixture_parameters(data.VLE, data)
@@ -997,7 +1003,8 @@ def dual_plane(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
 def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                                   tol=1e-9, gtol=1e-2, n=100, phase_tol=1e-3,
                                   Print_Results=False,
-                                  Plot_Results=False):
+                                  Plot_Results=False,
+                                  Sampling_Stepping=False):
     # TODO: Remove the roman numeral comp. returns and change the way
     # phase_seperation_detection works to iterate along all points found
     # the plane instead.
@@ -1065,6 +1072,12 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                    If True the g_mix curve with tie lines will be plotted for
                    binary and ternary systems.
 
+    Sampling_Stepping : boolean, optional
+                        If True the number of sampling points will be increased
+                        by a factor 10 when an equilibrium point is not detect-
+                        ed.
+
+
     Returns
     -------
     X_eq : list of vectors
@@ -1098,7 +1111,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     X_eq.append(X_sol)  # Add first point to solution set
 
-    if len(d_res.xl) < 2:
+    if (len(d_res.xl) < 2) and Sampling_Stepping:
         logging.basicConfig(level=logging.DEBUG)
         logging.warn('Less than 2 equilibrium points found in dual, increasing'
                      ' duality sampling points to n=n * p.m[\'n\'] * 10')
@@ -1764,7 +1777,29 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
     Returns
     -------
 
+    P_range:
+
+    T_range:
+
+    r_ph_eq : list containing ph_eq returns:
+        ph_eq : dict containing keys for each phase in p.m['Valid phases'], ex:
+            ph_eq[ph] : list containing composition vectors
+                        Contains a list of equilibrium points of phase (ph)
+                        seperations in the same volume root of the EOS
+                        (ex. LLE type)
+
+    r_mph_eq : list containing mph_eq returns:
+        mph_eq : list containing composition vectors
+                 contains a list of equilibrium points of phase
+                 seperations in different volume roots of the EOS (mph)
+                 (ex. VLE type)
+
+    r_mph_ph  : list containing mph_ph returns:
+        mph_ph : list containing strings
+                 containts the phase string of the corresponding ``mph_eq``
+                 equilibrium point
     """
+
     import numpy
     import scipy
     Store = numpy.array([numpy.shape(p.m['P'])[0], (p.m['n'] -1 )])

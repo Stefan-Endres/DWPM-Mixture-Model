@@ -214,7 +214,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            gtol=1e-6,
                                                            phase_tol=1e-5,
                                                            Print_Results=False,
-                                                           Plot_Results=True)
+                                                           Plot_Results=False)
 
         #numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
 
@@ -308,7 +308,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                                           phase_tol=1e-5,
                                                           n = 100 + 100 * 3,
                                                           Print_Results=False,
-                                                          Plot_Results=True)
+                                                          Plot_Results=False)
 
         # Order phases correctly:
         if X_eq[0][0] < 0.1:

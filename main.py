@@ -5,6 +5,8 @@ python2 -i main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 
 
 python2 main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 1.0
 
+-c carbon_dioxide ethane -p x y -P 24e5 -T 263.1 -r 1.0 -s 1.0 -plti -kij 0.124 0.124
+
 """
 
 import data_handling
@@ -46,7 +48,7 @@ if __name__ == '__main__':
                         help='Actvity coefficient model')
 
     #TODO Add k_ij array input and processing
-    parser.add_argument('-kij', '--k_params', nargs='+',
+    parser.add_argument('-kij', '--k_params', nargs='+', type=float,
                         help='Force value of interaction parameters')
 
     parser.add_argument('-T', '--temperature', type=float,
@@ -67,7 +69,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-lle', '--lle_only',
                         action="store_true",
-                        help='Calculate oly phase seperation of same volume '
+                        help='Calculate only phase seperation of same volume '
                              'root')
 
     # Plots
@@ -76,12 +78,13 @@ if __name__ == '__main__':
                         help='plot gibbs energy (binary and ternary systems '
                              'only)')
 
-    parser.add_argument('-plti', '--plot_iso',
-                        action="store_true",
-                        help='plot phase seperations (binary and ternary '
-                             'systems only) the most appropriate plot '
-                             '(isotherms vs isobars) is determined from the'
-                             ' data')
+    parser.add_argument('-pltit', '--plot_isotherms', nargs='+', type=float,
+                        help='plot isotherm phase envelope (binary and '
+                             'ternary systems only)')
+
+    parser.add_argument('-pltib', '--plot_isobars', nargs='+', type=float,
+                        help='plot isobar phase envelope (binary and '
+                             'ternary systems only)')
 
     parser.add_argument('-pltp', '--plot_pure',
                         action="store_true",
@@ -191,7 +194,8 @@ if __name__ == '__main__':
         # Simulate specifications
         if data.P is not None and data.T is not None and data.Z_0 is None:
             psd(g_x_func, s, p, data.P, data.T, n=100, LLE_only=data.lle_only,
-                                   VLE_only=data.vle_only) # Tested/working
+                                   VLE_only=data.vle_only,
+                                   Plot_Results=False) # Tested/working
 
         if data.P is not None and data.T is not None and data.Z_0 is not None:
             pec(s, p, g_x_func, Z_0, k=None, P=data.P, T=data.T, # Not tested
@@ -202,6 +206,37 @@ if __name__ == '__main__':
             options = plot.plot_options
             plot.plot_g_mix(s, p, options, figno=None)
 
-        if data.plot_iso:
-            print 'test'
+        if data.plot_isotherms is not None:
+            from ncomp import g_mix as g_x_func
+            from plot import Iso
+            iso = Iso()
+            import time
+            start = time.time()
+            iso.plot_iso(s, p, g_x_func, T=data.plot_isotherms)
+            print("="*90)
+            print('Done in {}'.format(time.time() - start))
+            print("="*90)
+            # p.m['T'][25] = 263.1
+            # p.m['T'][36] = 263.1
+
+            if False:
+                data_x = {'x': [p.m['x'][1][25:36],  # x_1
+                                p.m['x'][2][25:36]], # x_2
+
+                          'y': [p.m['y'][1][25:36],  # y_1
+                                p.m['y'][2][25:36]]
+                          }
+
+                model_x = {'x': [p.m['x'][1][25:36],  # x_1
+                                p.m['x'][2][25:36]],  # x_2
+
+                          'y': [p.m['y'][1][25:36],   # y_1
+                                p.m['y'][2][25:36]]
+                          }
+
+                iso.plot_iso_t_bin(263.1, p.m['P'][25:36], data_x, p,
+                                   model_p=p.m['P'][25:36],
+                                   model_x=model_x)
+                #print 'test'
+
             pass #TODO

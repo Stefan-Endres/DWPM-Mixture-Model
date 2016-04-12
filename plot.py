@@ -16,11 +16,13 @@ def plot_Psat(s, p, options, figno=None):
         Contains the dictionary describing the mixture parameters.
 
     options : dict
-              Options to pass tomatplotlib.pyplot.plot
+              Options to pass to matplotlib.pyplot.plot
 
     """
     import matplotlib.pyplot as plot
     from numpy import linspace, interp
+
+    #TODO: Change these s dict values to normal local variables and test
 
     s['T_sat store'] = linspace(p['T'][0], p['T'][len(p['T'])-1])
     s['P_sat store'] = []
@@ -54,6 +56,10 @@ def plot_Psat(s, p, options, figno=None):
 
 
 # %% nComp Plots
+class GibbsSurface: #TODO add g_mix plotes here and refactor local variables
+    def __init__(self):
+        pass
+
 def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
     """
     Plots the surface of the Gibbs energy of mixing function. Binary and
@@ -146,7 +152,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                 plot.annotate('slope = {}'.format(Slope),
                               xy=(point[1], G2 + G2*0.5) )
 
-        plot.xlabel(r"$x_1$", fontsize=14)
+        plot.xlabel(r"$z_1$", fontsize=14)
         plot.ylabel(r"$\Delta$g", fontsize=14)
         plot.title("{}-{} Gibbs energy of mixing at T = {}, P = {}".format(
                     p.c[1]['name'][0],
@@ -250,9 +256,119 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         raise IOError('Too many independent components to plot hypersurface'
                       +'in R^3.')
 
+class Iso:
+    def __init__(self, T=None, P=None):
+        self.T = T
+        self.P = P
+        pass
 
-def plot_iso(s, p, g_x_func, Tie=None, x_r=1000):
-    pass
+    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=100,
+                 tol=1e-9, gtol=1e-2, n_dual=100, phase_tol=1e-3):
+        import numpy
+        from ncomp import equilibrium_range as er
+        P_data_f = numpy.array(p.m['P'])
+        T_data_f = numpy.array(p.m['T'])
+
+        if T is not None:
+            for t in T:
+                iso_ind = numpy.where(T_data_f == t)
+                P_data = P_data_f[iso_ind]
+                #T_data = T_data_f[iso_ind]
+                PT_Range = [(min(P_data), max(P_data)),
+                            (t, t)]
+
+                P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func,
+                                         s, p, PT_Range=PT_Range, n=n, res=res,
+                                         tol=tol, gtol=gtol, n_dual=n_dual,
+                                         phase_tol=phase_tol)
+
+                # (Process results)
+                data_x = {'x': [0,0]}
+                # Plot resulting isotherm
+                #self.plot_iso_t_bin(t, P_data,
+
+
+
+    def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None
+                       , k=['All'], FigNo=None, plot_options=None):
+        """
+        Plot binary isotherms for the specified data and model ranges
+
+        Parameters
+        ----------
+
+        T : float
+            Temperature of isotherm to plot.
+
+        data_p : vector
+                 Pressure data values at each point
+
+        data_x : dict containing vectors
+                 Contains the composition data points at each data_p for
+                 every valid phase
+
+                 ex. data_x = {'x': [p.m['x'][1][25:36],  # x_1
+                                     p.m['x'][2][25:36]], # x_2
+
+                               'y': [p.m['y'][1][25:36],  # y_1
+                                     p.m['y'][2][25:36]]  # y_2
+                               }
+
+        p : class
+            Contains the dictionary describing the parameters.
+
+        data_p : vector, optional
+                 Pressure model values at each point
+
+        data_x : dict containing vectors, optional
+                 Contains the simulated composition points at each data_p for
+                 every valid phase, specified similarly to data_x.
+
+        k : list, optional
+            List contain valid phases for the current equilibrium calculation.
+            ex. k = ['x', 'y']
+        If default value None is the value in p.m['Valid phases'] is retained.
+
+
+        FigNo : int or None, optional
+                Figure number to plot in matplotlib. Specify None when plotting
+                several figures in a loop.
+
+        options : dict
+                  Options to pass to matplotlib.pyplot.plot
+
+        """
+        if k == ['All']:
+            k = p.m['Valid phases']
+
+        from matplotlib import pyplot as plot
+        if FigNo is None:
+            plot.figure()
+        else:
+            plot.figure(FigNo)
+
+        # Plot data points:
+        for ph in k:
+            plot.plot(data_x[ph][1], data_p, 'x', label='{} data'.format(ph))
+
+        # Plot model points
+        if model_p is not None:
+            for ph in p.m['Valid phases']:
+                plot.plot(model_x[ph][1], data_p, '-',
+                          label='{} model'.format(ph))
+
+        plot.xlabel(r"$z_1$", fontsize=14)
+        plot.ylabel(r"P (Pa)", fontsize=14)
+        plot.title("{}-{} isotherm at T = {}".format(p.c[1]['name'][0],
+                                                     p.c[2]['name'][0],
+                                                     T))
+        plot.legend()
+        plot.show()
+        return
+
+    def plot_iso_p_bin(self):
+        """Plot binary isobars for the specified data and model ranges"""
+        pass
 
 def plot_ep(func, X_r, s, p, args=()):
     """
@@ -289,8 +405,3 @@ if __name__ == '__main__':
                      'font.family' : 'lmodern',
                      'text.latex.unicode': True
                      }
-
-
-    #%% Plot pure if True
-     if data.plot_pure:
-        plot_Psat(s, p, plot_options)

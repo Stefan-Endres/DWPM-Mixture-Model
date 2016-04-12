@@ -10,6 +10,7 @@ ex.
 import ConfigParser
 import os
 import numpy
+import logging
 
 #%% Load data classes
 class ImportData:
@@ -50,11 +51,13 @@ class ImportData:
         self.T = args.temperature
         self.P = args.pressure
         self.Z_0 = args.z
+        self.k_params = args.k_params
 
         self.lle_only = args.lle_only
         self.vle_only = args.vle_only
         # Plots
-        self.plot_iso = args.plot_iso
+        self.plot_isotherms = args.plot_isotherms
+        self.plot_isobars = args.plot_isobars
         self.plot_gibbs = args.plot_gibbs
         self.plot_pure = args.plot_pure
         # Saves
@@ -104,8 +107,6 @@ def parameter_build(Data):
     Parameters
     ----------
     Data : Dictionary containing data loaded from the stored .csv file.
-
-    comp : string of definin
 
     """
 
@@ -191,12 +192,19 @@ class MixParameters:
             # Find the interaction paramters between and put them into
             # component lists (ex. data_VLE['k12']  --> M['k'][1][2])
 
+            ind = 0
             for j in range(1, M['n'] + 1):
                 for i in range(1, M['n'] + 1):
                     # Define empty list
                     M['k'][j].append('nan')
                     if i != j:  # Define interaction paramter
-                        M['k'][j][i] = data_VLE['k{J}{I}'.format(J=j, I=i)][0]
+                        if data.k_params is None:  # Use .csv data
+                            M['k'][j][i] = data_VLE['k{J}{I}'.format(J=j,
+                                                                     I=i)][0]
+                        else:  # Use argparse data in ordered seq.
+                            M['k'][j][i] = data.k_params[ind]
+                            ind += 1
+
 
             if data.r is None:
                 M['r'] = data_VLE['r']
@@ -208,6 +216,8 @@ class MixParameters:
             else:
                 M['s'] = data.s
 
+        else:
+            logging.warn('Specified model not implemented')
 
         for key, value in M.iteritems():  # Filter out '' values
             if not value.__class__ == float:
