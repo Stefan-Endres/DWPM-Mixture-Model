@@ -11,8 +11,8 @@ import data_handling
 import numpy
 import scipy
 #from common import parameters
-import Van_der_Waals
-VdW = Van_der_Waals.VdW()
+import van_der_waals
+VdW = van_der_waals.VdW()
 
 #%% Functions
 def optim_a_m(p):

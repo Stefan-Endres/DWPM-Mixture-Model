@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # (TODO)
-import Van_der_Waals
-VdW = Van_der_Waals.VdW()
+import van_der_waals
+VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions
 def plot_Psat(s, p, options, figno=None):

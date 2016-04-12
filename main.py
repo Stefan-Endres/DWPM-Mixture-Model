@@ -8,7 +8,7 @@ python2 main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 1.0
 """
 
 import data_handling
-import nComp
+import ncomp
 import pure
 import plot
 import logging
@@ -16,8 +16,8 @@ import os
 import numpy
 import scipy
 import scipy.interpolate
-import Van_der_Waals
-VdW = Van_der_Waals.VdW()
+import van_der_waals
+VdW = van_der_waals.VdW()
 import argparse
 
 if __name__ == '__main__':
@@ -121,15 +121,15 @@ if __name__ == '__main__':
         s, p = pure.pure_sim(data, i=0)
 
     if len(data.comps) > 1:  # multi component simulation.
-        from nComp import phase_equilibrium_calculation as pec
-        from nComp import phase_seperation_detection as psd
-        from nComp import equilibrium_range as er
-        from nComp import g_mix as g_x_func
+        from ncomp import phase_equilibrium_calculation as pec
+        from ncomp import phase_seperation_detection as psd
+        from ncomp import equilibrium_range as er
+        from ncomp import g_mix as g_x_func
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
         # Load VLE and mixture parameter data
         data.load()
-        s, p = nComp.n_comp_init(data)
+        s, p = ncomp.n_comp_init(data)
 
         # Parameter optimisation
         if data.optimise:
@@ -159,7 +159,7 @@ if __name__ == '__main__':
             # pass #TODO
 
             from tgo import tgo
-            from nComp import parameter_goal_func as pgf
+            from ncomp import parameter_goal_func as pgf
             Bounds = [(-5.0, 5.0),  # r
                       (-5.0, 5.0)]#,  # s
                      # (0.0, 0.999),   # k12

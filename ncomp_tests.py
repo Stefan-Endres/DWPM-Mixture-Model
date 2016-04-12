@@ -4,11 +4,11 @@
 
 import unittest
 import data_handling
-import Van_der_Waals
+import van_der_waals
 import numpy
 import main
-from nComp import *
-VdW = Van_der_Waals.VdW()
+from ncomp import *
+VdW = van_der_waals.VdW()
 
 #%% TEST FUNCTION  Binary NRTL
 def g_x_test_func(s, p, k=None, ref='x'):
@@ -214,7 +214,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            gtol=1e-6,
                                                            phase_tol=1e-5,
                                                            Print_Results=False,
-                                                           Plot_Results=False)
+                                                           Plot_Results=True)
 
         #numpy.testing.assert_allclose([s.m['X_I'][0], s.m['X_II'][0]],
 
@@ -308,7 +308,7 @@ class TestNcompFuncsTern(unittest.TestCase):
                                                           phase_tol=1e-5,
                                                           n = 100 + 100 * 3,
                                                           Print_Results=False,
-                                                          Plot_Results=False)
+                                                          Plot_Results=True)
 
         # Order phases correctly:
         if X_eq[0][0] < 0.1:
