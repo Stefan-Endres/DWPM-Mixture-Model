@@ -283,6 +283,14 @@ class Iso:
                                          phase_tol=phase_tol)
 
                 # (Process results)
+                for i in range(len(r_ph_eq) - 1):
+                    for ph in p.m['Valid phases']:
+                        if len(r_ph_eq[i][ph]) > 1:
+                            pass
+                        else:
+                             r_ph_eq[i][ph]
+
+
                 data_x = {'x': [0,0]}
                 # Plot resulting isotherm
                 #self.plot_iso_t_bin(t, P_data,
@@ -290,7 +298,8 @@ class Iso:
 
 
     def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None
-                       , k=['All'], FigNo=None, plot_options=None):
+                       , k=['All'], FigNo=None, plot_options=None,
+                       plot_tie_lines=True):
         """
         Plot binary isotherms for the specified data and model ranges
 
