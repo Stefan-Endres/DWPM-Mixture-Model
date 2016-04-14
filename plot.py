@@ -333,8 +333,8 @@ class Iso:
             for t in T:
                 # Find model results and data points
                 (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
-                 data_t, data_p) = \
-                    self.iso_range(s, p, g_x_func, T=t, P=None, res=res,
+                 data_x_ph, data_t, data_p) =  self.iso_range(s, p,
+                                   g_x_func, T=t, P=None, res=res,
                                    n=n, tol=tol, gtol=gtol, n_dual=n_dual,
                                    phase_tol=phase_tol, LLE_only=LLE_only,
                                    VLE_only=VLE_only, Plot_Results=True)
@@ -362,7 +362,6 @@ class Iso:
                     pass
                 else:
                     import logging
-
                     logging.warn('Dimensionality too high, ignoring plot'
                                  'request')
         return
@@ -551,7 +550,10 @@ class Iso:
         -------
 
         data_x_mph : vector containing all the equilibrium points in the iso-
-                     therm/bar
+                     therm/bar (VLE type only)
+
+        data_x_ph : vector containing all the equilibrium points in the iso-
+                     therm/bar (VLE type and LLE type (TODO seperate)
 
         data_t : vector containing all the temperature points in the iso-
                      therm/bar
@@ -587,6 +589,7 @@ class Iso:
         """
         import numpy
         from ncomp import equilibrium_range as er
+
         if T is not None:
             iso_ind = numpy.where(numpy.array(p.m['T']) == T)
             data_p = numpy.array(p.m['P'])[iso_ind]
@@ -601,19 +604,21 @@ class Iso:
                         (P, P)]
             data_p = None
 
+        # VLE phases
         data_x_mph = {}
-        for ph in p.m['Valid phases']:  # VLE phases
+        for ph in p.m['Valid phases']:
             data_x_mph[ph] = []
             data_x_mph[ph].append([])  # Empty tuple for 0 index
             for comp_n in range(1, p.m['n']):
                 data_x_mph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
+        # LLE phases
         data_x_ph = {}
-        for ph in p.m['Data phases']:  # LLE phases
+        for ph in p.m['Data phases']:
             data_x_ph[ph] = []
             data_x_ph[ph].append([])  # Empty tuple for 0 index
             for comp_n in range(1, p.m['n']):
-                data_x_mph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
+                data_x_ph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
         P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
             er(g_x_func, s, p, PT_Range=PT_Range, n=n, res=res, tol=tol,
@@ -622,7 +627,7 @@ class Iso:
                Plot_Results=Plot_Results)
 
         return (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
-                data_t, data_p)
+                data_x_ph, data_t, data_p)
 
 
 
