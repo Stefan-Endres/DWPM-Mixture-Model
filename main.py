@@ -216,8 +216,8 @@ if __name__ == '__main__':
             start = time.time()
             if True:
                 print data.plot_isotherms
-                model_x, model_p = iso.plot_iso(s, p, g_x_func,
-                                                res=30,
+                model_x, model_p, data_x, data_p = iso.plot_iso(s, p, g_x_func,
+                                                res=40,
                                                 n=1000,
                                                 T=data.plot_isotherms,
                                                 VLE_only=True,
@@ -226,13 +226,13 @@ if __name__ == '__main__':
                 print('Done in {}'.format(time.time() - start))
                 print("="*90)
 
-                data_x = {'x': p.m['x'][1][21:30],  # x_1
+                data_x2 = {'x': p.m['x'][1][21:30],  # x_1
 
                           'y': p.m['y'][1][21:30]   # y_2
                           }
 
 
-                iso.plot_iso_t_bin(263.1, p.m['P'][21:30], data_x, p,
+                iso.plot_iso_t_bin(263.1, data_p, data_x, p,
                                    model_p=model_p,
                                    model_x=model_x,
                                    VLE_only=True)

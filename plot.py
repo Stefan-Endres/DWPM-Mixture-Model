@@ -262,33 +262,36 @@ class Iso:
         self.P = P
         pass
 
-    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=100,
-                 tol=1e-9, gtol=1e-2, n_dual=100, phase_tol=1e-3,
+    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
+                 tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
                  LLE_only=False, VLE_only=False):
         import numpy
         from ncomp import equilibrium_range as er
-        P_data_f = numpy.array(p.m['P'])
-        T_data_f = numpy.array(p.m['T'])
+        #P_data_f = numpy.array(p.m['P'])
+        #T_data_f = numpy.array(p.m['T'])
 
         #if T is not None:
         #    for t in T:
         t = T[0]
         #TODO Turn shit below here into a function to call at each T
-        iso_ind = numpy.where(T_data_f == t)
-        P_data = P_data_f[iso_ind]
+        iso_ind = numpy.where(numpy.array(p.m['T']) == t)
+        data_p = numpy.array(p.m['P'])[iso_ind]
 
-        # Delete pure components
-        # for ph in p.m['Valid phases']:
-        #     for comp_n in p.m['n']:
-        #         low_ind = numpy.where(p.m[ph][comp_n][iso_ind] < phase_tol)
-        #         high_ind = numpy.where(p.m[ph][comp_n][iso_ind]
-        #                                                  > (1.0 - phase_tol))
+        data_x = {}
+        for ph in p.m['Valid phases']:
+            data_x[ph] = []
+            data_x[ph].append([]) # Empty tuple for 0 index
+            for comp_n in range(1, p.m['n']):
+                data_x[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
+                print('data_x[{}] = {}'.format(ph, data_x[ph]))
+                print('len(data_x[{}][1]) = {}'.format(ph, len(data_x[ph][1])))
+                print('len(data_p) = {}'.format(len(data_p)))
 
         print('iso_ind = {}'.format(iso_ind))
-        print('P_data = {}'.format(P_data))
+        print('data_p = {}'.format(data_p))
         #TODO: Extract data points at each phase using iso_ind
         #T_data = T_data_f[iso_ind]
-        PT_Range = [(min(P_data), max(P_data)),
+        PT_Range = [(min(data_p), max(data_p)),
                     (t, t)]
 
         P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func,
@@ -317,7 +320,7 @@ class Iso:
         print('r_ph_eq = {}'.format(r_ph_eq))
         print('r_mph_eq = {}'.format(r_mph_eq))
         print('r_mph_ph = {}'.format(r_mph_ph))
-        for i in range(len(P_data) - 1):
+        for i in range(len(data_p) - 1):
             #spamstr = 'i = {}'.format(i)
             #print(spamstr*100)
             if not VLE_only:
@@ -355,15 +358,15 @@ class Iso:
                 #for ph in p.m['Valid phases']:
                 #    model_x[ph] = 1
 
-        data_x = {'x': [0,0]}
+
         # Plot resulting isotherm
-        #self.plot_iso_t_bin(t, P_data,
+        #self.plot_iso_t_bin(t, data_p,
 
         print('=' * 100)
         print('model_x = {}'.format(model_x))
         print('model_p = {}'.format(model_p))
 
-        return model_x, model_p
+        return model_x, model_p, data_x, data_p
 
     def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None,
                        k=['All'], FigNo=None, plot_options=None,
@@ -425,8 +428,11 @@ class Iso:
             plot.figure(FigNo)
 
         # Plot data points:
+        print "data_x ={}"
         for ph in k:
-            plot.plot(data_x[ph], data_p, 'x', label='{} data'.format(ph))
+            print 'len(data_x[ph][1]) = {}'.format(len(data_x[ph][1]))
+            print 'len(data_p) = {}'.format(len(data_p))
+            plot.plot(data_x[ph][1], data_p, 'x', label='{} data'.format(ph))
 
         # Plot model points
         if not LLE_only:
