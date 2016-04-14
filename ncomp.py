@@ -1838,7 +1838,9 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
 
         except(numpy.linalg.linalg.LinAlgError):
             pass
-            ph_eq = []
+            ph_eq = {}
+            for ph in p.m['Valid phases']:
+                ph_eq[ph] = []
             mph_eq = []
             mph_ph = []
 

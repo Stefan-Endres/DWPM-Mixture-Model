@@ -160,12 +160,15 @@ class MixParameters:
 
     def mixture_parameters(self, data_VLE, data):
         """Mixture model parameters"""
+        import copy
         M = {'T'      : data_VLE['T (K)'],  # Temperature Pressure data
              'P'      : data_VLE['P (Pa)'],
              'n'      : len(data.comps),
              'phases' : len(data.phases),
              'Model'  : data.eos,
-             'Valid phases' : data.phases
+             'Valid phases' : copy.copy(data.phases),
+             # Save a set of data for LLE type equilibrium points
+             'Data phases' : copy.copy(data.phases)
              }
 
         # Define phases
@@ -182,6 +185,11 @@ class MixParameters:
                 # equilibrium of each phase into a list simple list for each
                 # phase ex. data_VLE['x1'], data_VLE['x2'] becomes: M['x'][1],
                 #                                                   M['x'][2]
+
+        # Eliminate equilibrium phases from list of valid phases
+        for ph in M['Valid phases']:
+            if ('I' in ph) or ('V' in ph):
+                M['Valid phases'].remove(ph)
 
         # Define model paramters
         # Empty lists for model interaction paramters

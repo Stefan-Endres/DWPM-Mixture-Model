@@ -253,7 +253,8 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         return s
 
     else:
-        raise IOError('Too many independent components to plot hypersurface'
+        import logging
+        logging.warn('Too many independent components to plot hypersurface '
                       +'in R^3.')
 
 class Iso:
@@ -262,26 +263,212 @@ class Iso:
         self.P = P
         pass
 
-    def process_LLE_range(self, p, P_range, T_range, r_ph_eq, r_mph_eq,
-                          r_mph_ph):
-        # TODO: Need tie lines out rather than envelopes
-        model_x_ph = {}  # LLE type equilibrium container
-        model_x_ph = r_ph_eq
-        return model_x_ph, None, None#, model_p, model_t
+    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
+                 tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
+                 LLE_only=False, VLE_only=False, Plot_Results=False,
+                 data_only=False):
+        """
+        Main function to call when for plotting isotherms/isobars
+        Parameters
+        ----------
+        s : class
+            Contains the dictionaries with the system state information.
+            NOTE: Must be updated to system state at P, T, {x}, {y}...
 
-    def process_VLE_range(self, p, P_range, T_range, r_ph_eq, r_mph_eq,
-                          r_mph_ph):
+        p : class
+            Contains the dictionary describing the parameters.
+
+        g_x_func : function
+                   Returns the gibbs energy at a the current composition
+                   point. Should accept s, p as first two arguments.
+                   Returns a class containing scalar value .m['g_mix']['t']
+
+        T : list
+            Isotherms to simulate
+
+        P: list
+            Isobars to simulate
+
+        res : integer
+              Specifies the number of data points to be simulated within the
+              specified range.
+
+        tol : scalar, optional
+              Tolerance used in ``dual_equal``, if epsilon >= UBD - LBD that will
+              terminate the routine.
+
+        gtol : scalar, optional
+              Minimum tolerance between hyperplane solution
+              Note: The Dual solution is not perfect so a low tolerance is
+              required, but a too low tol could potentially include points that do
+              not truly lie on the equilibrium plane within the considered
+              instability region.
+
+        n_dual : scalar, optional
+                Number of sampling points used in the tgo routine in solving LBD
+                of the dual problem.
+                Note: It is recommended to use at least ``100 + p.m['n'] * 100``
+
+        phase_tol : scalar, optional
+                    The minimum seperation between equilibrium planes required to
+                    be considered a phase. Defaults to 0.001
+
+        LLE_only : boolean, optional
+                   If True then only phase seperation of same volume root
+                   instability will be calculated.
+
+        VLE_only : boolean, optional
+                   If True then phase seperation of same volume root instability
+                   will be ignored.
+
+        Plot_Results : boolean, optional
+                       If True the g_mix curve with tie lines will be plotted for
+                       binary and ternary systems.
+
+        data_only : boolean, optional
+                    If True only data will be plotted with no model simulations
+        """
+
+        if T is not None:
+            for t in T:
+                # Find model results and data points
+                (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
+                 data_t, data_p) = \
+                    self.iso_range(s, p, g_x_func, T=t, P=None, res=res,
+                                   n=n, tol=tol, gtol=gtol, n_dual=n_dual,
+                                   phase_tol=phase_tol, LLE_only=LLE_only,
+                                   VLE_only=VLE_only, Plot_Results=True)
+
+                # Process VLE points
+                if not LLE_only:
+                    model_x_mph, model_p_mph, model_t_mph = \
+                        self.process_VLE_range(p, P_range, T_range,
+                                               r_mph_eq, r_mph_ph)
+
+                # Process LLE points
+                if not VLE_only:
+                    # Process results
+                    model_x_ph, model_p_ph, model_t_ph = \
+                        self.process_LLE_range(p, P_range, T_range, r_ph_eq)
+
+                # Plot each isotherm
+                if p.m['n'] == 2:
+                    self.plot_iso_t_bin(t, data_p, data_x_mph, p,
+                                        model_p_mph=model_p_mph,
+                                        model_x_mph=model_x_mph,
+                                        LLE_only=LLE_only,
+                                        VLE_only=VLE_only)
+                elif p.m['n'] == 3:
+                    pass
+                else:
+                    import logging
+
+                    logging.warn('Dimensionality too high, ignoring plot'
+                                 'request')
+        return
+
+
+    def process_LLE_range(self, p, P_range, T_range, r_ph_eq):  # UNTESTED
+        """
+        Process the equilibrium points found in ncomp.equilibrium_range into
+        plotable results for LLE type equilibrium points.
+
+        Parameters
+        ----------
+        p : class
+            Contains the dictionary describing the parameters.
+
+        P_range: list
+                 contains the pressure points at each model simulation
+
+        T_range: list
+                 contains the temperature points at each model simulation
+
+        r_ph_eq : list containing ph_eq returns:
+            ph_eq : dict containing keys for each phase in p.m['Valid phases'], ex:
+                ph_eq[ph] : list containing composition vectors
+                            Contains a list of equilibrium points of phase (ph)
+                            seperations in the same volume root of the EOS
+                            (ex. LLE type)
+
+        Returns
+        -------
+        model_x_ph: dict containing equilibrium tie line vectors for each phase
+
+        model_p_ph: dict containing pressure vectors at each tie line
+
+        model_t_ph: dict containing temperature vectors at each tie line
+        """
+
+        model_x_ph = {} # LLE type equilibrium tie lines
+        model_p_ph = {}
+        model_t_ph = {}
+        for ph in p.m['Valid phases']:
+            model_x_ph[ph] = []
+            model_p_ph[ph] = []
+            model_t_ph[ph] = []
+
+        for i in range(len(P_range)):
+            for ph in p.m['Valid phases']:
+                if len(r_ph_eq[i][ph]) > 0:  # Equilibrium point found
+                    for j in range(len(r_ph_eq[i][ph])):
+                        if len(r_ph_eq[i][ph][j]) > 1:  # discard single points
+                            for l in range(len(r_ph_eq[i][ph][j])):
+                                model_x_ph[ph].append(r_ph_eq[i][ph][j])
+                                model_p_ph[ph].append(P_range[i])
+                                model_t_ph[ph].append(T_range[i])
+                                # Attach a pressure and temperature
+                                # point for each of these to keep dims
+
+        return model_x_ph, model_p_ph, model_t_ph
+
+    def process_VLE_range(self, p, P_range, T_range, r_mph_eq, r_mph_ph):
+        """
+        Process the equilibrium points found in ncomp.equilibrium_range into
+        plotable results for VLE type equilibrium points.
+
+        Parameters
+        ----------
+
+        p : class
+            Contains the dictionary describing the parameters.
+
+        P_range: list
+                 contains the pressure points at each model simulation
+
+        T_range: list
+                 contains the temperature points at each model simulation
+
+        r_mph_eq : list containing mph_eq returns:
+            mph_eq : list containing composition vectors
+                     contains a list of equilibrium points of phase
+                     seperations in different volume roots of the EOS (mph)
+                     (ex. VLE type)
+
+        r_mph_ph  : list containing mph_ph returns:
+            mph_ph : list containing strings
+                     containts the phase string of the corresponding ``mph_eq``
+                     equilibrium point
+
+        Returns
+        -------
+        model_x_mph: dict containing equilibrium tie line vectors for each
+                     phase
+
+        model_p_mph: dict containing pressure vectors at each tie line
+
+        model_t_mph: dict containing temperature vectors at each tie line
+        """
 
         # Set empty containers for all equilibrium points
         model_x_mph = {}  # VLE type equilibrium container
-        model_p = {}
-        model_t = {}
+        model_p_mph = {}
+        model_t_mph = {}
         for ph in p.m['Valid phases']:
             model_x_mph[ph] = []
-            model_p[ph] = []
-            model_t[ph] = []
+            model_p_mph[ph] = []
+            model_t_mph[ph] = []
 
-        # for i in range(len(r_mph_eq)):
         for i in range(len(P_range)):
             if len(r_mph_eq[i]) > 0:  # Equilibrium point found
                 for j in range(len(r_mph_eq[i])):
@@ -290,18 +477,113 @@ class Iso:
                         for l in range(len(r_mph_eq[i][j])):
                             model_x_mph[r_mph_ph[i][j][l]].append(
                                 r_mph_eq[i][j][l])
-                            model_p[r_mph_ph[i][j][l]].append(P_range[i])
-                            model_t[r_mph_ph[i][j][l]].append(T_range[i])
+                            model_p_mph[r_mph_ph[i][j][l]].append(P_range[i])
+                            model_t_mph[r_mph_ph[i][j][l]].append(T_range[i])
                             # Attach a pressure and temperature
                             # point for each of these to keep dims
 
-        return model_x_mph, model_p, model_t
+        return model_x_mph, model_p_mph, model_t_mph
 
     def iso_range(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
                   tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
-                  LLE_only=False, VLE_only=False):
+                  LLE_only=False, VLE_only=False, Plot_Results=False):
         """
+        Function used to find model ranges over isotherms/bars and organize
+        the results into data containers that can be used plot functions.
 
+        Parameters
+        ----------
+        s : class
+            Contains the dictionaries with the system state information.
+            NOTE: Must be updated to system state at P, T, {x}, {y}...
+
+        p : class
+            Contains the dictionary describing the parameters.
+
+        g_x_func : function
+                   Returns the gibbs energy at a the current composition
+                   point. Should accept s, p as first two arguments.
+                   Returns a class containing scalar value .m['g_mix']['t']
+
+        T : float
+            Isotherm to simulate
+
+        P: float
+           Isobar to simulate
+
+        res : integer
+              Specifies the number of data points to be simulated within the
+              specified range.
+
+        tol : scalar, optional
+              Tolerance used in ``dual_equal``, if epsilon >= UBD - LBD that will
+              terminate the routine.
+
+        gtol : scalar, optional
+              Minimum tolerance between hyperplane solution
+              Note: The Dual solution is not perfect so a low tolerance is
+              required, but a too low tol could potentially include points that do
+              not truly lie on the equilibrium plane within the considered
+              instability region.
+
+        n_dual : scalar, optional
+                Number of sampling points used in the tgo routine in solving LBD
+                of the dual problem.
+                Note: It is recommended to use at least ``100 + p.m['n'] * 100``
+
+        phase_tol : scalar, optional
+                    The minimum seperation between equilibrium planes required to
+                    be considered a phase. Defaults to 0.001
+
+        LLE_only : boolean, optional
+                   If True then only phase seperation of same volume root
+                   instability will be calculated.
+
+        VLE_only : boolean, optional
+                   If True then phase seperation of same volume root instability
+                   will be ignored.
+
+        Plot_Results : boolean, optional
+                       If True the g_mix curve with tie lines will be plotted for
+                       binary and ternary systems.
+
+        Returns
+        -------
+
+        data_x_mph : vector containing all the equilibrium points in the iso-
+                     therm/bar
+
+        data_t : vector containing all the temperature points in the iso-
+                     therm/bar
+
+        data_p : vector containing all the pressure points in the iso-
+                     therm/bar
+
+        P_range : vector of size ``res``
+                  Range of pressure points over the min/max of the isotherm/bar
+
+        T_range : vector of size ``res``
+                  Range of temperature points over the min/max of the
+                   isotherm/bar
+
+        r_ph_eq : list of size ``res`` containing ph_eq returns:
+            ph_eq : dict containing keys for each phase in p.m['Valid phases'],
+             ex:
+                ph_eq[ph] : list containing composition vectors
+                            Contains a list of equilibrium points of phase (ph)
+                            seperations in the same volume root of the EOS
+                            (ex. LLE type)
+
+        r_mph_eq : list of size ``res`` containing mph_eq returns:
+            mph_eq : list containing composition vectors
+                     contains a list of equilibrium points of phase
+                     seperations in different volume roots of the EOS (mph)
+                     (ex. VLE type)
+
+        r_mph_ph  : list of size ``res`` containing mph_ph returns:
+            mph_ph : list containing strings
+                     containts the phase string of the corresponding ``mph_eq``
+                     equilibrium point
         """
         import numpy
         from ncomp import equilibrium_range as er
@@ -319,62 +601,33 @@ class Iso:
                         (P, P)]
             data_p = None
 
-        data_x = {}
-        for ph in p.m['Valid phases']:
-            data_x[ph] = []
-            data_x[ph].append([])  # Empty tuple for 0 index
+        data_x_mph = {}
+        for ph in p.m['Valid phases']:  # VLE phases
+            data_x_mph[ph] = []
+            data_x_mph[ph].append([])  # Empty tuple for 0 index
             for comp_n in range(1, p.m['n']):
-                data_x[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
+                data_x_mph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
+
+        data_x_ph = {}
+        for ph in p.m['Data phases']:  # LLE phases
+            data_x_ph[ph] = []
+            data_x_ph[ph].append([])  # Empty tuple for 0 index
+            for comp_n in range(1, p.m['n']):
+                data_x_mph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
         P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
             er(g_x_func, s, p, PT_Range=PT_Range, n=n, res=res, tol=tol,
                gtol=gtol, n_dual=n_dual, phase_tol=phase_tol,
-               LLE_only=LLE_only, VLE_only=VLE_only, Plot_Results=True)
+               LLE_only=LLE_only, VLE_only=VLE_only,
+               Plot_Results=Plot_Results)
 
-        return (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x,
+        return (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
                 data_t, data_p)
 
 
-    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
-                 tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
-                 LLE_only=False, VLE_only=False):
 
-        if T is not None:
-            for t in T:
-                # Find model results and data points
-                (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x,
-                data_t, data_p) = \
-                    self.iso_range(s, p, g_x_func, T=t, P=None, res=res,
-                                   n=n, tol=tol, gtol=gtol, n_dual=n_dual,
-                                   phase_tol=phase_tol, LLE_only=LLE_only,
-                                   VLE_only=VLE_only)
-
-                if not LLE_only:
-                    model_x_mph, model_p, model_t = \
-                        self.process_VLE_range(p, P_range, T_range, r_ph_eq,
-                                           r_mph_eq, r_mph_ph)
-
-
-                if not VLE_only:
-                    # Process results
-                    model_x_mph, model_p, model_t = \
-                        self.process_VLE_range(p, P_range, T_range, r_ph_eq,
-                                               r_mph_eq, r_mph_ph)
-                    # Plot each isotherm
-                    if p.m['n'] == 2:
-                        self.plot_iso_t_bin(t, data_p, data_x, p,
-                                            model_p=model_p,
-                                            model_x=model_x_mph,
-                                            VLE_only=True)
-                    elif p.m['n'] == 3:
-                        pass
-                    else:
-                        import logging
-                        logging.warn('Dimensionality too high, ignoring plot'
-                                     'request')
-        return
-
-    def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None,
+    def plot_iso_t_bin(self, T, data_p, data_x, p,
+                       model_p_mph=None, model_x_mph=None,
                        k=['All'], FigNo=None, plot_options=None,
                        plot_tie_lines=True, LLE_only=False, VLE_only=False):
         """
@@ -439,12 +692,12 @@ class Iso:
 
         # Plot model points
         if not LLE_only:
-            if model_p is not None:
+            if model_p_mph is not None:
                 for ph in k:
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
-                    plot.plot(model_x[ph], model_p[ph], '-',
-                      label='{} model'.format(ph))
+                    plot.plot(model_x_mph[ph], model_p_mph[ph], '-',
+                              label='{} model'.format(ph))
 
         plot.xlabel(r"$z_1$", fontsize=14)
         plot.ylabel(r"P (Pa)", fontsize=14)
