@@ -1780,9 +1780,11 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
     Returns
     -------
 
-    P_range:
+    P_range: list
+             contains the pressure points at each model simulation
 
-    T_range:
+    T_range: list
+             contains the temperature points at each model simulation
 
     r_ph_eq : list containing ph_eq returns:
         ph_eq : dict containing keys for each phase in p.m['Valid phases'], ex:

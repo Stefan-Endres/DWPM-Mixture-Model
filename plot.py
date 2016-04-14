@@ -262,86 +262,117 @@ class Iso:
         self.P = P
         pass
 
-    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
-                 tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
-                 LLE_only=False, VLE_only=False):
+    def process_LLE_range(self, p, P_range, T_range, r_ph_eq, r_mph_eq,
+                          r_mph_ph):
+        # TODO: Need tie lines out rather than envelopes
+        model_x_ph = {}  # LLE type equilibrium container
+        model_x_ph = r_ph_eq
+        return model_x_ph, None, None#, model_p, model_t
+
+    def process_VLE_range(self, p, P_range, T_range, r_ph_eq, r_mph_eq,
+                          r_mph_ph):
+
+        # Set empty containers for all equilibrium points
+        model_x_mph = {}  # VLE type equilibrium container
+        model_p = {}
+        model_t = {}
+        for ph in p.m['Valid phases']:
+            model_x_mph[ph] = []
+            model_p[ph] = []
+            model_t[ph] = []
+
+        # for i in range(len(r_mph_eq)):
+        for i in range(len(P_range)):
+            if len(r_mph_eq[i]) > 0:  # Equilibrium point found
+                for j in range(len(r_mph_eq[i])):
+                    if len(r_mph_eq[i][j]) > 1:  # discard single
+                        # points
+                        for l in range(len(r_mph_eq[i][j])):
+                            model_x_mph[r_mph_ph[i][j][l]].append(
+                                r_mph_eq[i][j][l])
+                            model_p[r_mph_ph[i][j][l]].append(P_range[i])
+                            model_t[r_mph_ph[i][j][l]].append(T_range[i])
+                            # Attach a pressure and temperature
+                            # point for each of these to keep dims
+
+        return model_x_mph, model_p, model_t
+
+    def iso_range(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
+                  tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
+                  LLE_only=False, VLE_only=False):
+        """
+
+        """
         import numpy
         from ncomp import equilibrium_range as er
-        #P_data_f = numpy.array(p.m['P'])
-        #T_data_f = numpy.array(p.m['T'])
+        if T is not None:
+            iso_ind = numpy.where(numpy.array(p.m['T']) == T)
+            data_p = numpy.array(p.m['P'])[iso_ind]
+            PT_Range = [(min(data_p), max(data_p)),
+                        (T, T)]
+            data_t = None
 
-        #if T is not None:
-        #    for t in T:
-        t = T[0]
-        #TODO Turn shit below here into a function to call at each T
-        iso_ind = numpy.where(numpy.array(p.m['T']) == t)
-        data_p = numpy.array(p.m['P'])[iso_ind]
+        if P is not None:
+            iso_ind = numpy.where(numpy.array(p.m['P']) == P)
+            data_t = numpy.array(p.m['T'])[iso_ind]
+            PT_Range = [(min(data_t), max(data_t)),
+                        (P, P)]
+            data_p = None
 
         data_x = {}
         for ph in p.m['Valid phases']:
             data_x[ph] = []
-            data_x[ph].append([]) # Empty tuple for 0 index
+            data_x[ph].append([])  # Empty tuple for 0 index
             for comp_n in range(1, p.m['n']):
                 data_x[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
-        PT_Range = [(min(data_p), max(data_p)),
-                    (t, t)]
+        P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
+            er(g_x_func, s, p, PT_Range=PT_Range, n=n, res=res, tol=tol,
+               gtol=gtol, n_dual=n_dual, phase_tol=phase_tol,
+               LLE_only=LLE_only, VLE_only=VLE_only, Plot_Results=True)
 
-        P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func,
-                                 s, p, PT_Range=PT_Range, n=n, res=res,
-                                 tol=tol, gtol=gtol, n_dual=n_dual,
-                                 phase_tol=phase_tol,
-                                 LLE_only=LLE_only,
-                                 VLE_only=VLE_only,
-                                 Plot_Results=True)
+        return (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x,
+                data_t, data_p)
 
-        # (Process results)
-        # Set empty containers for all equilibrium points
-        model_x = {}
-        model_p = {}
-        for ph in p.m['Valid phases']:
-            model_x[ph] = []
-            model_p[ph] = []
 
-        for i in range(len(data_p) - 1):
-            #spamstr = 'i = {}'.format(i)
-            #print(spamstr*100)
-            if not VLE_only:
-                #TODO: The LLE behaviour is complex and might result in
-                # multiple phase seperations that to defined in x_alpha
-                # x_beta etc.
-                for ph in p.m['Valid phases']:
-                    if len(r_ph_eq[i][ph]) > 1:
+    def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
+                 tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
+                 LLE_only=False, VLE_only=False):
+
+        if T is not None:
+            for t in T:
+                # Find model results and data points
+                (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x,
+                data_t, data_p) = \
+                    self.iso_range(s, p, g_x_func, T=t, P=None, res=res,
+                                   n=n, tol=tol, gtol=gtol, n_dual=n_dual,
+                                   phase_tol=phase_tol, LLE_only=LLE_only,
+                                   VLE_only=VLE_only)
+
+                if not LLE_only:
+                    model_x_mph, model_p, model_t = \
+                        self.process_VLE_range(p, P_range, T_range, r_ph_eq,
+                                           r_mph_eq, r_mph_ph)
+
+
+                if not VLE_only:
+                    # Process results
+                    model_x_mph, model_p, model_t = \
+                        self.process_VLE_range(p, P_range, T_range, r_ph_eq,
+                                               r_mph_eq, r_mph_ph)
+                    # Plot each isotherm
+                    if p.m['n'] == 2:
+                        self.plot_iso_t_bin(t, data_p, data_x, p,
+                                            model_p=model_p,
+                                            model_x=model_x_mph,
+                                            VLE_only=True)
+                    elif p.m['n'] == 3:
                         pass
                     else:
-                         r_ph_eq[i][ph]
-
-
-        if not LLE_only:
-            #for i in range(len(r_mph_eq)):
-            for i in range(len(P_range )):
-                if len(r_mph_eq[i]) > 0:  # Equilibrium point found
-                    for j in range(len(r_mph_eq[i])):
-                        if len(r_mph_eq[i][j]) > 1: # discard single
-                                                    # points
-                            for l in range(len(r_mph_eq[i][j])):
-                                model_x[r_mph_ph[i][j][l]].append(
-                                                     r_mph_eq[i][j][l])
-                                #model_p.append(P_range[i])
-                                model_p[r_mph_ph[i][j][l]].append(
-                                                            P_range[i])
-
-                                # Attach a pressure and temperature
-                                # point for each of these to keep dims
-                                ## Then add tie lines somehow
-                #for ph in p.m['Valid phases']:
-                #    model_x[ph] = 1
-
-
-        # Plot resulting isotherm
-        #self.plot_iso_t_bin(t, data_p,
-
-        return model_x, model_p, data_x, data_p
+                        import logging
+                        logging.warn('Dimensionality too high, ignoring plot'
+                                     'request')
+        return
 
     def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None,
                        k=['All'], FigNo=None, plot_options=None,
@@ -421,7 +452,7 @@ class Iso:
                                                      p.c[2]['name'][0],
                                                      T))
         plot.legend()
-        plot.show()
+        #plot.show()
         return
 
     def plot_iso_p_bin(self):

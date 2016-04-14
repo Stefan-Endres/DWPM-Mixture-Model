@@ -140,25 +140,6 @@ if __name__ == '__main__':
             p.m['s'] = 1.0
             p.m['k'][1][2] = 0.124
             p.m['k'][2][1] = 0.124
-
-            # ph_eq, mph_eq, mph_ph = psd(g_x_func, s, p,
-            #                             P=24e5, T=263.1,
-            #                             n=200,
-            #                            VLE_only=True,
-            #                            Plot_Results=False)
-            #
-            # P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func, s, p,
-            #                                                    Data_Range=True)
-            # print 'P_range ='
-            # print P_range
-            # print 'T_range ='
-            # print T_range
-            # print 'r_ph_eq ='
-            # print r_ph_eq
-            # print 'r_mph_eq ='
-            # print r_mph_eq
-            # print 'r_mph_ph ='
-            # print r_mph_ph
             # pass #TODO
 
             from tgo import tgo
@@ -214,17 +195,12 @@ if __name__ == '__main__':
             iso = Iso()
             import time
             start = time.time()
-            model_x, model_p, data_x, data_p = iso.plot_iso(s, p, g_x_func,
-                                            res=5,
-                                            n=1000,
-                                            T=data.plot_isotherms,
-                                            VLE_only=True,
-                                            n_dual=300)
+            iso.plot_iso(s, p, g_x_func, res=6, n=1000, T=data.plot_isotherms,
+                         VLE_only=False, n_dual=300)
             print("="*90)
             print('Done in {}'.format(time.time() - start))
             print("="*90)
 
-            iso.plot_iso_t_bin(263.1, data_p, data_x, p,
-                               model_p=model_p,
-                               model_x=model_x,
-                               VLE_only=True)
+            from matplotlib import pyplot as plot
+
+            plot.show()
