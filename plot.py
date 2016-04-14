@@ -283,12 +283,7 @@ class Iso:
             data_x[ph].append([]) # Empty tuple for 0 index
             for comp_n in range(1, p.m['n']):
                 data_x[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
-                print('data_x[{}] = {}'.format(ph, data_x[ph]))
-                print('len(data_x[{}][1]) = {}'.format(ph, len(data_x[ph][1])))
-                print('len(data_p) = {}'.format(len(data_p)))
 
-        print('iso_ind = {}'.format(iso_ind))
-        print('data_p = {}'.format(data_p))
         #TODO: Extract data points at each phase using iso_ind
         #T_data = T_data_f[iso_ind]
         PT_Range = [(min(data_p), max(data_p)),
@@ -302,24 +297,14 @@ class Iso:
                                  VLE_only=VLE_only,
                                  Plot_Results=True)
 
-        print('p.m[\'P\'][25:36] = {}'.format(p.m['P'][25:36]))
-        print('PT_Range = {}'.format(PT_Range))
-        print('P_range = {}'.format(P_range))
         # (Process results)
         # Set empty containers for all equilibrium points
         model_x = {}
         model_p = {}
-        print("Valid phases")
-        print(p.m['Valid phases'])
         for ph in p.m['Valid phases']:
             model_x[ph] = []
             model_p[ph] = []
 
-        print model_x
-        print('='*100)
-        print('r_ph_eq = {}'.format(r_ph_eq))
-        print('r_mph_eq = {}'.format(r_mph_eq))
-        print('r_mph_ph = {}'.format(r_mph_ph))
         for i in range(len(data_p) - 1):
             #spamstr = 'i = {}'.format(i)
             #print(spamstr*100)
@@ -335,7 +320,6 @@ class Iso:
 
 
         if not LLE_only:
-            print "i = {}".format(i)
             #for i in range(len(r_mph_eq)):
             for i in range(len(P_range )):
                 if len(r_mph_eq[i]) > 0:  # Equilibrium point found
@@ -343,9 +327,6 @@ class Iso:
                         if len(r_mph_eq[i][j]) > 1: # discard single
                                                     # points
                             for l in range(len(r_mph_eq[i][j])):
-                                print r_mph_ph[i][j][l]
-                                print model_x
-                                print model_x[r_mph_ph[i][j][l]]
                                 model_x[r_mph_ph[i][j][l]].append(
                                                      r_mph_eq[i][j][l])
                                 #model_p.append(P_range[i])
@@ -361,10 +342,6 @@ class Iso:
 
         # Plot resulting isotherm
         #self.plot_iso_t_bin(t, data_p,
-
-        print('=' * 100)
-        print('model_x = {}'.format(model_x))
-        print('model_p = {}'.format(model_p))
 
         return model_x, model_p, data_x, data_p
 
@@ -428,10 +405,7 @@ class Iso:
             plot.figure(FigNo)
 
         # Plot data points:
-        print "data_x ={}"
         for ph in k:
-            print 'len(data_x[ph][1]) = {}'.format(len(data_x[ph][1]))
-            print 'len(data_p) = {}'.format(len(data_p))
             plot.plot(data_x[ph][1], data_p, 'x', label='{} data'.format(ph))
 
         # Plot model points
