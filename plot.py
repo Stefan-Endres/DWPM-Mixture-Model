@@ -284,8 +284,6 @@ class Iso:
             for comp_n in range(1, p.m['n']):
                 data_x[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
-        #TODO: Extract data points at each phase using iso_ind
-        #T_data = T_data_f[iso_ind]
         PT_Range = [(min(data_p), max(data_p)),
                     (t, t)]
 
