@@ -124,6 +124,8 @@ class TestNcompFuncsBin(unittest.TestCase):
     data.model = 'Adachi-Lu'
     data.r = None
     data.s = None
+    data.k_params = None
+
     if len(data.comps) > 1:  # multi component simulation.
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
@@ -274,6 +276,7 @@ class TestNcompFuncsTern(unittest.TestCase):
     data.model = 'Adachi-Lu'
     data.r = None
     data.s = None
+    data.k_params = None
     if len(data.comps) > 1:  # multi component simulation.
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()

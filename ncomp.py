@@ -861,8 +861,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
     import numpy
     from scipy.optimize import linprog
     from tgo import tgo
-    tol=1e-5
-    
+
     def x_lim(X): # limiting function used in TGO defining material constraints
         import numpy
         return -numpy.sum(X, axis=-1) + 1.0
@@ -1004,7 +1003,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
                                   tol=1e-9, gtol=1e-2, n=100, phase_tol=1e-3,
                                   Print_Results=False,
                                   Plot_Results=False,
-                                  Sampling_Stepping=False):
+                                  Sampling_Stepping=True):
     # TODO: Remove the roman numeral comp. returns and change the way
     # phase_seperation_detection works to iterate along all points found
     # the plane instead.
@@ -1111,6 +1110,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     X_eq.append(X_sol)  # Add first point to solution set
 
+    #TODO: Of len(d_res.xl) = 1 then we only need to optimize the solution
+    # plane again
     if (len(d_res.xl) < 2) and Sampling_Stepping:
         logging.basicConfig(level=logging.DEBUG)
         logging.warn('Less than 2 equilibrium points found in dual, increasing'
@@ -1457,6 +1458,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     # (if all values are not greater than or less than zero)
                     Bounds = [(1e-6, 0.99999)]
                     Args=(g_x_func, s, p, ph1, ph2, ph1)
+                    #TODO: Reterieve local minima instead and loop over Z_0
+                    # while eliminating subspace
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
 
                     X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,

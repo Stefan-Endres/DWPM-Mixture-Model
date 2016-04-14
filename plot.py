@@ -160,7 +160,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                     s.m['T'],
                     s.m['P']))
         plot.legend()
-        plot.show()
+        #plot.show()
         return
 
     #% Trenary
@@ -263,43 +263,111 @@ class Iso:
         pass
 
     def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=100,
-                 tol=1e-9, gtol=1e-2, n_dual=100, phase_tol=1e-3):
+                 tol=1e-9, gtol=1e-2, n_dual=100, phase_tol=1e-3,
+                 LLE_only=False, VLE_only=False):
         import numpy
         from ncomp import equilibrium_range as er
         P_data_f = numpy.array(p.m['P'])
         T_data_f = numpy.array(p.m['T'])
 
-        if T is not None:
-            for t in T:
-                iso_ind = numpy.where(T_data_f == t)
-                P_data = P_data_f[iso_ind]
-                #T_data = T_data_f[iso_ind]
-                PT_Range = [(min(P_data), max(P_data)),
-                            (t, t)]
+        #if T is not None:
+        #    for t in T:
+        t = T[0]
+        #TODO Turn shit below here into a function to call at each T
+        iso_ind = numpy.where(T_data_f == t)
+        P_data = P_data_f[iso_ind]
 
-                P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func,
-                                         s, p, PT_Range=PT_Range, n=n, res=res,
-                                         tol=tol, gtol=gtol, n_dual=n_dual,
-                                         phase_tol=phase_tol)
+        # Delete pure components
+        # for ph in p.m['Valid phases']:
+        #     for comp_n in p.m['n']:
+        #         low_ind = numpy.where(p.m[ph][comp_n][iso_ind] < phase_tol)
+        #         high_ind = numpy.where(p.m[ph][comp_n][iso_ind]
+        #                                                  > (1.0 - phase_tol))
 
-                # (Process results)
-                for i in range(len(r_ph_eq) - 1):
-                    for ph in p.m['Valid phases']:
-                        if len(r_ph_eq[i][ph]) > 1:
-                            pass
-                        else:
-                             r_ph_eq[i][ph]
+        print('iso_ind = {}'.format(iso_ind))
+        print('P_data = {}'.format(P_data))
+        #TODO: Extract data points at each phase using iso_ind
+        #T_data = T_data_f[iso_ind]
+        PT_Range = [(min(P_data), max(P_data)),
+                    (t, t)]
+
+        P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = er(g_x_func,
+                                 s, p, PT_Range=PT_Range, n=n, res=res,
+                                 tol=tol, gtol=gtol, n_dual=n_dual,
+                                 phase_tol=phase_tol,
+                                 LLE_only=LLE_only,
+                                 VLE_only=VLE_only,
+                                 Plot_Results=True)
+
+        print('p.m[\'P\'][25:36] = {}'.format(p.m['P'][25:36]))
+        print('PT_Range = {}'.format(PT_Range))
+        print('P_range = {}'.format(P_range))
+        # (Process results)
+        # Set empty containers for all equilibrium points
+        model_x = {}
+        model_p = {}
+        print("Valid phases")
+        print(p.m['Valid phases'])
+        for ph in p.m['Valid phases']:
+            model_x[ph] = []
+            model_p[ph] = []
+
+        print model_x
+        print('='*100)
+        print('r_ph_eq = {}'.format(r_ph_eq))
+        print('r_mph_eq = {}'.format(r_mph_eq))
+        print('r_mph_ph = {}'.format(r_mph_ph))
+        for i in range(len(P_data) - 1):
+            #spamstr = 'i = {}'.format(i)
+            #print(spamstr*100)
+            if not VLE_only:
+                #TODO: The LLE behaviour is complex and might result in
+                # multiple phase seperations that to defined in x_alpha
+                # x_beta etc.
+                for ph in p.m['Valid phases']:
+                    if len(r_ph_eq[i][ph]) > 1:
+                        pass
+                    else:
+                         r_ph_eq[i][ph]
 
 
-                data_x = {'x': [0,0]}
-                # Plot resulting isotherm
-                #self.plot_iso_t_bin(t, P_data,
+        if not LLE_only:
+            print "i = {}".format(i)
+            #for i in range(len(r_mph_eq)):
+            for i in range(len(P_range )):
+                if len(r_mph_eq[i]) > 0:  # Equilibrium point found
+                    for j in range(len(r_mph_eq[i])):
+                        if len(r_mph_eq[i][j]) > 1: # discard single
+                                                    # points
+                            for l in range(len(r_mph_eq[i][j])):
+                                print r_mph_ph[i][j][l]
+                                print model_x
+                                print model_x[r_mph_ph[i][j][l]]
+                                model_x[r_mph_ph[i][j][l]].append(
+                                                     r_mph_eq[i][j][l])
+                                #model_p.append(P_range[i])
+                                model_p[r_mph_ph[i][j][l]].append(
+                                                            P_range[i])
 
+                                # Attach a pressure and temperature
+                                # point for each of these to keep dims
+                                ## Then add tie lines somehow
+                #for ph in p.m['Valid phases']:
+                #    model_x[ph] = 1
 
+        data_x = {'x': [0,0]}
+        # Plot resulting isotherm
+        #self.plot_iso_t_bin(t, P_data,
 
-    def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None
-                       , k=['All'], FigNo=None, plot_options=None,
-                       plot_tie_lines=True):
+        print('=' * 100)
+        print('model_x = {}'.format(model_x))
+        print('model_p = {}'.format(model_p))
+
+        return model_x, model_p
+
+    def plot_iso_t_bin(self, T, data_p, data_x, p, model_p=None, model_x=None,
+                       k=['All'], FigNo=None, plot_options=None,
+                       plot_tie_lines=True, LLE_only=False, VLE_only=False):
         """
         Plot binary isotherms for the specified data and model ranges
 
@@ -358,13 +426,16 @@ class Iso:
 
         # Plot data points:
         for ph in k:
-            plot.plot(data_x[ph][1], data_p, 'x', label='{} data'.format(ph))
+            plot.plot(data_x[ph], data_p, 'x', label='{} data'.format(ph))
 
         # Plot model points
-        if model_p is not None:
-            for ph in p.m['Valid phases']:
-                plot.plot(model_x[ph][1], data_p, '-',
-                          label='{} model'.format(ph))
+        if not LLE_only:
+            if model_p is not None:
+                for ph in k:
+                    # plot.plot(model_x[ph][1], model_p, '-',
+                    #           label='{} model'.format(ph))
+                    plot.plot(model_x[ph], model_p[ph], '-',
+                      label='{} model'.format(ph))
 
         plot.xlabel(r"$z_1$", fontsize=14)
         plot.ylabel(r"P (Pa)", fontsize=14)
@@ -404,7 +475,7 @@ def plot_ep(func, X_r, s, p, args=()):
                     p.c[2]['name'][0],
                     s.m['T'],
                     s.m['P']))
-        plot.show()
+        #plot.show()
     return
 
 

@@ -197,11 +197,13 @@ if __name__ == '__main__':
                                    VLE_only=data.vle_only,
                                    Plot_Results=False) # Tested/working
 
-        if data.P is not None and data.T is not None and data.Z_0 is not None:
-            pec(s, p, g_x_func, Z_0, k=None, P=data.P, T=data.T, # Not tested
-               tol=1e-9, Print_Results=True, Plot_Results=data.plot_gibbs)
 
-        # TODO Move to plot.py and exec script?
+        if data.P is not None and data.T is not None and data.Z_0 is not None:
+            pec(s, p, g_x_func, data.Z_0, k=None, P=data.P, T=data.T,
+               tol=1e-9, Print_Results=True, Plot_Results=data.plot_gibbs)
+                # Not tested
+
+
         if data.plot_gibbs:
             options = plot.plot_options
             plot.plot_g_mix(s, p, options, figno=None)
@@ -212,11 +214,29 @@ if __name__ == '__main__':
             iso = Iso()
             import time
             start = time.time()
-            iso.plot_iso(s, p, g_x_func, T=data.plot_isotherms)
-            print("="*90)
-            print('Done in {}'.format(time.time() - start))
-            print("="*90)
-            # p.m['T'][25] = 263.1
+            if True:
+                print data.plot_isotherms
+                model_x, model_p = iso.plot_iso(s, p, g_x_func,
+                                                res=30,
+                                                n=1000,
+                                                T=data.plot_isotherms,
+                                                VLE_only=True,
+                                                n_dual=300)
+                print("="*90)
+                print('Done in {}'.format(time.time() - start))
+                print("="*90)
+
+                data_x = {'x': p.m['x'][1][21:30],  # x_1
+
+                          'y': p.m['y'][1][21:30]   # y_2
+                          }
+
+
+                iso.plot_iso_t_bin(263.1, p.m['P'][21:30], data_x, p,
+                                   model_p=model_p,
+                                   model_x=model_x,
+                                   VLE_only=True)
+                # p.m['T'][25] = 263.1
             # p.m['T'][36] = 263.1
 
             if False:
@@ -227,16 +247,14 @@ if __name__ == '__main__':
                                 p.m['y'][2][25:36]]
                           }
 
-                model_x = {'x': [p.m['x'][1][25:36],  # x_1
-                                p.m['x'][2][25:36]],  # x_2
+                data_x = {'x': p.m['x'][1][21:30],  # x_1
 
-                          'y': [p.m['y'][1][25:36],   # y_1
-                                p.m['y'][2][25:36]]
+                          'y': p.m['y'][1][21:30]  # y_2
                           }
 
-                iso.plot_iso_t_bin(263.1, p.m['P'][25:36], data_x, p,
-                                   model_p=p.m['P'][25:36],
-                                   model_x=model_x)
+                iso.plot_iso_t_bin(263.1, p.m['P'][21:30], data_x, p,
+
+                                   VLE_only=True)
                 #print 'test'
 
             pass #TODO
