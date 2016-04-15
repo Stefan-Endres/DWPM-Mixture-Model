@@ -1218,16 +1218,16 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         from scipy import linspace
         print 'Feeding Lamda_d = {} to ep. func.'.format(Lambda_sol)
         print [[X_eq[1], X_eq[0]]]  # TODO: Allow for more points?
-        if p.m['n'] == 2: # Plot binary tie lines
+        if p.m['n'] == 2:  # Plot binary tie lines
             plot.plot_g_mix(s, p, g_x_func, Tie =[[X_eq[1], X_eq[0]]]
                             , x_r=1000)
 
             from scipy import linspace
-            X_r = linspace(1e-5, 0.9999, 4000)
-            plane_args = (Z_0, Lambda_sol, g_x_func, s, p, ['All'])
-            plot.plot_ep(dual_plane, X_r, s, p, args=plane_args)
+            x_r = 1000
+            plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
 
-        if p.m['n'] == 3: # Plot ternary tie lines
+        if p.m['n'] == 3:  # Plot ternary tie lines
             s.update_state(s, p, P=P, T=T,  X = X_sol, Force_Update=True)
             G_P = g_x_func(s, p).m['g_mix']['t']
             Tie = [[G_P,                           # G_P
@@ -1239,6 +1239,9 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
             plot.plot_g_mix(s, p, g_x_func, Tie = Tie, x_r=100)
 
+            x_r = 100#400
+            plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
     return X_eq, g_eq, phase_eq
 
 # Phase seperation detection

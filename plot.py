@@ -225,13 +225,13 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         for ph in p.m['Valid phases']:
             Z = g_mix_r[ph]
             ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1)
-            cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
-            cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
+            #cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
+            #cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
 
         # Gibbs minimum surface
         Z = g_mix_r['t']
         ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1,color='r')
-        if True:
+        if False:
             cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
             cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
 
@@ -247,7 +247,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         ax.set_ylabel('$x_2$')
         ax.set_ylim(0, 1)
         ax.set_zlabel('$\Delta g$', rotation = 90)
-        plot.show()
+        #plot.show()
         return s
 
     else:
@@ -926,8 +926,10 @@ class Iso:
         plot.legend()
         return
 
-    def plot_iso_tern(self, p, data_x_ph=None,
-                      ):
+    def plot_iso_tern(self, p, data_x_ph=None, data_x_mph=None,
+                      model_x_ph=None, model_x_mph=None,
+                      plot_phase_envelopes=False,
+                      LLE_only=False, VLE_only=False):
 
         import ternary
 
@@ -946,21 +948,54 @@ class Iso:
         tax.bottom_axis_label("$x_1$", fontsize=fontsize)
 
         # Plot data
-        for ph in p.m['Valid phases']:
-            for lph in p.m['Data phases']:
-                if lph not in p.m['Valid phases']:
-                    for i in range(len(data_x_ph)):
-                        tax.line(data_x_ph[ph][i],  # ex. x
-                                 p.m[lph][i],  # ex. xII
+
+        # VLE
+        if not LLE_only:
+            for ph in p.m['Valid phases']:
+                for i in range(len(data_x_mph)):
+                    if i < (len(data_x_mph)-1):
+                        tax.line(data_x_mph[ph][i],  # ex. x
+                                 data_x_mph[ph][i + 1],  # ex. xII
                                  linewidth=1.0, marker='x',
                                  # color='green',
                                  linestyle="--", label='Data')
 
+        # LLE
+        if not VLE_only:
+            for ph in p.m['Valid phases']:
+                for lph in p.m['Data phases']:
+                    if lph not in p.m['Valid phases']:
+                        for i in range(len(data_x_ph)):
+                            tax.line(data_x_ph[ph][i],  # ex. x
+                                     p.m[lph][i],  # ex. xII
+                                     linewidth=1.0, marker='x',
+                                     # color='green',
+                                     linestyle="--", label='Data')
+
+
+
         # Plot model results
-        p1 = (0.4, 0.4, 0.2)
-        p2 = (0.15, 0.15, 0.7)
-        tax.line(p1, p2, linewidth=1.0, marker='.',# color='green',
-                         linestyle="-", label='Model')
+
+        # LLE
+        if not VLE_only:
+            for i in range(len(p.m['Valid phases'])):
+                for j in range(i + 1, len(p.m['Valid phases'])):
+                    ph1 = p.m['Valid phases'][i]
+                    ph2 = p.m['Valid phases'][j]
+                    tax.line(data_x_ph[ph1][i],  # ex. x
+                             data_x_ph[ph2][i],  # ex. xII
+                             linewidth=1.0, marker='.',
+                             linestyle="-", label='Model {}-{}'.format(ph1,
+                                                                       ph2))
+        # VLE
+        if not LLE_only:
+            for i in range(len(data_x_mph)):
+                if i < len(data_x_mph):
+                    for ph in p.m['Valid phases']:
+                        tax.line(data_x_ph[ph][i],  # ex. x
+                                 data_x_ph[ph][i + 1],  # ex. xII
+                                 linewidth=1.0, marker='.',
+                                 linestyle="-", label='Model {}'.format(ph))
 
         tax.ticks(axis='lbr', multiple=0.1, linewidth=1)
 
@@ -969,13 +1004,15 @@ class Iso:
         return
 
 
-def plot_ep(func, X_r, s, p, args=()):
+def plot_ep(func, x_r, s, p, args=()):
     """
-    Plot the speficied single var input error function over a range X_r
+    Plot the speficied single var input error function over a range size x_r
     """
     from matplotlib import pyplot as plot
     #% Binary
     if p.m['n'] == 2:
+        from scipy import linspace
+        X_r = linspace(1e-5, 0.9999, x_r)
         ep = []
         for X in X_r:
             s.update_state(s, p,  X = X, phase = ['All'], Force_Update=True)
@@ -995,6 +1032,55 @@ def plot_ep(func, X_r, s, p, args=()):
                     s.m['T'],
                     s.m['P']))
         #plot.show()
+
+    if p.m['n'] == 3:
+        from mpl_toolkits.mplot3d import axes3d
+        import matplotlib.pyplot as plot
+        from matplotlib import cm
+        import numpy
+        x_range = numpy.linspace(1e-15, 1.0, x_r)
+        y_range = numpy.linspace(1e-15, 1.0, x_r)
+        xg, yg = numpy.meshgrid(x_range, y_range)
+        func_r = numpy.zeros((x_r, x_r))
+        for i in range(xg.shape[0]):
+            for j in range(yg.shape[0]):
+                X = [xg[i, j], yg[i, j]]  # [x_1, x_2]
+                if sum(X) > 1.0:  # 1.0:
+                    func_r[i, j]  = None
+                else:
+                    f_out = func(X, *args)  # Scalar outputs
+                    func_r[i, j] = numpy.float64(f_out)
+
+
+        # Plots
+        fig = plot.figure()
+        ax = fig.gca(projection='3d')
+        X, Y = xg, yg
+
+        # Gibbs phase surfaces
+        Z = func_r
+
+        if True:
+            print 'numpy.min(Z) = {}'.format(numpy.nanmin(Z))
+
+            cset = ax.contourf(X, Y, Z, zdir='z', offset=numpy.nanmin(Z)-0.05,
+                               cmap=cm.coolwarm)
+            ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm)
+        if False:
+            surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                                   cmap=cm.coolwarm, linewidth=0,
+                                   antialiased=True, alpha=0.5, shade = True)
+
+            fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        ax.set_xlabel('$x_1$')
+        ax.set_xlim(0, 1)
+        ax.set_ylabel('$x_2$')
+        ax.set_ylim(0, 1)
+        ax.set_zlabel('$\Delta g$', rotation=90)
+        plot.show()
+
     return
 
 
