@@ -928,6 +928,49 @@ class Iso:
         plot.legend()
         return
 
+    def plot_iso_tern(self):
+
+        import ternary
+
+        scale = 1.0
+        figure, tax = ternary.figure(scale=scale)
+
+        # Draw Boundary and Gridlines
+        tax.boundary(linewidth=1.5)
+        tax.gridlines(color="black", multiple=0.1)
+
+        # Set Axis labels and Title
+        fontsize = 16
+        tax.set_title("Various Lines", fontsize=fontsize)
+        tax.left_axis_label("$x_3$", fontsize=fontsize)
+        tax.right_axis_label("$x_2$", fontsize=fontsize)
+        tax.bottom_axis_label("$x_1$", fontsize=fontsize)
+
+        # Plot data
+        LLE_phases = p.m['Data phases']
+        for ph in p.m['Valid phases']:
+            for lph in p.m['Data phases']:
+                if lph not in p.m['Valid phases']:
+                    for i in range(len(data_x_ph)):
+                        tax.line(data_x_ph[ph][i],  # ex. x
+                                 p.m[lph][i],  # ex. xII
+                                 linewidth=1.0, marker='x',
+                                 # color='green',
+                                 linestyle="--", label='Data')
+
+
+        p1 = (0.4, 0.4, 0.2)
+        p2 = (0.15, 0.15, 0.7)
+        tax.line(p1, p2, linewidth=1.0, marker='.',# color='green',
+                         linestyle="-", label='Model')
+
+        tax.ticks(axis='lbr', multiple=0.1, linewidth=1)
+
+        tax.legend()
+        tax.show()
+        return
+
+
 def plot_ep(func, X_r, s, p, args=()):
     """
     Plot the speficied single var input error function over a range X_r
@@ -963,3 +1006,38 @@ if __name__ == '__main__':
                      'font.family' : 'lmodern',
                      'text.latex.unicode': True
                      }
+
+     import ternary
+
+     scale = 1.0
+     figure, tax = ternary.figure(scale=scale)
+
+     # Draw Boundary and Gridlines
+     tax.boundary(linewidth=1.5)
+     tax.gridlines(color="black", multiple=0.1)
+
+     # Set Axis labels and Title
+     fontsize = 16
+     tax.set_title("Various Lines", fontsize=fontsize)
+     tax.left_axis_label("$x_3$", fontsize=fontsize)
+     tax.right_axis_label("$x_2$", fontsize=fontsize)
+     tax.bottom_axis_label("$x_1$", fontsize=fontsize)
+
+     # Draw an arbitrary line, ternary will project the points for you
+     p1 = (0.5, 0.5, 0.1)
+     #    (x_1, x_2, x_3)
+     p1 = (0.3, 0.5, 0.2)
+     p2 = (0.1, 0.1, 0.8)
+
+     tax.line(p1, p2, linewidth=1.0, marker='x',  # color='green',
+              linestyle="--", label='Data')
+
+     p1 = (0.4, 0.4, 0.2)
+     p2 = (0.15, 0.15, 0.7)
+     tax.line(p1, p2, linewidth=1.0, marker='.',  # color='green',
+              linestyle="-", label='Model')
+
+     tax.ticks(axis='lbr', multiple=0.1, linewidth=1)
+
+     tax.legend()
+     tax.show()
