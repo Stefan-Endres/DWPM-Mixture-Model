@@ -353,9 +353,16 @@ class Iso:
 
                 # Plot each isotherm
                 if p.m['n'] == 2:
-                    self.plot_iso_t_bin(t, data_p, data_x_mph, p,
+                    self.plot_iso_t_bin(t, p,
+                                        data_p=data_p,
+                                        data_x_mph=data_x_mph,
+                                        data_x_ph = data_x_ph,
                                         model_p_mph=model_p_mph,
+                                        #model_t_mph=model_t_ph,
                                         model_x_mph=model_x_mph,
+                                        model_p_ph=model_p_ph,
+                                        #model_t_ph=model_t_ph,
+                                        model_x_ph=model_x_ph,
                                         LLE_only=LLE_only,
                                         VLE_only=VLE_only)
                 elif p.m['n'] == 3:
@@ -549,17 +556,17 @@ class Iso:
         Returns
         -------
 
-        data_x_mph : vector containing all the equilibrium points in the iso-
-                     therm/bar (VLE type only)
+        data_x_mph : dict containing vector containing of all the equilibrium
+                     points in the isotherm/bar (VLE type only)
 
-        data_x_ph : vector containing all the equilibrium points in the iso-
-                     therm/bar (VLE type and LLE type (TODO seperate)
+        data_x_ph : dict containing vector containing of all the equilibrium
+                    points in the isotherm/bar  (VLE type and LLE type
+                    (TODO separate))
 
         data_t : vector containing all the temperature points in the iso-
                      therm/bar
 
-        data_p : vector containing all the pressure points in the iso-
-                     therm/bar
+        data_p : vector containing all the pressure points in the isotherm/bar
 
         P_range : vector of size ``res``
                   Range of pressure points over the min/max of the isotherm/bar
@@ -631,8 +638,9 @@ class Iso:
 
 
 
-    def plot_iso_t_bin(self, T, data_p, data_x, p,
-                       model_p_mph=None, model_x_mph=None,
+    def plot_iso_t_bin(self, T, p, data_p=None, data_x_mph=None,
+                       data_x_ph=None, model_p_mph=None, model_x_mph=None,
+                       model_p_ph=None, model_x_ph=None,
                        k=['All'], FigNo=None, plot_options=None,
                        plot_tie_lines=True, LLE_only=False, VLE_only=False):
         """
@@ -643,6 +651,9 @@ class Iso:
 
         T : float
             Temperature of isotherm to plot.
+
+        p : class
+            Contains the dictionary describing the parameters.
 
         data_p : vector
                  Pressure data values at each point
@@ -658,15 +669,22 @@ class Iso:
                                      p.m['y'][2][25:36]]  # y_2
                                }
 
-        p : class
-            Contains the dictionary describing the parameters.
 
-        data_p : vector, optional
-                 Pressure model values at each point
+        data_x_mph : dict containing vector containing of all the equilibrium
+                     points in the isotherm/bar (VLE type only)
 
-        data_x : dict containing vectors, optional
-                 Contains the simulated composition points at each data_p for
-                 every valid phase, specified similarly to data_x.
+        data_x_ph : dict containing vector containing of all the equilibrium
+                    points in the isotherm/bar  (VLE type and LLE type
+                    (TODO separate))
+
+        model_x_mph: dict containing equilibrium tie line vectors for each
+                     phase
+
+        model_p_mph: dict containing pressure vectors at each tie line
+
+        model_x_ph: dict containing equilibrium tie line vectors for each phase
+
+        model_p_ph: dict containing pressure vectors at each tie line
 
         k : list, optional
             List contain valid phases for the current equilibrium calculation.
