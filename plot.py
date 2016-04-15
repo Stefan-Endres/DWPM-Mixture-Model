@@ -114,19 +114,19 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
     if p.m['n'] == 2:
         from matplotlib import pyplot as plot
         #% Initialize
-        s.m['g_mix range'] = {} # Contains solutions for all phases
-        s.m['g_mix range']['t'] = []
+        g_mix_r = {} # Contains range of solutions for all phases
+        g_mix_r['t'] = []
         for ph in p.m['Valid phases']:
-            s.m['g_mix range'][ph] = []
+            g_mix_r[ph] = []
 
         s.c[1]['x_range'] = np.linspace(0, 1, x_r)
         for i in range(len(s.c[1]['x_range']-1)):  # Calculate range of G_mix
             X = [s.c[1]['x_range'][i]]
             s = s.update_state(s, p, X = X, Force_Update=True)
             s = g_x_func(s, p)
-            s.m['g_mix range']['t'].append(np.float64(s.m['g_mix']['t']))
+            g_mix_r['t'].append(np.float64(s.m['g_mix']['t']))
             for ph in p.m['Valid phases']:
-                s.m['g_mix range'][ph].append(np.float64(s.m['g_mix'][ph]))
+                g_mix_r[ph].append(np.float64(s.m['g_mix'][ph]))
 
         if FigNo is None:
             plot.figure()
@@ -134,9 +134,9 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
             plot.figure(FigNo)
 
         for ph in p.m['Valid phases']:
-            plot.plot(s.c[1]['x_range'], s.m['g_mix range'][ph], label=ph)
+            plot.plot(s.c[1]['x_range'], g_mix_r[ph], label=ph)
 
-        plot.plot(s.c[1]['x_range'], s.m['g_mix range']['t'])
+        plot.plot(s.c[1]['x_range'], g_mix_r['t'])
         if Tie is not None: # Add tie lines
             for point in Tie:
                 X = [point[0]]
@@ -177,10 +177,10 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         x_range = np.linspace(1e-15, 1.0, x_r)
         y_range = np.linspace(1e-15, 1.0, x_r)
         xg, yg = np.meshgrid(x_range, y_range)
-        s.m['g_mix range'] = {}
-        s.m['g_mix range']['t'] = np.zeros((x_r, x_r))
+        g_mix_r = {}
+        g_mix_r['t'] = np.zeros((x_r, x_r))
         for ph in p.m['Valid phases']:
-                    s.m['g_mix range'][ph] = np.zeros((x_r, x_r))
+            g_mix_r[ph] = np.zeros((x_r, x_r))
 
         Tie_planes = []
         for z in range(len(Tie)):
@@ -193,9 +193,9 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                      for z in range(len(Tie)):
                          Tie_planes[z][i, j] = None
 
-                     s.m['g_mix range']['t'][i, j] = None
+                         g_mix_r['t'][i, j] = None
                      for ph in p.m['Valid phases']:
-                         s.m['g_mix range'][ph][i, j] = None
+                         g_mix_r[ph][i, j] = None
 
                  else:
                      # Tie lines
@@ -205,11 +205,9 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                      # g_func
                      s = s.update_state(s, p, X = X, Force_Update=True)
                      s = g_x_func(s, p)
-                     s.m['g_mix range']['t'][i, j] = np.float64(
-                                                             s.m['g_mix']['t'])
+                     g_mix_r['t'][i, j] = np.float64(s.m['g_mix']['t'])
                      for ph in p.m['Valid phases']:
-                         s.m['g_mix range'][ph][i, j] = np.float64(
-                                                             s.m['g_mix'][ph])
+                         g_mix_r[ph][i, j] = np.float64(s.m['g_mix'][ph])
 
         if FigNo is None:
             fig = plot.figure()# plot.figure()
@@ -225,13 +223,13 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         rst = 1
         cst = 1
         for ph in p.m['Valid phases']:
-            Z = s.m['g_mix range'][ph]
+            Z = g_mix_r[ph]
             ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1)
             cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
             cset = ax.contour(X, Y, Z, zdir='y', offset=-0.1, cmap=cm.coolwarm)
 
         # Gibbs minimum surface
-        Z= s.m['g_mix range']['t']
+        Z = g_mix_r['t']
         ax.plot_surface(X, Y, Z, rstride=rst, cstride=cst, alpha=0.1,color='r')
         if True:
             cset = ax.contour(X, Y, Z, zdir='x', offset=-0.1, cmap=cm.coolwarm)
@@ -928,7 +926,8 @@ class Iso:
         plot.legend()
         return
 
-    def plot_iso_tern(self):
+    def plot_iso_tern(self, p, data_x_ph=None,
+                      ):
 
         import ternary
 
@@ -947,7 +946,6 @@ class Iso:
         tax.bottom_axis_label("$x_1$", fontsize=fontsize)
 
         # Plot data
-        LLE_phases = p.m['Data phases']
         for ph in p.m['Valid phases']:
             for lph in p.m['Data phases']:
                 if lph not in p.m['Valid phases']:
@@ -958,7 +956,7 @@ class Iso:
                                  # color='green',
                                  linestyle="--", label='Data')
 
-
+        # Plot model results
         p1 = (0.4, 0.4, 0.2)
         p2 = (0.15, 0.15, 0.7)
         tax.line(p1, p2, linewidth=1.0, marker='.',# color='green',
