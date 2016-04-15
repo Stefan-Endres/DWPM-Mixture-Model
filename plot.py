@@ -709,17 +709,35 @@ class Iso:
         else:
             plot.figure(FigNo)
 
-        # Plot data points:
-        for ph in k:
-            plot.plot(data_x[ph][1], data_p, 'x', label='{} data'.format(ph))
 
-        # Plot model points
+        # VLE envelopes
         if not LLE_only:
+            # Plot data points
+            if data_x_mph is not None:
+                for ph in k:
+                    plot.plot(data_x_mph[ph][1], data_p, 'x',
+                              label='{} data'.format(ph))
+            # Plot model points
             if model_p_mph is not None:
                 for ph in k:
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_mph[ph], model_p_mph[ph], '-',
+                              label='{} model'.format(ph))
+
+        # LLE envelopes
+        if not VLE_only:
+            # Plot data points
+            if data_x_ph is not None:
+                for ph in k:
+                    plot.plot(data_x_ph[ph][1], data_p, 'x',
+                              label='{} data'.format(ph))
+            # Plot model points
+            if model_p_ph is not None:
+                for ph in k:
+                    # plot.plot(model_x[ph][1], model_p, '-',
+                    #           label='{} model'.format(ph))
+                    plot.plot(model_x_ph[ph], model_p_ph[ph], '-',
                               label='{} model'.format(ph))
 
         plot.xlabel(r"$z_1$", fontsize=14)
@@ -728,8 +746,7 @@ class Iso:
                                                      p.c[2]['name'][0],
                                                      T))
         plot.legend()
-        #plot.show()
-        return
+         return
 
     def plot_iso_p_bin(self):
         """Plot binary isobars for the specified data and model ranges"""
