@@ -196,7 +196,7 @@ if __name__ == '__main__':
             import time
             start = time.time()
             iso.plot_iso(s, p, g_x_func, res=4, n=1000, T=data.plot_isotherms,
-                         VLE_only=False, n_dual=300, Plot_Results=True)
+                         VLE_only=True, n_dual=300, Plot_Results=True)
             print("="*90)
             print('Done in {}'.format(time.time() - start))
             print("="*90)

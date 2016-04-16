@@ -341,6 +341,7 @@ class Iso:
                                    data_only=data_only)
 
                 # Process VLE points
+                plot_kwargs = {}
                 if not LLE_only:
                     if not data_only:
                         model_x_mph, model_p_mph, model_t_mph = \
@@ -349,6 +350,9 @@ class Iso:
                     else:
                         (model_x_mph, model_p_mph, model_t_mph) = (None, None,
                                                                    None)
+
+                    plot_kwargs['model_p_mph'] = model_p_mph
+                    plot_kwargs['model_x_mph'] = model_x_mph
 
                 # Process LLE points
                 if not VLE_only:
@@ -359,6 +363,8 @@ class Iso:
                     else:
                         (model_x_ph, model_p_ph, model_t_ph) = (None, None,
                                                                    None)
+                    plot_kwargs['model_p_ph'] = model_p_ph
+                    plot_kwargs['model_x_ph'] = model_x_ph
 
                 # Plot each isotherm
                 if p.m['n'] == 2:
@@ -366,14 +372,15 @@ class Iso:
                                         data_p=data_p,
                                         data_x_mph=data_x_mph,
                                         data_x_ph = data_x_ph,
-                                        model_p_mph=model_p_mph,
+                                    #    model_p_mph=model_p_mph,
                                         #model_t_mph=model_t_ph,
-                                        model_x_mph=model_x_mph,
-                                        model_p_ph=model_p_ph,
+                                   #     model_x_mph=model_x_mph,
+                                    #    model_p_ph=model_p_ph,
                                         #model_t_ph=model_t_ph,
-                                        model_x_ph=model_x_ph,
+                                   #     model_x_ph=model_x_ph,
                                         LLE_only=LLE_only,
-                                        VLE_only=VLE_only)
+                                        VLE_only=VLE_only,
+                                        **plot_kwargs)
                 elif p.m['n'] == 3:
                     pass
                 else:
