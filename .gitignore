@@ -8,6 +8,9 @@
 .coverage
 htmlcov/
 
+# Sobol data
+new-joe-kuo-6.21201
+
 # Test scripts
 Sobol_Tests.py
 dev*.py
