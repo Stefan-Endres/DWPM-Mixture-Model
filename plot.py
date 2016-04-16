@@ -414,7 +414,7 @@ class Iso:
                     model_x_mph, model_p_mph, model_t_mph = \
                         self.process_VLE_range(p, P_range, T_range,
                                                r_mph_eq, r_mph_ph)
-                    
+
                 plot_kwargs['model_t_mph'] = model_t_mph
                 plot_kwargs['model_x_mph'] = model_x_mph
 

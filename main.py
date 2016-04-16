@@ -127,6 +127,7 @@ if __name__ == '__main__':
         from ncomp import phase_equilibrium_calculation as pec
         from ncomp import phase_seperation_detection as psd
         from ncomp import equilibrium_range as er
+        # TODO: Select EOS model from input:
         from ncomp import g_mix as g_x_func
         # Load all pure dictionaries data.c[i]
         data.load_pure_data()
@@ -176,7 +177,7 @@ if __name__ == '__main__':
         if data.P is not None and data.T is not None and data.Z_0 is None:
             psd(g_x_func, s, p, data.P, data.T, n=100, LLE_only=data.lle_only,
                                    VLE_only=data.vle_only,
-                                   Plot_Results=False) # Tested/working
+                                   Plot_Results=True) # Tested/working
 
 
         if data.P is not None and data.T is not None and data.Z_0 is not None:
@@ -185,9 +186,11 @@ if __name__ == '__main__':
                 # Not tested
 
 
-        if data.plot_gibbs:
-            options = plot.plot_options
-            plot.plot_g_mix(s, p, options, figno=None)
+        if data.plot_gibbs: #TODO: No need for this if we plot in pec?
+            pass # Need to add tie lines
+            #options = plot.plot_options
+            #plot.plot_g_mix(s, p, options, figno=None)
+            #plot.plot_g_mix(s, p, g_x_func)#, figno=None)
 
         if data.plot_isotherms is not None:
             from ncomp import g_mix as g_x_func
@@ -203,4 +206,7 @@ if __name__ == '__main__':
 
             from matplotlib import pyplot as plot
 
-            plot.show()
+            #plot.show()
+
+        from matplotlib import pyplot as plot
+        plot.show()
