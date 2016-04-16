@@ -628,7 +628,7 @@ class Iso:
         model_x_ph = {}  # LLE type equilibrium tie lines
         model_p_ph = {}
         model_t_ph = {}
-        for ph in p.m['Valid phases']:
+        for ph in p.m['Data phases']:
             model_x_ph[ph] = []
             model_p_ph[ph] = []
             model_t_ph[ph] = []
@@ -638,10 +638,25 @@ class Iso:
                 if len(r_ph_eq[i][ph]) > 0:  # Equilibrium point found
                     for j in range(len(r_ph_eq[i][ph])):
                         if len(r_ph_eq[i][ph][j]) > 1:  # discard single points
-                            for l in range(len(r_ph_eq[i][ph][j])):
-                                model_x_ph[ph].append(r_ph_eq[i][ph][j])
-                                model_p_ph[ph].append(P_range[i])
-                                model_t_ph[ph].append(T_range[i])
+                            model_x_ph[ph].append(r_ph_eq[i][ph][j][0])
+                            model_p_ph[ph].append(P_range[i])
+                            model_t_ph[ph].append(T_range[i])
+                            l = 0
+                            for ph2 in p.m['Data phases']:
+                                l += 1
+                                if ph2 is not ph:
+                                    try:
+                                        model_x_ph[ph].append(
+                                            r_ph_eq[i][ph][j][l])
+                                        model_p_ph[ph].append(P_range[i])
+                                        model_t_ph[ph].append(T_range[i])
+                                    except(IndexError):
+                                        model_x_ph[ph].append(None)
+                                        model_p_ph[ph].append(None)
+                                        model_t_ph[ph].append(None)
+                            #for l in range(1, len(r_ph_eq[i][ph][j])):
+                            #    for
+
                                 # Attach a pressure and temperature
                                 # point for each of these to keep dims
 
@@ -784,28 +799,32 @@ class Iso:
         # VLE envelopes
         if not LLE_only:
             # Plot data points
-            if data_x_mph is not None:
+            if (data_x_mph is not None) and (len(data_x_mph) > 0):
                 for ph in k:
                     plot.plot(data_x_mph[ph][1], data_p, 'x',
                               label='{} data'.format(ph))
             # Plot model points
-            if model_p_mph is not None:
+            if model_p_mph is not None and (len(model_p_mph) > 0):
                 for ph in k:
+                    print('model_x_mph[ph] = {}'.format(model_x_mph[ph]))
+                    print('model_p_mph[ph] = {}'.format(model_p_mph[ph]))
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_mph[ph], model_p_mph[ph], '-',
-                              label='{} model'.format(ph))
+                              label='{} model VLE'.format(ph))
 
         # LLE envelopes
         if not VLE_only:
             # Plot data points
-            if data_x_ph is not None:
+            if (data_x_ph is not None) and (len(data_x_ph) > 0):
                 for ph in p.m['Data phases']:
                     plot.plot(data_x_ph[ph][1], data_p, 'x',
                               label='{} data'.format(ph))
             # Plot model points
-            if model_p_ph is not None:
+            if model_p_ph is not None and (len(model_p_ph) > 0):
                 for ph in k:
+                    print('model_x_ph[ph] = {}'.format(model_x_ph[ph]))
+                    print('model_p_ph[ph] = {}'.format(model_p_ph[ph]))
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_ph[ph], model_p_ph[ph], '-',
@@ -891,12 +910,12 @@ class Iso:
         # VLE envelopes
         if not LLE_only:
             # Plot data points
-            if data_x_mph is not None:
+            if (data_x_mph is not None) and (len(data_x_mph) > 0):
                 for ph in k:
                     plot.plot(data_x_mph[ph][1], data_t, 'x',
                               label='{} data'.format(ph))
             # Plot model points
-            if model_t_mph is not None:
+            if (model_t_mph is not None) and (len(model_x_mph) > 0):
                 for ph in k:
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
@@ -906,12 +925,12 @@ class Iso:
         # LLE envelopes
         if not VLE_only:
             # Plot data points
-            if data_x_ph is not None:
+            if (data_x_ph is not None) and (len(data_x_ph) > 0):
                 for ph in p.m['Data phases']:
                     plot.plot(data_x_ph[ph][1], data_t, 'x',
                               label='{} data'.format(ph))
             # Plot model points
-            if model_t_ph is not None:
+            if model_t_ph is not None and (len(model_t_ph) > 0):
                 for ph in k:
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
@@ -985,8 +1004,8 @@ class Iso:
                     tax.line(data_x_ph[ph1][i],  # ex. x
                              data_x_ph[ph2][i],  # ex. xII
                              linewidth=1.0, marker='.',
-                             linestyle="-", label='Model {}-{}'.format(ph1,
-                                                                       ph2))
+                             linestyle="-", label='Model {}-{} LLE'.format(ph1,
+                                                                         ph2))
         # VLE
         if not LLE_only:
             for i in range(len(data_x_mph)):
@@ -995,7 +1014,7 @@ class Iso:
                         tax.line(data_x_ph[ph][i],  # ex. x
                                  data_x_ph[ph][i + 1],  # ex. xII
                                  linewidth=1.0, marker='.',
-                                 linestyle="-", label='Model {}'.format(ph))
+                                 linestyle="-", label='Model {} VLE'.format(ph))
 
         tax.ticks(axis='lbr', multiple=0.1, linewidth=1)
 
