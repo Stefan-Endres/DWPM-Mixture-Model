@@ -1142,7 +1142,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     # TODO: Find more efficient way to exclude minima points within a tolerance
     def x_plane_tol(xl, phase_tol):
         Flag = []  # Flag index for deletion from solution array
-        for i in range(len(d_res.xl)):
+        #for i in range(len(d_res.xl)):
+        for i in range(len(xl)):
             for j in range(i + 1, len(xl)):
                 if numpy.allclose(xl[i], xl[j],
                                   rtol=phase_tol, atol=phase_tol):
@@ -1340,6 +1341,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     import numpy
     from UQToolbox.sobol_lib import i4_sobol_generate
     from tgo import tgo
+    import copy
     # init returns
     ph_eq = {}
     mph_eq = []
@@ -1348,13 +1350,13 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     # Generate sampling points.
     m = p.m['n'] - 1
     skip = 4
-    Points = i4_sobol_generate(m, n, skip)
-    Points = numpy.column_stack([Points[i] for i in range(m)])
-    Points = Points[numpy.sum(Points, axis=-1) <= 1.0]
+    points = i4_sobol_generate(m, n, skip)
+    points = numpy.column_stack([points[i] for i in range(m)])
+    points = points[numpy.sum(points, axis=-1) <= 1.0]
     S = numpy.empty(n, dtype=bool)
 
     # Update P, T to specified value
-    s = s.update_state(s, p,  P=P, T=T, X = Points[0], Force_Update=True)
+    s = s.update_state(s, p,  P=P, T=T, X = points[0], Force_Update=True)
 
     def subset_eqp(Points, EQ):
         # Returns a subset of "Points" outside EQP
@@ -1372,12 +1374,13 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
     # Detect instability in a same volume root phase:
     if not VLE_only:
+        points_ph = copy.copy(points)
         # define LLE instability func
-        def instability_point_calc(Points, g_x_func, s, p, n, k, P=P, T=T):
+        def instability_point_calc(points, g_x_func, s, p, n, k, P=P, T=T):
             #  Find an instability point, calculated equilibrium and return
             #  new feasible subset.
             Stop = False # Boolean to run main while loop
-            for i, X in zip(range(n), Points):
+            for i, X in zip(range(n), points):
                 # Test for instability at current equilibrium point.
                 S[i] = stability(X, g_x_func, s, p, k=ph)
                 if not S[i]: # If point is unstable find equilibrium point.
@@ -1392,7 +1395,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     #s.m['ph equil P'] = [s.m['X_I'], s.m['X_II']]
                     ph_eq_P = X_eq
                     # TODO: Improve finding feasible subspace of points.
-                    P_new = Points[(i+1):]
+                    P_new = points[(i+1):]
                     P_new = subset_eqp(P_new, X_eq)
 
                     # Stop if no values in subset
@@ -1405,7 +1408,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
             #  point to None.
             ph_eq_P = None
             Stop = True
-            return Points, ph_eq_P, Stop
+            return points, ph_eq_P, Stop
 
         # Main looping
         ph_eq = {} # Range of equilibrium points.
@@ -1414,8 +1417,9 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
             ph_eq[ph] = []
 
             while not Stop:
-                Points, ph_eq_P, Stop = instability_point_calc(Points,g_x_func,
-                                                               s, p, n, ph)
+                points_ph, ph_eq_P, Stop = instability_point_calc(points_ph,
+                                                                  g_x_func,
+                                                                  s, p, n, ph)
 
                 # Save an equilibrium point to the range of points in the
                 # current phase if found.
@@ -1448,40 +1452,124 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         # sampling points.
         mph_eq = []
         mph_ph = []
-        for i in range(len(p.m['Valid phases'])):
-            for j in range(i + 1, len(p.m['Valid phases'])):
-                ph1 = p.m['Valid phases'][i]
-                ph2 = p.m['Valid phases'][j]
-                Fd = numpy.empty(n)
-                for l, X in zip(range(n), Points):
-                    Fd[l] = g_diff(X, g_x_func, s, p, ph1, ph2, ph1)
-                    if not (numpy.all(Fd > 0) or numpy.all(Fd < 0)):
-                        pass
-                        #print 'l = {}'.format(l)
-                        #print ' Fd = {}'.format(Fd)
+        # Bounds used in tgo abs ( functor ) evaluation:
+        Bounds = [(1e-20, 0.999999999999999999), ] * (p.m['n'] - 1)
+
+
+        # TODO: Remove similarly embedded function inside
+        # phase_equilibrium_calculation and use in both routines
+        def x_plane_tol(xl, phase_tol):
+            Flag = []  # Flag index for deletion from solution array
+            # for i in range(len(d_res.xl)):
+            for i in range(len(xl)):
+                for j in range(i + 1, len(xl)):
+                    if numpy.allclose(xl[i], xl[j],
+                                      rtol=phase_tol, atol=phase_tol):
+                        Flag.append(
+                            j)  # Flag index j for deletion if points are
+                        # within a the specified phase tolerance from
+                        # each other
+
+            return Flag
+
+        # define VLE instability func
+        def instability_point_calc_mph(points_mph, Z_0_l_old, g_x_func, Bounds,
+                                       s, p, n, k, ph1, ph2, P=P, T=T):
+            import numpy
+            # Find an instability point, calculated equilibrium and return
+            #  new feasible subset.
+            Stop = False  # Boolean to run main while loop
+
+            Fd = numpy.empty(n)
+            for i, X in zip(range(n), points_mph):
+                # Find functor value at current point
+                Fd[i] = g_diff(X, g_x_func, s, p, ph1, ph2, ph1)
 
                 # Look for sign cross phase seperation
-                if not numpy.all(Fd > 0) or numpy.all(Fd < 0):
+                if not (numpy.all(Fd[:i] > 0) or numpy.all(Fd[:i] < 0)):
+                    mph_eq_Ps = []
+                    mph_ph_Ps = []
                     # (if all values are not greater than or less than zero)
-                    Bounds = [(1e-6, 0.99999)]
-                    Args=(g_x_func, s, p, ph1, ph2, ph1)
-                    #TODO: Reterieve local minima instead and loop over Z_0
-                    # while eliminating subspace
-                    Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
-                    #TODO: Find X_eq of global minima --> eliminate subspace
-                    # --> eliminate local minima within this subspace
-                    # --> test remaining local minima
-                    X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
-                                                   g_x_func, Z_0, P=P, T=T,
-                                                   tol=tol, gtol=gtol, n=n,
-                                                   phase_tol=phase_tol,
-                                                   Print_Results=Print_Results,
-                                                   Plot_Results=Plot_Results)
+                    Args = (g_x_func, s, p, ph1, ph2, ph1)
 
-                    mph_eq.append(X_eq)
-                    mph_ph.append(phase_eq)
+                    # TODO: Update bounds here to only search outside the
+                    # feasible set
+                    diffres = tgo(g_diff_obj, Bounds, args=Args)#, n=1000, k_t=5)
+
+                    Z_0_l = diffres.xl
+                    #Z_0 = diffres.x
+                    Flag = None
+                    print('Z_0_l = {}'.format(Z_0_l))
+                    print('diffres.funl = {}'.format(diffres.funl))
+                    for Z_0, ind in zip(Z_0_l, range(len(Z_0_l))):
+                        #if not ind in Flag:
+                        #if Z_0 not in Z_0_l_old:
+                        print('Flag = {}'.format(Flag))
+                        X_eq, g_eq, phase_eq = \
+                            phase_equilibrium_calculation(s, p,
+                                             g_x_func, Z_0,
+                                             k=k, P=P, T=T,
+                                             tol=tol,
+                                             gtol=gtol,
+                                             phase_tol=phase_tol,
+                                             Print_Results=Print_Results,
+                                             Plot_Results=Plot_Results)
+
+                        mph_eq_Ps.append(X_eq)
+                        mph_ph_Ps.append(phase_eq)
+                        Z_0_l_old.append(Z_0_l_old)
 
 
+                        # Remove the other local minima within phase tolerance
+                        # Flag = x_plane_tol(Z_0_l, phase_tol)
+
+                    # FIND ALL SHIT THEN
+                    # TODO: Improve finding feasible subspace of points.
+                    P_new = points_mph[(i + 1):]
+                    for Xeq in mph_eq_Ps:
+                        P_new = subset_eqp(P_new, X_eq)
+
+                    #mph_eq.append(X_eq)
+                    #mph_ph.append(phase_eq)
+                    # Stop if no values in subset
+                    if numpy.shape(P_new)[0] == 0:
+                        Stop = True
+
+                    return P_new, Z_0_l_old, mph_eq_Ps, mph_ph_Ps, Stop
+
+            # If no instability was found, stop the main for loop and set eq.
+            #  point to None.
+            mph_eq_Ps = None
+            mph_ph_Ps = None
+            Stop = True
+            return points, Z_0_l_old, mph_eq_Ps, mph_ph_Ps, Stop
+
+
+        for i in range(len(p.m['Valid phases'])):
+            for j in range(i + 1, len(p.m['Valid phases'])):
+                points_mph = copy.copy(points)
+                ph1 = p.m['Valid phases'][i]
+                ph2 = p.m['Valid phases'][j]
+                Stop = False
+                Z_0_l_old = []
+                while not Stop:
+                    # Solve shit.
+                    points_mph, Z_0_l_old, mph_eq_Ps, mph_ph_Ps, Stop = \
+                        instability_point_calc_mph(points_mph, Z_0_l_old,
+                                                   g_x_func,
+                                                   Bounds, s, p, n, [ph1, ph2],
+                                                   ph1, ph2)
+
+                    if mph_eq_Ps is not None:
+                        if len(mph_eq_Ps) > 1:
+                            # TODO: X_eq can be more than one point so check len
+                            # before appending
+                            pass
+                        else:
+                            mph_eq.append(mph_eq_Ps)
+                            mph_ph.append(mph_ph_Ps)
+
+    # Main function return
     return ph_eq, mph_eq, mph_ph
 
 
