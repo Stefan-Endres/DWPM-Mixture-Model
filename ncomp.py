@@ -1455,6 +1455,10 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                 Fd = numpy.empty(n)
                 for l, X in zip(range(n), Points):
                     Fd[l] = g_diff(X, g_x_func, s, p, ph1, ph2, ph1)
+                    if not (numpy.all(Fd > 0) or numpy.all(Fd < 0)):
+                        pass
+                        #print 'l = {}'.format(l)
+                        #print ' Fd = {}'.format(Fd)
 
                 # Look for sign cross phase seperation
                 if not numpy.all(Fd > 0) or numpy.all(Fd < 0):
@@ -1464,7 +1468,9 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     #TODO: Reterieve local minima instead and loop over Z_0
                     # while eliminating subspace
                     Z_0 = tgo(g_diff_obj, Bounds, args=Args, n=1000, k_t = 5).x
-
+                    #TODO: Find X_eq of global minima --> eliminate subspace
+                    # --> eliminate local minima within this subspace
+                    # --> test remaining local minima
                     X_eq, g_eq, phase_eq = phase_equilibrium_calculation(s, p,
                                                    g_x_func, Z_0, P=P, T=T,
                                                    tol=tol, gtol=gtol, n=n,
