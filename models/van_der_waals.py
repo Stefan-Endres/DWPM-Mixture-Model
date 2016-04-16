@@ -139,17 +139,21 @@ class VdW:
             s['V_v'], s['V_l'] = max(V_roots), min(V_roots) 
     
         except(ValueError):
-            from numpy import roots
+            import numpy
             # Coefficients of (C_0)V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
             C = [ 1.0,                                # Coefficient C_0
                  - (p['R']*s['T']/s['P'] + s['b']),   # Coefficient C_1
                  s['a']/s['P'],                       # Coefficient C_2
                  - s['a']*s['b']/s['P']               # Coefficient C_3
                 ]
-                
-            V_roots = roots(C) 
-            s['V_v'], s['V_l']  = max(V_roots.real), min(V_roots.real) 
-        
+            #try:
+            V_roots = numpy.roots(C)
+            s['V_v'], s['V_l']  = max(V_roots.real), min(V_roots.real)
+
+            #except(numpy.linalg.linalg.LinAlgError):  # Nan's in roots
+            #    V_roots = numpy.array([0.0, 0.0, 0.0])
+            #    s['V_v'], s['V_l'] = numpy.nan, numpy.nan
+
         if abs(V_roots[0].imag) > 0.1 or abs(V_roots[1].imag) > 0.1 \
                                       or abs(V_roots[2].imag) > 0.1:
             

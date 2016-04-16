@@ -1247,6 +1247,11 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     return X_eq, g_eq, phase_eq
 
 # Phase seperation detection
+def x_lim(X):  # limiting function used in TGO defining material constraints
+    import numpy
+    # return -numpy.sum(X, axis=-1) + 1.0
+    return -numpy.sum(X, axis=0) + 1.0
+
 def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                VLE_only=False, tol=1e-9, gtol=1e-3, n_dual=100,
                                phase_tol=1e-3, Print_Results=False,
@@ -1445,6 +1450,9 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
             # Returns difference between Gibbs energy of phases 'ph1' & 'ph2'
             # Note, all phases must be at same composition for meaningful
             # comparison
+            print "="*100
+            print 'X = {}'.format(X)
+            print "=" * 100
             s = s.update_state(s, p,  X = X, Force_Update=True)
             return abs(g_x_func(s, p, k=ph1, ref=ref).m['g_mix'][ph1]
                        - g_x_func(s, p, k=ph2, ref=ref).m['g_mix'][ph2])
@@ -1455,6 +1463,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         mph_ph = []
         # Bounds used in tgo abs ( functor ) evaluation:
         Bounds = [(1e-20, 0.999999999999999999), ] * (p.m['n'] - 1)
+
+        #Bounds = [(1e-3, 0.999), ] * (p.m['n'] - 1)
 
 
         # TODO: Remove similarly embedded function inside
@@ -1495,7 +1505,9 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
                     # TODO: Update bounds here to only search outside the
                     # feasible set
-                    diffres = tgo(g_diff_obj, Bounds, args=Args)#, n=1000, k_t=10)
+                    diffres = tgo(g_diff_obj, Bounds,
+                                  g_cons=x_lim,
+                                   args=Args)#, n=1000, k_t=10)
 
                     Z_0_l = diffres.xl
                     #Z_0 = diffres.x
