@@ -864,8 +864,9 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
     def x_lim(X): # limiting function used in TGO defining material constraints
         import numpy
-        return -numpy.sum(X, axis=-1) + 1.0
-    
+        #return -numpy.sum(X, axis=-1) + 1.0
+        return -numpy.sum(X, axis=0) + 1.0
+
     if k == None:
         k = p.m['Valid phases']
         
@@ -937,10 +938,10 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         # Solve LBD
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_sol, Z_0, s, p, k),
-                                 g_func=x_lim,
+                                 g_cons=x_lim,
                                  n = n,
                                  #n = 100 + 100*(p.m['n'] - 1),
-                                 skip=2)
+                    )#skip=2)
 
         X_sol = d_res.x
         # Calculate LBD
@@ -1494,17 +1495,14 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
                     # TODO: Update bounds here to only search outside the
                     # feasible set
-                    diffres = tgo(g_diff_obj, Bounds, args=Args)#, n=1000, k_t=5)
+                    diffres = tgo(g_diff_obj, Bounds, args=Args)#, n=1000, k_t=10)
 
                     Z_0_l = diffres.xl
                     #Z_0 = diffres.x
                     Flag = None
-                    print('Z_0_l = {}'.format(Z_0_l))
-                    print('diffres.funl = {}'.format(diffres.funl))
                     for Z_0, ind in zip(Z_0_l, range(len(Z_0_l))):
                         #if not ind in Flag:
                         #if Z_0 not in Z_0_l_old:
-                        print('Flag = {}'.format(Flag))
                         X_eq, g_eq, phase_eq = \
                             phase_equilibrium_calculation(s, p,
                                              g_x_func, Z_0,
@@ -1519,18 +1517,17 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                         mph_ph_Ps.append(phase_eq)
                         Z_0_l_old.append(Z_0_l_old)
 
+                        # TODO: In future we can improve the robustness
+                        # with additional tgo evals under more g_cons:
+                        Stop = True
 
                         # Remove the other local minima within phase tolerance
                         # Flag = x_plane_tol(Z_0_l, phase_tol)
 
-                    # FIND ALL SHIT THEN
-                    # TODO: Improve finding feasible subspace of points.
                     P_new = points_mph[(i + 1):]
                     for Xeq in mph_eq_Ps:
                         P_new = subset_eqp(P_new, X_eq)
 
-                    #mph_eq.append(X_eq)
-                    #mph_ph.append(phase_eq)
                     # Stop if no values in subset
                     if numpy.shape(P_new)[0] == 0:
                         Stop = True

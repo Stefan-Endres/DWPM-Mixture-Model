@@ -175,10 +175,15 @@ if __name__ == '__main__':
 
         # Simulate specifications
         if data.P is not None and data.T is not None and data.Z_0 is None:
-            psd(g_x_func, s, p, data.P, data.T, n=100, LLE_only=data.lle_only,
-                                   VLE_only=data.vle_only,
-                                   Plot_Results=True) # Tested/working
+            ph_eq, mph_eq, mph_ph = \
+                psd(g_x_func, s, p, data.P, data.T, n=100,
+                    LLE_only=data.lle_only,
+                    VLE_only=data.vle_only,
+                    Plot_Results=True) # Tested/working
 
+            print('ph_eq = {}'.format(ph_eq))
+            print('mph_eq = {}'.format(mph_eq))
+            print('mph_ph = {}'.format(mph_ph))
 
         if data.P is not None and data.T is not None and data.Z_0 is not None:
             pec(s, p, g_x_func, data.Z_0, k=None, P=data.P, T=data.T,
