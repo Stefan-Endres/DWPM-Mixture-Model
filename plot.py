@@ -731,21 +731,12 @@ class Iso:
             # print('model_p_mph = {}'.format(model_p_mph))
             if len(r_mph_eq[i]) > 0:  # Equilibrium point found
                 for j in range(len(r_mph_eq[i])):
-                    #if len(r_mph_eq[i][j]) > 1:  # discard single
-                        # print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j])
-                        # print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j])
-                        # points
+                    if len(r_mph_eq[i][j]) > 1:  # discard single points
                         for l in range(len(r_mph_eq[i][j])):
-                            # print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j][l])
-                            # print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j][l])
-                            if len(r_mph_eq[i][j][l]) > 1:  # discard single
-                                for q in range(len(r_mph_eq[i][j][l])):
-                                    model_x_mph[r_mph_ph[i][j][l][q]].append(
-                                        r_mph_eq[i][j][l][q])
-                                    model_p_mph[r_mph_ph[i][j][l][q]].append(
-                                        P_range[i])
-                                    model_t_mph[r_mph_ph[i][j][l][q]].append(
-                                        T_range[i])
+                            model_x_mph[r_mph_ph[i][j][l]].append(
+                                r_mph_eq[i][j][l])
+                            model_p_mph[r_mph_ph[i][j][l]].append(P_range[i])
+                            model_t_mph[r_mph_ph[i][j][l]].append(T_range[i])
                             # Attach a pressure and temperature
                             # point for each of these to keep dims
         # Sort:
