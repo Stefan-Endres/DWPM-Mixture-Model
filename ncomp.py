@@ -1446,15 +1446,23 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
 
         # Define objective function for feed search
-        def g_diff_obj(X, g_x_func, s, p, ph1, ph2, ref):
+        def g_diff_obj(X, g_x_func, s, p, ph1, ph2, ref, phase_tol):
             # Returns difference between Gibbs energy of phases 'ph1' & 'ph2'
             # Note, all phases must be at same composition for meaningful
             # comparison
-            print "="*100
-            print 'X = {}'.format(X)
-            print "=" * 100
+            # print "="*100
+            # print 'X = {}'.format(X)
+            # print "=" * 100
+            import numpy
+
+            #print 'X = {}'.format(X)
+            if numpy.isnan(X).any():
+                #print 'X = {}'.format(X)
+                # print("NAN VALS IN X"*100)
+                X[:] = 1e-20
+               # print 'set X[:] = {}'.format(X)
             s = s.update_state(s, p,  X = X, Force_Update=True)
-            return abs(g_x_func(s, p, k=ph1, ref=ref).m['g_mix'][ph1]
+            return numpy.abs(g_x_func(s, p, k=ph1, ref=ref).m['g_mix'][ph1]
                        - g_x_func(s, p, k=ph2, ref=ref).m['g_mix'][ph2])
 
         # Calculated difference of Gibbs energies between all phases at all
@@ -1463,6 +1471,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
         mph_ph = []
         # Bounds used in tgo abs ( functor ) evaluation:
         Bounds = [(1e-20, 0.999999999999999999), ] * (p.m['n'] - 1)
+        Bounds = [(0.0, 1.0), ] * (p.m['n'] - 1)
 
         #Bounds = [(1e-3, 0.999), ] * (p.m['n'] - 1)
 
@@ -1485,7 +1494,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
         # define VLE instability func
         def instability_point_calc_mph(points_mph, Z_0_l_old, g_x_func, Bounds,
-                                       s, p, n, k, ph1, ph2, P=P, T=T):
+                                       s, p, n, k, ph1, ph2, phase_tol,
+                                       P=P, T=T):
             import numpy
             # Find an instability point, calculated equilibrium and return
             #  new feasible subset.
@@ -1501,29 +1511,37 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     mph_eq_Ps = []
                     mph_ph_Ps = []
                     # (if all values are not greater than or less than zero)
-                    Args = (g_x_func, s, p, ph1, ph2, ph1)
+                    Args = (g_x_func, s, p, ph1, ph2, ph1, phase_tol)
 
                     # TODO: Update bounds here to only search outside the
                     # feasible set
+                    #########
+                    x_r = 1000
+                    plot.plot_ep(g_diff_obj, x_r, s, p, args=Args)
+                    ##########
                     diffres = tgo(g_diff_obj, Bounds,
                                   g_cons=x_lim,
-                                   args=Args)#, n=1000, k_t=10)
+                                  args=Args)#, n=1000, k_t=10)
 
                     Z_0_l = diffres.xl
+                    print '='*100
+                    print 'diffres.xl = {}'.format(diffres.xl)
+                    print '='*100
                     #Z_0 = diffres.x
                     Flag = None
                     for Z_0, ind in zip(Z_0_l, range(len(Z_0_l))):
                         #if not ind in Flag:
                         #if Z_0 not in Z_0_l_old:
-                        X_eq, g_eq, phase_eq = \
-                            phase_equilibrium_calculation(s, p,
-                                             g_x_func, Z_0,
-                                             k=k, P=P, T=T,
-                                             tol=tol,
-                                             gtol=gtol,
-                                             phase_tol=phase_tol,
-                                             Print_Results=Print_Results,
-                                             Plot_Results=Plot_Results)
+                        if not (Z_0 < phase_tol).all():
+                            X_eq, g_eq, phase_eq = \
+                                phase_equilibrium_calculation(s, p,
+                                                 g_x_func, Z_0,
+                                                 k=k, P=P, T=T,
+                                                 tol=tol,
+                                                 gtol=gtol,
+                                                 phase_tol=phase_tol,
+                                                 Print_Results=Print_Results,
+                                                 Plot_Results=Plot_Results)
 
                         mph_eq_Ps.append(X_eq)
                         mph_ph_Ps.append(phase_eq)
@@ -1544,6 +1562,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     if numpy.shape(P_new)[0] == 0:
                         Stop = True
 
+                    print "mph_eq_Ps = {}".format(mph_eq_Ps)
+                    #print "len(mph_eq_Ps) = {}".format(len(mph_eq_Ps))
                     return P_new, Z_0_l_old, mph_eq_Ps, mph_ph_Ps, Stop
 
             # If no instability was found, stop the main for loop and set eq.
@@ -1567,17 +1587,28 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                         instability_point_calc_mph(points_mph, Z_0_l_old,
                                                    g_x_func,
                                                    Bounds, s, p, n, [ph1, ph2],
-                                                   ph1, ph2)
+                                                   ph1, ph2, phase_tol)
+
+                    print "mph_eq_Ps = {}".format(mph_eq_Ps)
+                    #print "len(mph_eq_Ps) = {}".format(len(mph_eq_Ps))
 
                     if mph_eq_Ps is not None:
-                        if len(mph_eq_Ps) > 1:
-                            # TODO: X_eq can be more than one point so check len
-                            # before appending
-                            pass
+                        print "TEST"*100
+                        if len(mph_eq_Ps) > 0:
+                            for Ps in mph_eq_Ps:
+                                if len(Ps) > 1:
+                                    mph_eq.append(mph_eq_Ps)
+                                    mph_ph.append(mph_ph_Ps)
                         else:
-                            mph_eq.append(mph_eq_Ps)
-                            mph_ph.append(mph_ph_Ps)
+                            pass
+                            #mph_eq.append([[[]]])
+                            #mph_ph.append([[[]]])
+                    else:
+                        pass
+                        #mph_eq.append([[[]]])
+                        #mph_ph.append([[[]]])
 
+    print "mph_eq = {}".format(mph_eq)
     # Main function return
     return ph_eq, mph_eq, mph_ph
 
