@@ -726,26 +726,33 @@ class Iso:
             model_t_mph[ph] = []
 
         for i in range(len(P_range)):
-            print('r_mph_eq[i] = {}'.format(r_mph_eq[i]))
-            print('r_mph_ph[i] = {}'.format(r_mph_ph[i]))
-            print('model_p_mph = {}'.format(model_p_mph))
+            # print('r_mph_eq[i] = {}'.format(r_mph_eq[i]))
+            # print('r_mph_ph[i] = {}'.format(r_mph_ph[i]))
+            # print('model_p_mph = {}'.format(model_p_mph))
             if len(r_mph_eq[i]) > 0:  # Equilibrium point found
                 for j in range(len(r_mph_eq[i])):
                     #if len(r_mph_eq[i][j]) > 1:  # discard single
-                        print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j])
-                        print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j])
+                        # print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j])
+                        # print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j])
                         # points
                         for l in range(len(r_mph_eq[i][j])):
-                            print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j][l])
-                            print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j][l])
+                            # print'r_mph_eq[i][j] ={}'.format(r_mph_eq[i][j][l])
+                            # print'r_mph_ph[i][j] ={}'.format(r_mph_ph[i][j][l])
                             if len(r_mph_eq[i][j][l]) > 1:  # discard single
                                 for q in range(len(r_mph_eq[i][j][l])):
                                     model_x_mph[r_mph_ph[i][j][l][q]].append(
                                         r_mph_eq[i][j][l][q])
-                                    model_p_mph[r_mph_ph[i][j][l][q]].append(P_range[i])
-                                    model_t_mph[r_mph_ph[i][j][l][q]].append(T_range[i])
+                                    model_p_mph[r_mph_ph[i][j][l][q]].append(
+                                        P_range[i])
+                                    model_t_mph[r_mph_ph[i][j][l][q]].append(
+                                        T_range[i])
                             # Attach a pressure and temperature
                             # point for each of these to keep dims
+        # Sort:
+        # import numpy
+        # if model_p_mph is not None and (len(model_p_mph) > 0):
+        #     for ph in p.m['Valid phases']:
+        #         model_x_mph[ph] = numpy.sort(model_x_mph[ph] )
 
         return model_x_mph, model_p_mph, model_t_mph
 
@@ -830,8 +837,8 @@ class Iso:
             # Plot model points
             if model_p_mph is not None and (len(model_p_mph) > 0):
                 for ph in k:
-                    print('model_x_mph[ph] = {}'.format(model_x_mph[ph]))
-                    print('model_p_mph[ph] = {}'.format(model_p_mph[ph]))
+                    print('model_x_mph[{}] = {}'.format(ph, model_x_mph[ph]))
+                    print('model_p_mph[{}] = {}'.format(ph, model_p_mph[ph]))
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_mph[ph], model_p_mph[ph], '-',

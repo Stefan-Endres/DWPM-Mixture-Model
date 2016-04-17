@@ -1515,19 +1515,15 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
 
                     # TODO: Update bounds here to only search outside the
                     # feasible set
-                    #########
-                    x_r = 1000
-                    plot.plot_ep(g_diff_obj, x_r, s, p, args=Args)
-                    ##########
+                    if True:  # (dev work, TODO remove)
+                        x_r = 1000
+                        plot.plot_ep(g_diff_obj, x_r, s, p, args=Args)
+
                     diffres = tgo(g_diff_obj, Bounds,
                                   g_cons=x_lim,
                                   args=Args)#, n=1000, k_t=10)
 
                     Z_0_l = diffres.xl
-                    print '='*100
-                    print 'diffres.xl = {}'.format(diffres.xl)
-                    print '='*100
-                    #Z_0 = diffres.x
                     Flag = None
                     for Z_0, ind in zip(Z_0_l, range(len(Z_0_l))):
                         #if not ind in Flag:
@@ -1562,8 +1558,6 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                     if numpy.shape(P_new)[0] == 0:
                         Stop = True
 
-                    print "mph_eq_Ps = {}".format(mph_eq_Ps)
-                    #print "len(mph_eq_Ps) = {}".format(len(mph_eq_Ps))
                     return P_new, Z_0_l_old, mph_eq_Ps, mph_ph_Ps, Stop
 
             # If no instability was found, stop the main for loop and set eq.
@@ -1589,26 +1583,13 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                                    Bounds, s, p, n, [ph1, ph2],
                                                    ph1, ph2, phase_tol)
 
-                    print "mph_eq_Ps = {}".format(mph_eq_Ps)
-                    #print "len(mph_eq_Ps) = {}".format(len(mph_eq_Ps))
-
                     if mph_eq_Ps is not None:
-                        print "TEST"*100
                         if len(mph_eq_Ps) > 0:
-                            for Ps in mph_eq_Ps:
+                            for Ps, Ph in zip(mph_eq_Ps, mph_ph_Ps):
                                 if len(Ps) > 1:
-                                    mph_eq.append(mph_eq_Ps)
-                                    mph_ph.append(mph_ph_Ps)
-                        else:
-                            pass
-                            #mph_eq.append([[[]]])
-                            #mph_ph.append([[[]]])
-                    else:
-                        pass
-                        #mph_eq.append([[[]]])
-                        #mph_ph.append([[[]]])
+                                    mph_eq.append(Ps)
+                                    mph_ph.append(Ph)
 
-    print "mph_eq = {}".format(mph_eq)
     # Main function return
     return ph_eq, mph_eq, mph_ph
 
