@@ -732,6 +732,8 @@ class Iso:
             if len(r_mph_eq[i]) > 0:  # Equilibrium point found
                 for j in range(len(r_mph_eq[i])):
                     if len(r_mph_eq[i][j]) > 1:  # discard single points
+                        print('r_mph_eq[i][j] = {}'.format(r_mph_eq[i][j]))
+                        print('r_mph_ph[i][j] = {}'.format(r_mph_ph[i][j]))
                         for l in range(len(r_mph_eq[i][j])):
                             model_x_mph[r_mph_ph[i][j][l]].append(
                                 r_mph_eq[i][j][l])

@@ -190,8 +190,8 @@ class TestNcompFuncsBin(unittest.TestCase):
         self.p.m['k'][2][1] = self.p.m['k'][1][2]
         ph_eq, mph_eq, mph_ph = phase_seperation_detection(g_mix, self.s,
                                                            self.p,
-                                                           #P=24e5,
-                                                           P=28e5,
+                                                           P=24e5,
+                                                           #P=28e5,
                                                            T=263.1,
                                                            n=100,
                                                            VLE_only=True,

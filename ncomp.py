@@ -948,7 +948,12 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         LBD = lbd(X_sol, g_x_func, Lambda_sol, Z_0, s, p, k)
         X_D.append(X_sol)
         # End
-       
+
+        if False:  # dual stepping plots
+            x_r = 1000
+            plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+
     if False:  # Print results optional
         print 'Final UBD = {}'.format(UBD)
         print 'Final LBD = {}'.format(LBD)
