@@ -60,7 +60,8 @@ class GibbsSurface: #TODO add g_mix plotes here and refactor local variables
     def __init__(self):
         pass
 
-def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
+def plot_g_mix(s, p, g_x_func, Tie=None, plane_func=None, plan_args=None,
+               x_r=1000, FigNo = None):
     """
     Plots the surface of the Gibbs energy of mixing function. Binary and
     Trenary plots only.
@@ -119,9 +120,9 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         for ph in p.m['Valid phases']:
             g_mix_r[ph] = []
 
-        s.c[1]['x_range'] = np.linspace(0, 1, x_r)
-        for i in range(len(s.c[1]['x_range']-1)):  # Calculate range of G_mix
-            X = [s.c[1]['x_range'][i]]
+        X_r = np.linspace(0, 1, x_r)
+        for X in X_r:  # Calculate range of G_mix
+            #X = [X_r[i]]
             s = s.update_state(s, p, X = X, Force_Update=True)
             s = g_x_func(s, p)
             g_mix_r['t'].append(np.float64(s.m['g_mix']['t']))
@@ -134,9 +135,9 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
             plot.figure(FigNo)
 
         for ph in p.m['Valid phases']:
-            plot.plot(s.c[1]['x_range'], g_mix_r[ph], label=ph)
+            plot.plot(X_r, g_mix_r[ph], label=ph)
 
-        plot.plot(s.c[1]['x_range'], g_mix_r['t'])
+        plot.plot(X_r, g_mix_r['t'])
         if Tie is not None: # Add tie lines
             for point in Tie:
                 X = [point[0]]
@@ -151,6 +152,19 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
                 Slope = (G1 - G2)/ (point[0] - point[1])
                 plot.annotate('slope = {}'.format(Slope),
                               xy=(point[1], G2 + G2*0.5) )
+
+        if plane_func is not None:  # Add solution dual planes
+            pfunc = []
+            for X in X_r:  # Calculate range of plane func
+                #s = s.update_state(s, p, X=X, Force_Update=True)
+                pfunc.append(plane_func(X, *plan_args))
+
+            plot.plot(X_r, pfunc, label=r'Dual plane $\lambda^*$ = {}' "\n"
+                                        r'$X^*$ = {}'.format(plan_args[1],
+                                                             plan_args[3]),
+                      linewidth=1.0)
+
+
 
         plot.xlabel(r"$z_1$", fontsize=14)
         plot.ylabel(r"$\Delta$g", fontsize=14)
@@ -255,7 +269,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, x_r=1000, FigNo = None):
         logging.warn('Too many independent components to plot hypersurface '
                       +'in R^3.')
 
-class Iso:
+class IsoDetection:
     def __init__(self, T=None, P=None):
         self.T = T
         self.P = P

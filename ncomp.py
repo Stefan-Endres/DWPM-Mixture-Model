@@ -704,6 +704,7 @@ def ubd(X_D, Z_0, g_x_func, s, p, k=None):
 
     # Global problem bound (Fill last row of A and last element in b
     # G_p (Primal problem Z_0_i - x_i = 0 for all i)
+    # TODO: Move outside function and outside loop in dual
     s = s.update_state(s, p, X = Z_0, Force_Update=True)
     G_P = g_x_func(s, p).m['g_mix']['t']
     A[len(X_D), p.m['n'] - 1] = 1  # set eta to 1
@@ -714,6 +715,7 @@ def ubd(X_D, Z_0, g_x_func, s, p, k=None):
     for X, k in zip(X_D, range(len(X_D))):
         # Find G(X_d)
         s = s.update_state(s, p, X = X, Force_Update=True)
+        #TODO: This only needs to be evaluated once for every x \in X^D
         G_d = g_x_func(s, p).m['g_mix']['t']
         b[k] = G_d
         for i in range(p.m['n'] - 1):
@@ -924,7 +926,10 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_bounds[1][i])
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
+    iteration = 0
+    #X_D.append(numpy.array([ 0.19390632]))
     while abs(UBD - LBD) >= tol:
+        iteration +=1
         # Solve UBD
         # Find new bounds for linprog
         c, A, b = ubd(X_D, Z_0, g_x_func, s, p)
@@ -935,6 +940,27 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         Lambda_sol = numpy.array(Lambda_sol)
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
+
+        if True:  # dual stepping plots
+            print('Iteration number: {}'.format(iteration))
+            print('Lambda_sol: {}'.format(Lambda_sol))
+            print('X_sol: {}'.format(X_sol))
+            print('X_D: {}'.format(X_D))
+            x_r = 1000
+            # Lagrange function surface
+            # plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            # plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+
+            # Dual plane
+            if p.m['n'] == 2:
+                s.update_state(s, p, X=X_sol[0], Force_Update=True)
+                G_sol = g_x_func(s, p).m['g_mix']['t']
+                print('G_sol : {}'.format(G_sol))
+                plot.plot_g_mix(s, p, g_x_func, Tie=[[Z_0, X_sol]], x_r=1000,
+                                plane_func=dual_plane_sol,
+                               # plan_args=(G_sol, -Lambda_sol, Z_0, X_sol))
+                                plan_args=(G_sol, Lambda_sol, Z_0, X_sol))
+
 
         # Solve LBD
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_sol, Z_0, s, p, k),
@@ -949,10 +975,26 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_sol)
         # End
 
-        if False:  # dual stepping plots
+        if True:  # dual stepping plots
+            print('Iteration number: {}'.format(iteration))
+            print('Lambda_sol: {}'.format(Lambda_sol))
+            print('X_sol: {}'.format(X_sol))
+            print('X_D: {}'.format(X_D))
             x_r = 1000
-            plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+            # Lagrange function surface
+            #plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            #plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+
+            # Dual plane
+            if p.m['n'] == 2:
+                s.update_state(s, p, X=X_sol[0], Force_Update=True)
+                G_sol = g_x_func(s, p).m['g_mix']['t']
+                print('G_sol: {}'.format(G_sol))
+                plot.plot_g_mix(s, p, g_x_func, Tie=[[Z_0, X_sol]] , x_r=1000,
+                                plane_func=dual_plane_sol,
+                                #plan_args=(G_sol, -Lambda_sol, Z_0, X_sol))
+                                plan_args=(G_sol, Lambda_sol, Z_0, X_sol))
+
 
     if False:  # Print results optional
         print 'Final UBD = {}'.format(UBD)
@@ -966,7 +1008,37 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
 
 # %% Dual plane eta for optim visualization
+def dual_plane_sol(X, G_sol, Lambda_sol, Z_0 , X_sol):
+    """          Lambda_d, G_sol,
+    Returns the scalar output of the dual solution hyperplane at X for
+    a given G_sol(x^j) where x^j \in X* (solution set X)
+
+    Parameters
+    ----------
+    X : vector
+        Contains an input composition point to calculate the plane scalar
+        output at X.
+
+    G_sol : scalar
+            Contains the scalar gibbs output of G_sol(x^j)
+            where x^j \in X* (solution set X)
+
+    Z_0 : vector
+    Contains the feed composition point (must be and unstable point to
+    find multiphase equilibria).
+
+    Dependencies
+    ------------
+    numpy
+
+    Returns
+    -------
+    """
+   # return G_sol + sum(Lambda_sol * (Z_0 - X))
+    return G_sol + sum(Lambda_sol * (X - X_sol))
+
 def dual_plane(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
+    #TODO: This is the lagrange function NOT the dual plane, refactor
     """          Lambda_d, G_sol,
     Returns the scalar output of the dual solution hyperplane at X
 

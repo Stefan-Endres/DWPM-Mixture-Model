@@ -199,8 +199,8 @@ if __name__ == '__main__':
 
         if data.plot_isotherms is not None:
             from ncomp import g_mix as g_x_func
-            from plot import Iso
-            iso = Iso()
+            from plot import IsoDetection
+            iso = IsoDetection()
             import time
             start = time.time()
             iso.plot_iso(s, p, g_x_func, res=6, n=1000, T=data.plot_isotherms,
