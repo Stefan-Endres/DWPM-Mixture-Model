@@ -941,15 +941,15 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
-        if True:  # dual stepping plots
+        if False:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
-            print('Lambda_sol: {}'.format(Lambda_sol))
+            #print('Lambda_sol: {}'.format(Lambda_sol))
             print('X_sol: {}'.format(X_sol))
             print('X_D: {}'.format(X_D))
             x_r = 1000
             # Lagrange function surface
-            # plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-            # plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+            plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+            plot.plot_ep(dual_lagrange, x_r, s, p, args=plane_args)
 
             # Dual plane
             if p.m['n'] == 2:
@@ -975,10 +975,10 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_sol)
         # End
 
-        if True:  # dual stepping plots
+        if False:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
-            print('Lambda_sol: {}'.format(Lambda_sol))
-            print('X_sol: {}'.format(X_sol))
+            #print('Lambda_sol: {}'.format(Lambda_sol))
+            #print('X_sol: {}'.format(X_sol))
             print('X_D: {}'.format(X_D))
             x_r = 1000
             # Lagrange function surface
@@ -1037,8 +1037,7 @@ def dual_plane_sol(X, G_sol, Lambda_sol, Z_0 , X_sol):
    # return G_sol + sum(Lambda_sol * (Z_0 - X))
     return G_sol + sum(Lambda_sol * (X - X_sol))
 
-def dual_plane(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
-    #TODO: This is the lagrange function NOT the dual plane, refactor
+def dual_lagrange(X, Lambda_sol, Z_0, g_x_func, s, p, k=['All']):
     """          Lambda_d, G_sol,
     Returns the scalar output of the dual solution hyperplane at X
 
@@ -1304,7 +1303,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             from scipy import linspace
             x_r = 1000
             plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+            plot.plot_ep(dual_lagrange, x_r, s, p, args=plane_args)
 
         if p.m['n'] == 3:  # Plot ternary tie lines
             s.update_state(s, p, P=P, T=T,  X = X_sol, Force_Update=True)
@@ -1320,7 +1319,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
             x_r = 100#400
             plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-            plot.plot_ep(dual_plane, x_r, s, p, args=plane_args)
+            plot.plot_ep(dual_lagrange, x_r, s, p, args=plane_args)
     return X_eq, g_eq, phase_eq
 
 # Phase seperation detection

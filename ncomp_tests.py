@@ -303,14 +303,16 @@ class TestNcompFuncsTern(unittest.TestCase):
         """
         Equil. Mitsos et al. (2007) test 2 tern
         """
-        Z_0 = numpy.array([0.3, 0.2])
+        Z_0 = numpy.array([0.30, 0.20])
+        #Z_0 = numpy.array([0.35, 0.2])
+        #Z_0 = numpy.array([0.6, 0.1])
         X_eq, g_eq, phase_eq = phase_equilibrium_calculation(self.s, self.p,
                                                           g_x_test_func2,
                                                           Z_0,
                                                           k=None,
                                                           P=101e3, T=300.0,
-                                                          tol=1e-12,
-                                                          phase_tol=1e-5,
+                                                          tol=1e-15,
+                                                          phase_tol=1e-8,
                                                           n = 100 + 100 * 3,
                                                           Print_Results=False,
                                                           Plot_Results=True)
