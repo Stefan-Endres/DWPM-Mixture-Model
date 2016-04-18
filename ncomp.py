@@ -1194,9 +1194,14 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         logging.warn('Less than 2 equilibrium points found in dual, increasing'
                      ' duality sampling points to n=n * p.m[\'n\'] * 10')
         # Change n and tol
-        X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0,
-                                              tol= tol,
-                                              n=n * p.m['n'] * 10)
+        from tgo import tgo
+        plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
+        d_res = tgo(s, p, dual_lagrange,
+                           args=plane_args,
+                           tol= tol,
+                           n=n * p.m['n'] * 10)
+
+        #X_sol = d_res.x
         if len(d_res.xl) < 2:
             logging.warn('Less than 2 equilibrium points found in dual')
             return  X_eq, g_eq, phase_eq

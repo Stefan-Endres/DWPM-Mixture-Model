@@ -177,6 +177,7 @@ if __name__ == '__main__':
         if data.P is not None and data.T is not None and data.Z_0 is None:
             ph_eq, mph_eq, mph_ph = \
                 psd(g_x_func, s, p, data.P, data.T, n=100,
+                    #n_dual=1,
                     LLE_only=data.lle_only,
                     VLE_only=data.vle_only,
                     Plot_Results=True) # Tested/working
