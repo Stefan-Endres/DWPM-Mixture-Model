@@ -2,6 +2,8 @@
 
 class TopShiftParam:
     def __init___(self):
+        from ncomp import phase_equilibrium_calculation as pec
+        from ncomp import dual_equal
         pass
 
     def vdw_dwpm_params(self, params, p):
@@ -87,7 +89,8 @@ class TopShiftParam:
         def d_plane_sol(X):
             return G_sol_I + sum(Lambda_sol_est * (X - X_I))
 
-        return d_plane_sol
+        G_sol = [G_sol_I, G_sol_II]
+        return d_plane_sol, Lambda_sol_est, G_sol
 
 
     def dual_gap(self, g_x_func, plane, X_D, s, p):
@@ -116,17 +119,70 @@ class TopShiftParam:
         # (If duality gap exists/concavity at the point then we add no penalty)
         return epsilon_d
 
-    def norm_eta(self):
+    def norm_eta_sum(self, X_D, Lambda_sol_est, X_I, X_II, G_sol):
         """
         Normalized difference between each plane function eta at Z_0 \in X_D
+        and max(eta)
         """
+        epsilon_e = 0.0
+
+        for X in X_D:
+            eta_I = G_sol[0] + sum(Lambda_sol_est * (X - X_I))
+            eta_II = G_sol[1] + sum(Lambda_sol_est * (X - X_II))
+            epsilon_e += (eta_I - eta_II)/max(eta_I, eta_II)
+
+        return epsilon_e
+
+
+    def data_error(self, X_data, ph_data, X_D, g_x_func, s, p):
+        """
+        Calculate the error for a single data point
+
+        (should be in loop:
+        for ph, ind in zip(p.m['Data phases'],
+                   range(len(p.m['Data phases']))):
+
+        """
+        from ncomp import phase_equilibrium_calculation as pec
+        from ncomp import dual_equal
+        Z_0 = sorted(X_D)[len(X_D) // 2]
+        #
+        #dual_equal(s, p, g_x_func, Z_0)
+
+        X_eq, g_eq, phase_eq = pec(s, p, g_x_func, Z_0)
+
+
+        print X_data
+        print 'X_eq = {}'.format(X_eq)
+        print 'phase_eq  = {}'.format(phase_eq )
+        if len(X_eq) < len(X_data):
+            epsilon_x = 1.0
+        #elif len(X_eq) == 1:
+        #    for i in range(p.m['n']):
+        #        epsilon_x = abs(X_eq[0][i] - X_data[i])
+        elif len(X_eq) == len(X_data):
+            Epsilon_x = []
+            #for X_sol, ph in zip(X_eq, phase_eq):
+            for X_sol in X_eq:
+                #for ph in phase_eq:
+                if ph == ph_data:
+                    for i in range(p.m['n']):
+                        Epsilon_x.append(abs(X_sol[i] - X_data[i]))
+
+        elif len(X_eq) > len(X_data):
+            Epsilon_x = []
+            for X in X_eq:
+                for X_sol, ph in zip(X, phase_eq):
+                    if ph == ph_data:
+                        for i in range(p.m['n']):
+                            Epsilon_x.append(abs(X_sol[i] - X_data[i]))
+            epsilon_x = min(Epsilon_x)
+
+        return epsilon_x
+
+
+    def tsp_objective_function(self):
         pass
-
-
-
-
-
-
 
 
 

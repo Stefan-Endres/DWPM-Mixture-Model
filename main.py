@@ -147,23 +147,25 @@ if __name__ == '__main__':
 
             #X_I = numpy.array([0.1939063, 0.2])
             #X_II = numpy.array([0.30898849, 0.33 ])
-            X_I = numpy.array([0.1939063])
-            X_II = numpy.array([0.308988493])
+            X_I = numpy.array([0.1939063])  # 'x'
+            X_II = numpy.array([0.308988493])  # 'y'
             params = [1.0, 1.0]  # r and s
             TSP.vdw_dwpm_params(params, p)
             #print p.m['r']
             #print p.m['s']
             X_D = TSP.d_points(5, X_I, X_II)
 
-            plane = TSP.d_plane(g_mix, s, p, X_I, X_II)
+            plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
             f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
             epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
-            print epsilon_d
 
+            epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
+            #print epsilon_e
 
-
-
-           #  p.m['r'] = 1.0
+            # epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
+            #                            X_D, g_mix, s, p)
+            epsilon_x = TSP.data_error(X_I, 'x', X_D, g_mix, s, p)
+            #  p.m['r'] = 1.0
            #  p.m['s'] = 1.0
            #  p.m['k'][1][2] = 0.124
            #  p.m['k'][2][1] = 0.124
