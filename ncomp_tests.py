@@ -172,7 +172,7 @@ class TestNcompFuncsBin(unittest.TestCase):
                                                            phase_tol=1e-4,
                                                            Print_Results=False,
                                                            Plot_Results=True)
-
+        X_eq = sorted(X_eq)
         numpy.testing.assert_allclose([X_eq[0], X_eq[1]],
                                       #[0.28226453, 0.25],
                                       [[0.193647],  [0.308676]],
@@ -311,7 +311,8 @@ class TestNcompFuncsTern(unittest.TestCase):
                                                           Z_0,
                                                           k=None,
                                                           P=101e3, T=300.0,
-                                                          tol=1e-15,
+                                                          #tol=1e-15,
+                                                          tol=1e-5,
                                                           phase_tol=1e-8,
                                                           n = 100 + 100 * 3,
                                                           Print_Results=False,

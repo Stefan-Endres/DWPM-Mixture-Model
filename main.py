@@ -135,42 +135,66 @@ if __name__ == '__main__':
         data.load()
         s, p = ncomp.n_comp_init(data)
 
+
         # Parameter optimisation
         if data.optimise:
-            p.m['r'] = 1.0
-            p.m['s'] = 1.0
-            p.m['k'][1][2] = 0.124
-            p.m['k'][2][1] = 0.124
-            # pass #TODO
+            from param import TopShiftParam
+            from ncomp import g_mix
+            import numpy
+            s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
 
-            from tgo import tgo
-            from ncomp import parameter_goal_func as pgf
-            Bounds = [(-5.0, 5.0),  # r
-                      (-5.0, 5.0)]#,  # s
-                     # (0.0, 0.999),   # k12
-                     # (0.0, 0.999),   # k21
-                     # ]
+            TSP = TopShiftParam()
 
-            #p.m['r'], p.m['s'] = -3.75,  1.25
-           # p.m['k'][1][2] = 0.874125
-            #p.m['k'][2][1] = 0.874125
+            #X_I = numpy.array([0.1939063, 0.2])
+            #X_II = numpy.array([0.30898849, 0.33 ])
+            X_I = numpy.array([0.1939063])
+            X_II = numpy.array([0.308988493])
+            params = [1.0, 1.0]  # r and s
+            TSP.vdw_dwpm_params(params, p)
+            print p.m['r']
+            print p.m['s']
+            print TSP.d_points(5, X_I, X_II)
 
-            #Params =  [-3.75, 1.25, 0.874125, 0.874125]
+            plane = TSP.d_plane(g_mix, s, p, X_I, X_II)
 
-            #print pgf( Params, g_x_func, s, p, 200, # n
-            #                     False,
-             #                    True),def
 
-            optimres = tgo(pgf, Bounds,
-                           args=(g_x_func, s, p,
-                                 200, # n
-                                 False,
-                                 True),  # VLE only
-                                 #g_func=x_lim,
-                                 n = 100,
-                                 skip=2)
 
-            print optimres.x
+
+
+           #  p.m['r'] = 1.0
+           #  p.m['s'] = 1.0
+           #  p.m['k'][1][2] = 0.124
+           #  p.m['k'][2][1] = 0.124
+           #  # pass
+           #
+           #  from tgo import tgo
+           #  from ncomp import parameter_goal_func as pgf
+           #  Bounds = [(-5.0, 5.0),  # r
+           #            (-5.0, 5.0)]#,  # s
+           #           # (0.0, 0.999),   # k12
+           #           # (0.0, 0.999),   # k21
+           #           # ]
+           #
+           #  #p.m['r'], p.m['s'] = -3.75,  1.25
+           # # p.m['k'][1][2] = 0.874125
+           #  #p.m['k'][2][1] = 0.874125
+           #
+           #  #Params =  [-3.75, 1.25, 0.874125, 0.874125]
+           #
+           #  #print pgf( Params, g_x_func, s, p, 200, # n
+           #  #                     False,
+           #   #                    True),def
+           #
+           #  optimres = tgo(pgf, Bounds,
+           #                 args=(g_x_func, s, p,
+           #                       200, # n
+           #                       False,
+           #                       True),  # VLE only
+           #                       #g_func=x_lim,
+           #                       n = 100,
+           #                       skip=2)
+           #
+           #  print optimres.x
 
 
         # Simulate specifications

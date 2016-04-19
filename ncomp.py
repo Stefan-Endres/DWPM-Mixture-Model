@@ -1002,6 +1002,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         if True:  # NOTE: Reduced iterations from 6 to 3 !
             if len(d_res.xl) > 0:
                 for i in range(len(d_res.xl)):
+                    #print('X_D = {}'.format(X_D))
+                    #print('d_res.xl) = {}'.format(d_res.xl))
                     X_D.append(d_res.xl[i])
 
         # Calculate LBD
@@ -1036,7 +1038,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         print 'Final Z_eq = {}'.format(X_sol)
         print 'Final Lambda_d = {}'.format(Lambda_d)
 
-    if True:  # Feed point plane estimate dev
+    if False:  # Feed point plane estimate dev
         x_r = 1000
         # Suppose data_solutions at
         # [[array([ 0.1939063]), array([ 0.30898849])]]
@@ -1251,10 +1253,10 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Change n and tol
         from tgo import tgo
         plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-        d_res = tgo(s, p, dual_lagrange,
-                           args=plane_args,
-                           tol= tol,
-                           n=n * p.m['n'] * 10)
+        d_res = tgo(dual_lagrange,
+                    args=plane_args,
+                    #tol= tol,
+                    n=n * p.m['n'] * 10)
 
         #X_sol = d_res.x
         if len(d_res.xl) < 2:
