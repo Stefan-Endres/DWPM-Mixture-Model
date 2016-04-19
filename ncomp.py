@@ -931,19 +931,26 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         s.update_state(s, p, X=Z_0, phase=k, Force_Update=True)
         for z in range(1, p.m['n']):
             Lambda_d[z - 1] = FD(g_mix, s, p, d=1, z=z, gmix=True)
-            print('Lambda_d = {}'.format(Lambda_d))
+            print('Lambda_d from init FD est. = {}'.format(Lambda_d))
 
         # Solve LBD for first cutting plane
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
                     g_cons=x_lim,
                     n=n,
+                    #k_t=2,
                     # n = 100 + 100*(p.m['n'] - 1),
                     )  # skip=2)
 
         X_sol = d_res.x
-        # Calculate LBD
-        LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k)
         X_D.append(X_sol)
+        print('X_sol from init FD est. = {}'.format(X_sol))
+        if len(d_res.xl) > 0:
+            for i in range(len(d_res.xl)):
+                print('d_res.xl{}'
+                      ' from init FD est. = {}'.format(i, d_res.xl[i]))
+                X_D.append(d_res.xl[i])
+
+        print('X_D at init = {}'.format(X_D))
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     iteration = 0
@@ -961,7 +968,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
-        if False:  # dual stepping plots
+        if True:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             print('X_sol: {}'.format(X_sol))
@@ -990,12 +997,20 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
                     )#skip=2)
 
         X_sol = d_res.x
+        X_D.append(X_sol)
+
+        if True:  # NOTE: Reduced iterations from 6 to 3 !
+            if len(d_res.xl) > 0:
+                for i in range(len(d_res.xl)):
+                    print('d_res.xl{}'
+                          ' from init FD est. = {}'.format(i, d_res.xl[i]))
+                    X_D.append(d_res.xl[i])
+
         # Calculate LBD
         LBD = lbd(X_sol, g_x_func, Lambda_sol, Z_0, s, p, k)
-        X_D.append(X_sol)
-        # End
+        # End if tol
 
-        if True:  # dual stepping plots
+        if False:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             #print('X_sol: {}'.format(X_sol))
