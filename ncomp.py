@@ -878,8 +878,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
     s.update_state(s, p,  X = Z_0, phase = k, Force_Update=True) 
         
     # G_p (Primal problem Z_0_i - x_i = 0 for all i):
-    UBD = g_x_func(s, p).m['g_mix']['t']  
-    Lambda_d = numpy.zeros_like(Z_0)
+    UBD = g_x_func(s, p).m['g_mix']['t']
 
     # X bounds used in UBD optimization
     X_bounds = [[],  # Upper bound (bar x)
@@ -924,6 +923,27 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
     for i in range(p.m['n']-1):
         X_D.append(X_bounds[0][i])
         X_D.append(X_bounds[1][i])
+
+
+    if True:  # Lambda estimates using differentials at Z_0
+        # NOTE on CO2-ethane test this cut the iterations down to 6 from 9
+        Lambda_d = numpy.zeros_like(Z_0)
+        s.update_state(s, p, X=Z_0, phase=k, Force_Update=True)
+        for z in range(1, p.m['n']):
+            Lambda_d[z - 1] = FD(g_mix, s, p, d=1, z=z, gmix=True)
+            print('Lambda_d = {}'.format(Lambda_d))
+
+        # Solve LBD for first cutting plane
+        d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
+                    g_cons=x_lim,
+                    n=n,
+                    # n = 100 + 100*(p.m['n'] - 1),
+                    )  # skip=2)
+
+        X_sol = d_res.x
+        # Calculate LBD
+        LBD = lbd(X_sol, g_x_func, Lambda_d, Z_0, s, p, k)
+        X_D.append(X_sol)
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     iteration = 0
@@ -975,7 +995,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_sol)
         # End
 
-        if False:  # dual stepping plots
+        if True:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             #print('X_sol: {}'.format(X_sol))
@@ -1002,7 +1022,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         print 'Final UBD - LBD = {}'.format(UBD - LBD)
         print 'Final Z_eq = {}'.format(X_sol)
         print 'Final Lambda_d = {}'.format(Lambda_d)
-        
+
+    if True:  # Feed point plane estimate dev
+        x_r = 1000
+
+
     # Returns
     return X_sol, Lambda_sol, d_res
 
@@ -1731,7 +1755,7 @@ def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):
 
     p : class
         Contains the dictionary describing the parameters.
-        git
+
     d : int. optional
         Differential order (1-2)
 
@@ -1744,7 +1768,7 @@ def FD(f, s, p, d=1, z=1, m=1, dx=1e-6, gmix=False, k=['All']):
     dx : float, optional
          Spatial discretization size.
 
-    fmix : booleaan, optional
+    gmix : booleaan, optional
            Specify True when using a Gibbs surface function with a class return
            and _.m['g_mix']['t'] float return.
 
