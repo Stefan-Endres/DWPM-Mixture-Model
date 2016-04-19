@@ -136,7 +136,8 @@ class TopShiftParam:
 
     def data_error(self, X_data, ph_data, X_D, g_x_func, s, p):
         """
-        Calculate the error for a single data point
+        Calculate the error for a single data point (by summing each element
+        Sigma n-1 at a single phase equilibrium point).
 
         (should be in loop:
         for ph, ind in zip(p.m['Data phases'],
@@ -145,6 +146,7 @@ class TopShiftParam:
         """
         from ncomp import phase_equilibrium_calculation as pec
         from ncomp import dual_equal
+        import numpy
         Z_0 = sorted(X_D)[len(X_D) // 2]
         #
         #dual_equal(s, p, g_x_func, Z_0)
@@ -155,28 +157,44 @@ class TopShiftParam:
         print X_data
         print 'X_eq = {}'.format(X_eq)
         print 'phase_eq  = {}'.format(phase_eq )
+
+        #for
+
+
+
         if len(X_eq) < len(X_data):
-            epsilon_x = 1.0
-        #elif len(X_eq) == 1:
-        #    for i in range(p.m['n']):
-        #        epsilon_x = abs(X_eq[0][i] - X_data[i])
+            epsilon_x = len(X_data)  # Sigma n - 1 elements of data points
+
         elif len(X_eq) == len(X_data):
-            Epsilon_x = []
-            #for X_sol, ph in zip(X_eq, phase_eq):
-            for X_sol in X_eq:
-                #for ph in phase_eq:
-                if ph == ph_data:
-                    for i in range(p.m['n']):
-                        Epsilon_x.append(abs(X_sol[i] - X_data[i]))
+            #Epsilon_x = []
+            epsilon_x = 0.0
+            data_ind = numpy.argsort(ph_data)
+            model_ind = numpy.argsort(phase_eq)
+            #X_data[data_ind]
+            for i in range(len(X_data)):
+                epsilon_x += abs(X_data[data_ind[i]] - X_eq[model_ind[i]])
+                #for X_sol, ph in zip(X_eq, phase_eq):
+            #for X_sol in X_eq:
+                #for ph in p.m['Data phases']:
+                #    epsilon_x +=
+                #for ph_eq in phase_eq:
+                #     for ph_dat in ph_data:
+                #         if ph_eq == ph_dat:
+                #             for i in range(p.m['n']):
+                #                 Epsilon_x.append(abs(X_sol[i] - X_data[i]))
+        #
+        # elif len(X_eq) > len(X_data):
+        #     Epsilon_x = []
+        #     for X in X_eq:
+        #         for X_sol, ph in zip(X, phase_eq):
+        #             if ph == ph_data:
+        #                 for i in range(p.m['n']):
+        #                     Epsilon_x.append(abs(X_sol[i] - X_data[i]))
+        #     epsilon_x = min(Epsilon_x)
 
         elif len(X_eq) > len(X_data):
-            Epsilon_x = []
-            for X in X_eq:
-                for X_sol, ph in zip(X, phase_eq):
-                    if ph == ph_data:
-                        for i in range(p.m['n']):
-                            Epsilon_x.append(abs(X_sol[i] - X_data[i]))
-            epsilon_x = min(Epsilon_x)
+            epsilon_x = len(X_data)
+
 
         return epsilon_x
 

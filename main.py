@@ -162,9 +162,11 @@ if __name__ == '__main__':
             epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
             #print epsilon_e
 
-            # epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
-            #                            X_D, g_mix, s, p)
-            epsilon_x = TSP.data_error(X_I, 'x', X_D, g_mix, s, p)
+            epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
+                                       X_D, g_mix, s, p)
+
+            print 'epsilon_x = {}'.format(epsilon_x)
+            #epsilon_x = TSP.data_error(X_I, 'x', X_D, g_mix, s, p)
             #  p.m['r'] = 1.0
            #  p.m['s'] = 1.0
            #  p.m['k'][1][2] = 0.124
