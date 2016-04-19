@@ -931,7 +931,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         s.update_state(s, p, X=Z_0, phase=k, Force_Update=True)
         for z in range(1, p.m['n']):
             Lambda_d[z - 1] = FD(g_mix, s, p, d=1, z=z, gmix=True)
-            print('Lambda_d from init FD est. = {}'.format(Lambda_d))
+            #print('Lambda_d from init FD est. = {}'.format(Lambda_d))
 
         # Solve LBD for first cutting plane
         d_res = tgo(lbd, Bounds, args=(g_x_func, Lambda_d, Z_0, s, p, k),
@@ -943,14 +943,14 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         X_sol = d_res.x
         X_D.append(X_sol)
-        print('X_sol from init FD est. = {}'.format(X_sol))
+        #print('X_sol from init FD est. = {}'.format(X_sol))
         if len(d_res.xl) > 0:
             for i in range(len(d_res.xl)):
-                print('d_res.xl{}'
-                      ' from init FD est. = {}'.format(i, d_res.xl[i]))
+                #print('d_res.xl{}'
+                #      ' from init FD est. = {}'.format(i, d_res.xl[i]))
                 X_D.append(d_res.xl[i])
 
-        print('X_D at init = {}'.format(X_D))
+       # print('X_D at init = {}'.format(X_D))
 
     #%% Normal calculation of daul problem if Z_0 is unstable.
     iteration = 0
@@ -968,7 +968,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
-        if True:  # dual stepping plots
+        if False:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             print('X_sol: {}'.format(X_sol))
@@ -1002,8 +1002,6 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         if True:  # NOTE: Reduced iterations from 6 to 3 !
             if len(d_res.xl) > 0:
                 for i in range(len(d_res.xl)):
-                    print('d_res.xl{}'
-                          ' from init FD est. = {}'.format(i, d_res.xl[i]))
                     X_D.append(d_res.xl[i])
 
         # Calculate LBD
@@ -1040,8 +1038,26 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
     if True:  # Feed point plane estimate dev
         x_r = 1000
-
-
+        # Suppose data_solutions at
+        # [[array([ 0.1939063]), array([ 0.30898849])]]
+        X_I = numpy.array([ 0.1939063])
+        s.update_state(s, p, X=X_I, Force_Update=True)
+        G_sol_I = g_x_func(s, p).m['g_mix']['t']
+        X_II = numpy.array([ 0.30898849])
+        s.update_state(s, p, X=X_II, Force_Update=True)
+        G_sol_II = g_x_func(s, p).m['g_mix']['t']
+        print' G_sol_I = {}'.format(G_sol_I)
+        print' G_sol_II = {}'.format(G_sol_II)
+        # Plane estimates
+        # (NOTE: These lambda estimates need to be done for each component
+        # in higher dimensions)
+        Lambda_sol_est = (G_sol_II - G_sol_I)/ (X_II - X_I)
+        Z_0 = (X_I + X_II)/2.0  # (Estimate of feed point)
+        plot.plot_g_mix(s, p, g_x_func, Tie=[[Z_0, X_sol]], x_r=1000,
+                        plane_func=dual_plane_sol,
+                        plan_args=(G_sol_I, Lambda_sol_est, X_II, X_I)
+                        #plan_args=(G_sol_I, Lambda_sol_est, Z_0, X_I)
+                        )
     # Returns
     return X_sol, Lambda_sol, d_res
 
