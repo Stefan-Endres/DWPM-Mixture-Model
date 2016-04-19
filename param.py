@@ -90,13 +90,37 @@ class TopShiftParam:
         return d_plane_sol
 
 
+    def dual_gap(self, g_x_func, plane, X_D, s, p):
+        """
+        Finds the duality gap between the solution plane and the Gibbs surface
+        for each sequenced point in X_D, returns vector of len(X_D)
+        """
+        # Find the difference between the dual solution plane and the
+        # gibbs surface values at each solution point
+        f_dual_gap = []
+        for X in X_D:
+            s.update_state(s, p, X=X, Force_Update=True)
+            f_dual_gap.append(plane(X) - g_x_func(s, p).m['g_mix']['t'])
+
+        return f_dual_gap
 
 
+    def dual_gap_error_sum(self, f_dual_gap):
+        import numpy
+        epsilon_d = 0.0
+        for fdg in f_dual_gap:
+            # If the duality gap does not exist/convexity
+            if numpy.float(fdg) > 0.0:
+                epsilon_d += fdg
 
+        # (If duality gap exists/concavity at the point then we add no penalty)
+        return epsilon_d
 
-
-
-
+    def norm_eta(self):
+        """
+        Normalized difference between each plane function eta at Z_0 \in X_D
+        """
+        pass
 
 
 

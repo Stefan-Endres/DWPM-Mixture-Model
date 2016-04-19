@@ -151,12 +151,14 @@ if __name__ == '__main__':
             X_II = numpy.array([0.308988493])
             params = [1.0, 1.0]  # r and s
             TSP.vdw_dwpm_params(params, p)
-            print p.m['r']
-            print p.m['s']
-            print TSP.d_points(5, X_I, X_II)
+            #print p.m['r']
+            #print p.m['s']
+            X_D = TSP.d_points(5, X_I, X_II)
 
             plane = TSP.d_plane(g_mix, s, p, X_I, X_II)
-
+            f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
+            epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
+            print epsilon_d
 
 
 
