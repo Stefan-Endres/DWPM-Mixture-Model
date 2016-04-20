@@ -173,46 +173,9 @@ if __name__ == '__main__':
 
             # Plot
             tsp_args = (s, p, g_mix)
-            bounds = [(-2.0, 2.0), (-2.0, 2.0)]
-            x_r = 18
+            bounds = [(-100.0, 100.0), (-100.0, 100.0)]
+            x_r = 20
             TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
-
-
-            #epsilon_x = TSP.data_error(X_I, 'x', X_D, g_mix, s, p)
-            #  p.m['r'] = 1.0
-           #  p.m['s'] = 1.0
-           #  p.m['k'][1][2] = 0.124
-           #  p.m['k'][2][1] = 0.124
-           #  # pass
-           #
-           #  from tgo import tgo
-           #  from ncomp import parameter_goal_func as pgf
-           #  Bounds = [(-5.0, 5.0),  # r
-           #            (-5.0, 5.0)]#,  # s
-           #           # (0.0, 0.999),   # k12
-           #           # (0.0, 0.999),   # k21
-           #           # ]
-           #
-           #  #p.m['r'], p.m['s'] = -3.75,  1.25
-           # # p.m['k'][1][2] = 0.874125
-           #  #p.m['k'][2][1] = 0.874125
-           #
-           #  #Params =  [-3.75, 1.25, 0.874125, 0.874125]
-           #
-           #  #print pgf( Params, g_x_func, s, p, 200, # n
-           #  #                     False,
-           #   #                    True),def
-           #
-           #  optimres = tgo(pgf, Bounds,
-           #                 args=(g_x_func, s, p,
-           #                       200, # n
-           #                       False,
-           #                       True),  # VLE only
-           #                       #g_func=x_lim,
-           #                       n = 100,
-           #                       skip=2)
-           #
-           #  print optimres.x
 
 
         # Simulate specifications
