@@ -409,17 +409,8 @@ class TestTgoSubFuncs(unittest.TestCase):
     TGO subfunction tests using known solution (test_f1)
     """
     # Init tgo class
-<<<<<<< HEAD
-    # func used
-    def f_sub(x):
-        return x[0]**2 + x[1]**2
-
-    TGOc = TGO(f_sub, [[-1, 1], [-1, 1]])
-
-=======
     # Note: Using ints for irrelevant class inits like func
     TGOc = TGO(1, (0, 1))
->>>>>>> 3b546cfa48676621b20e634e95e2d7ba3fabc724
     # int bool solution for known sampling points
     T_Ans = numpy.array([[0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -449,14 +440,11 @@ class TestTgoSubFuncs(unittest.TestCase):
                           [5, 0],  # P5
                           [4, 2]   # P6
                           ])
+    # func used
+    def f_sub(x):
+        return x[0]**2 + x[1]**2
 
-<<<<<<< HEAD
-    #TGOc = TGO()
-    # TODO Test that A and F from this is correct, change recorded vals
-    # to answers
-=======
     TGOc.func = f_sub
->>>>>>> 3b546cfa48676621b20e634e95e2d7ba3fabc724
 
     T, H, F = TGOc.topograph()
 
