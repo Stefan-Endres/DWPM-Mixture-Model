@@ -130,7 +130,7 @@ class TopShiftParam:
         for X in X_D:
             eta_I = G_sol[0] + sum(Lambda_sol_est * (X - X_I))
             eta_II = G_sol[1] + sum(Lambda_sol_est * (X - X_II))
-            epsilon_e += (eta_I - eta_II)/max(eta_I, eta_II)
+            epsilon_e += abs((eta_I - eta_II)/max(eta_I, eta_II))
 
         return epsilon_e
 
