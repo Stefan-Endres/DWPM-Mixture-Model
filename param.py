@@ -130,7 +130,7 @@ class TopShiftParam:
         for X in X_D:
             eta_I = G_sol[0] + sum(Lambda_sol_est * (X - X_I))
             eta_II = G_sol[1] + sum(Lambda_sol_est * (X - X_II))
-            epsilon_e += (eta_I - eta_II)/max(eta_I, eta_II)
+            epsilon_e += abs((eta_I - eta_II)/max(eta_I, eta_II))
 
         return epsilon_e
 
@@ -252,31 +252,14 @@ class TopShiftParam:
                     epsilon_x = self.data_error([X_I, X_II],
                                                 p.m['Data phases'],
                                                 X_D, g_x_func, s, p)
-                except(numpy.linalg.linalg.LinAlgError):
+                except(numpy.linalg.linalg.LinAlgError, IndexError):
                     logging.warning("LinAlgError in phase equil calculation"
-                                    "setting epsilons to maximum")
+                                    " setting epsilons to maximum")
                     epsilon_e = 1.0  # (max normalized plane error)
                     epsilon_x = 1.0 * len(p.m['Data phases'])  # (max eq error)
 
                     # Remove nans from dict
                     s.update_state(s, p, X=X_I, Force_Update=True)
-
-            # elif epsilon_d < 1e-3:
-            #     try:
-            #         epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
-            #                                       X_I, X_II,
-            #                                       G_sol)
-            #         epsilon_x = self.data_error([X_I, X_II],
-            #                                     p.m['Data phases'],
-            #                                     X_D, g_x_func, s, p)
-            #     except(numpy.linalg.linalg.LinAlgError):
-            #         logging.warning("LinAlgError in phase equil calculation"
-            #                         "setting epsilons to maximum")
-            #         epsilon_e = 1.0  # (max normalized plane error)
-            #         epsilon_x = 1.0 * len(p.m['Data phases'])  # (max eq error)
-            #
-            #         # Remove nans from dict
-            #         s.update_state(s, p, X=X_I, Force_Update=True)
 
             else:  # if duality gap does not exist set max error for data
                    # point
@@ -287,11 +270,9 @@ class TopShiftParam:
             epsilon_d = numpy.float(epsilon_d)
             epsilon_e = numpy.float(epsilon_e)
             epsilon_x = numpy.float(epsilon_x)
-            print 'epsilon_d = {}'.format(epsilon_d)
-            print 'epsilon_e = {}'.format(epsilon_e)
-            print 'epsilon_x = {}'.format(epsilon_x)
+
             # SUM all errors
-            print 'Epsilon = {}'.format(Epsilon)
+            #print 'Epsilon = {}'.format(Epsilon)
             Epsilon += a * epsilon_e + b * epsilon_x + c * epsilon_x
 
 
@@ -300,6 +281,13 @@ class TopShiftParam:
             self.Epsilon_e += epsilon_e
             self.Epsilon_x += epsilon_x
 
+        if True:
+            print('r = {}'.format(p.m['r']))
+            print('s = {}'.format(p.m['s']))
+            print('self.Epsilon_d = {}'.format(self.Epsilon_d))
+            print('self.Epsilon_e = {}'.format(self.Epsilon_e))
+            print('self.Epsilon_x = {}'.format(self.Epsilon_x))
+            print('Epsilon = {}'.format(Epsilon))
         return Epsilon
 
     def plot_ep(self, func,
