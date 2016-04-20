@@ -1253,7 +1253,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
         # Change n and tol
         from tgo import tgo
         plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
-        d_res = tgo(dual_lagrange,
+
+        #TODO: Set proper bounds for given Z_0 like in dual equilibrium
+        Bounds = []
+        for i in range(p.m['n'] - 1):
+            Bounds.append((1e-10, 0.99999999))
+
+        d_res = tgo(dual_lagrange, Bounds,
                     args=plane_args,
                     #tol= tol,
                     n=n * p.m['n'] * 10)

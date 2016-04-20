@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 class TopShiftParam:
-    def __init___(self):
+    def __init__(self, p):
         from ncomp import phase_equilibrium_calculation as pec
         from ncomp import dual_equal
-        pass
+        if p.m['Model'] == 'DWPM':
+            self.param_func = self.vdw_dwpm_params
 
     def vdw_dwpm_params(self, params, p):
         """
@@ -148,19 +149,8 @@ class TopShiftParam:
         from ncomp import dual_equal
         import numpy
         Z_0 = sorted(X_D)[len(X_D) // 2]
-        #
         #dual_equal(s, p, g_x_func, Z_0)
-
         X_eq, g_eq, phase_eq = pec(s, p, g_x_func, Z_0)
-
-
-        print X_data
-        print 'X_eq = {}'.format(X_eq)
-        print 'phase_eq  = {}'.format(phase_eq )
-
-        #for
-
-
 
         if len(X_eq) < len(X_data):
             epsilon_x = len(X_data)  # Sigma n - 1 elements of data points
@@ -195,18 +185,173 @@ class TopShiftParam:
         elif len(X_eq) > len(X_data):
             epsilon_x = len(X_data)
 
-
         return epsilon_x
 
 
-    def tsp_objective_function(self):
-        pass
+    def tsp_objective_function(self, params, s, p, g_x_func):
+        """
+        Objective function to minimize, accept some parameter set as first
+        argument and calculated error over range of data points.
+        """
+        import numpy
+        import logging
+        # Update parameters
+        self.param_func(params, p)
+
+        Epsilon = 0.0
+        # Error weights (TODO Assess need):
+        a = 1.0  # Duality gap does not exist errors
+        b = 1.0  # Lagrangian plane errors
+        c = 2.0  # Equilibrium point errors
+
+        # Loop through all data points:
+        for i in range(len(p.m['T'])):
+            p.m['T'][i]
+            s.update_state(s, p, P=p.m['P'][i], T=p.m['T'][i],
+                           Force_Update=True)
+
+            # Loop through all phases in equilibrium to find points in
+            # equilibrium
+            X_eq_data = []  # Data container that contains X_I, X_II, ...
+            for ph in p.m['Data phases']:
+                X_eq_d = []
+                for n in range(1, p.m['n']):
+                    X_eq_d.append(p.m[ph][n][i])
+
+                X_eq_data.append(numpy.array(X_eq_d))
+
+            # Find error at each point
+            # TODO: Update this two phase equilibrium to arbitrarily high
+            X_I = X_eq_data[0]
+            X_II = X_eq_data[1]
+
+            if (X_II - X_I).all() == 0.0:  # Skip pure points
+                continue
+
+            # Generate (Note, this only needs to be done once and saved in a
+            # set for the current data points)
+            X_D = self.d_points(5, X_I, X_II)
+            plane, Lambda_sol_est, G_sol = self.d_plane(g_x_func, s,
+                                                        p, X_I, X_II)
+            f_dual_gap = self.dual_gap(g_x_func, plane, X_D, s, p)
+
+            # Find dual gap error if it does not exist
+            epsilon_d = self.dual_gap_error_sum(f_dual_gap)
+
+            # Find dual plane and phase equilibrium error
+            if epsilon_d == 0.0:
+                try:
+                    epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
+                                                  X_I, X_II,
+                                                  G_sol)
+                    epsilon_x = self.data_error([X_I, X_II],
+                                                p.m['Data phases'],
+                                                X_D, g_x_func, s, p)
+                except(numpy.linalg.linalg.LinAlgError):
+                    logging.warning("LinAlgError in phase equil calculation"
+                                    "setting epsilons to maximum")
+                    epsilon_e = 1.0  # (max normalized plane error)
+                    epsilon_x = 1.0 * len(p.m['Data phases'])  # (max eq error)
+
+                    # Remove nans from dict
+                    s.update_state(s, p, X=X_I, Force_Update=True)
+
+            # elif epsilon_d < 1e-3:
+            #     try:
+            #         epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
+            #                                       X_I, X_II,
+            #                                       G_sol)
+            #         epsilon_x = self.data_error([X_I, X_II],
+            #                                     p.m['Data phases'],
+            #                                     X_D, g_x_func, s, p)
+            #     except(numpy.linalg.linalg.LinAlgError):
+            #         logging.warning("LinAlgError in phase equil calculation"
+            #                         "setting epsilons to maximum")
+            #         epsilon_e = 1.0  # (max normalized plane error)
+            #         epsilon_x = 1.0 * len(p.m['Data phases'])  # (max eq error)
+            #
+            #         # Remove nans from dict
+            #         s.update_state(s, p, X=X_I, Force_Update=True)
+
+            else:  # if duality gap does not exist set max error for data
+                   # point
+                epsilon_e = 1.0  #(max normalized plane error)
+                epsilon_x = 1.0 * len(p.m['Data phases']) # (max eq error)
+
+            # Convert all nested values to floats:
+            epsilon_d = numpy.float(epsilon_d)
+            epsilon_e = numpy.float(epsilon_e)
+            epsilon_x = numpy.float(epsilon_x)
+            print 'epsilon_d = {}'.format(epsilon_d)
+            print 'epsilon_e = {}'.format(epsilon_e)
+            print 'epsilon_x = {}'.format(epsilon_x)
+            # SUM all errors
+            print 'Epsilon = {}'.format(Epsilon)
+            Epsilon += a * epsilon_e + b * epsilon_x + c * epsilon_x
+
+        return Epsilon
+
+    def plot_ep(self, func,
+                bounds=[(0.8, 1.2), (0.8, 1.2)], x_r=6, args=()):
+        """
+        Plot the speficied single var input error function
+        over a range size x_r
+        """
+        from matplotlib import pyplot as plot
+        from mpl_toolkits.mplot3d import axes3d
+        import matplotlib.pyplot as plot
+        from matplotlib import cm
+        import numpy
+        x_range = numpy.linspace(bounds[0][0],bounds[0][1], x_r)
+        y_range = numpy.linspace(bounds[1][0],bounds[1][1], x_r)
+        xg, yg = numpy.meshgrid(x_range, y_range)
+        func_r = numpy.zeros((x_r, x_r))
+        for i in range(xg.shape[0]):
+            for j in range(yg.shape[0]):
+                X = [xg[i, j], yg[i, j]]  # [x_1, x_2]
+
+                f_out = func(X, *args)  # Scalar outputs
+                func_r[i, j] = numpy.float64(f_out)
+
+
+        # Plots
+        fig = plot.figure()
+        ax = fig.gca(projection='3d')
+        X, Y = xg, yg
+
+        # Gibbs phase surfaces
+        Z = func_r
+
+        if True:
+            print 'numpy.min(Z) = {}'.format(numpy.nanmin(Z))
+            cset = ax.contourf(X, Y, Z, zdir='z',
+                               offset=numpy.nanmin(Z)-0.05,
+                               cmap=cm.coolwarm)
+            ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm)
+        if False:
+            surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                                   cmap=cm.coolwarm, linewidth=0,
+                                   antialiased=True, alpha=0.5,
+                                   shade = True)
+
+            fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        ax.set_xlabel('$r$')
+        #ax.set_xlim(0, 2)
+        ax.set_ylabel('$s$')
+        #ax.set_ylim(0, 2)
+        ax.set_zlabel('$\epsilon$', rotation=90)
+        plot.show()
+
+        return
 
 
 
-
-
-
+if __name__ == '__main__':
+    for i in range(10):
+        if i == 5:
+            continue
 
 
 

@@ -143,7 +143,7 @@ if __name__ == '__main__':
             import numpy
             s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
 
-            TSP = TopShiftParam()
+            TSP = TopShiftParam(p)
 
             #X_I = numpy.array([0.1939063, 0.2])
             #X_II = numpy.array([0.30898849, 0.33 ])
@@ -158,7 +158,7 @@ if __name__ == '__main__':
             plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
             f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
             epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
-
+            print 'epsilon_d = {}'.format(epsilon_d)
             epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
             #print epsilon_e
 
@@ -166,6 +166,18 @@ if __name__ == '__main__':
                                        X_D, g_mix, s, p)
 
             print 'epsilon_x = {}'.format(epsilon_x)
+
+            #Epsilon = TSP.tsp_objective_function(params, s, p, g_mix)
+            #print "Epsilon = {}".format(Epsilon)
+
+
+            # Plot
+            tsp_args = (s, p, g_mix)
+            bounds = [(0.4, 1.2), (0.4, 1.2)]
+            x_r = 60
+            TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
+
+
             #epsilon_x = TSP.data_error(X_I, 'x', X_D, g_mix, s, p)
             #  p.m['r'] = 1.0
            #  p.m['s'] = 1.0
