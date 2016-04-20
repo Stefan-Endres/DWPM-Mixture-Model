@@ -112,7 +112,7 @@ test_atol = 1e-5
 
 
 def run_test(test, args=(), g_args=()):
-    res = tgo(test.f, test.bounds, args=args, g_func=test.g, g_args=g_args)
+    res = tgo(test.f, test.bounds, args=args, g_cons=[test.g], g_args=g_args)
     x = res.x
     numpy.testing.assert_allclose(res.x, test.expected_x, atol=test_atol)
 
@@ -168,9 +168,12 @@ class TestTgoSubFuncs(unittest.TestCase):
     TGO subfunction tests using known solution (test_f1)
     """
     # Init tgo class
-    # Note: Using ints for irrelevant class inits like func
-    TGOc = TGO(1, 1)
-    #TGOc = TGO()
+    # func used
+    def f_sub(x):
+        return x[0]**2 + x[1]**2
+
+    TGOc = TGO(f_sub, [[-1, 1], [-1, 1]])
+
     # int bool solution for known sampling points
     T_Ans = numpy.array([[0, 0, 0, 0, 0],
                          [0, 1, 1, 1, 1],
@@ -200,11 +203,8 @@ class TestTgoSubFuncs(unittest.TestCase):
                           [5, 0],  # P5
                           [4, 2]   # P6
                           ])
-    # func used
-    def f_sub(x):
-        return x[0]**2 + x[1]**2
 
-    TGOc.func = f_sub
+    #TGOc = TGO()
     # TODO Test that A and F from this is correct, change recorded vals
     # to answers
 
