@@ -173,8 +173,8 @@ if __name__ == '__main__':
 
             # Plot
             tsp_args = (s, p, g_mix)
-            bounds = [(0.4, 1.2), (0.4, 1.2)]
-            x_r = 60
+            bounds = [(-2.0, 2.0), (-2.0, 2.0)]
+            x_r = 10
             TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
 
 

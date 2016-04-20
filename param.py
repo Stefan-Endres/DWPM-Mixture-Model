@@ -204,6 +204,11 @@ class TopShiftParam:
         b = 1.0  # Lagrangian plane errors
         c = 2.0  # Equilibrium point errors
 
+        # Stores for plots
+        self.Epsilon_d = 0.0
+        self.Epsilon_e = 0.0
+        self.Epsilon_x = 0.0
+
         # Loop through all data points:
         for i in range(len(p.m['T'])):
             p.m['T'][i]
@@ -288,6 +293,12 @@ class TopShiftParam:
             # SUM all errors
             print 'Epsilon = {}'.format(Epsilon)
             Epsilon += a * epsilon_e + b * epsilon_x + c * epsilon_x
+
+
+            # Store for plots
+            self.Epsilon_d += epsilon_d
+            self.Epsilon_e += epsilon_e
+            self.Epsilon_x += epsilon_x
 
         return Epsilon
 
