@@ -173,10 +173,10 @@ if __name__ == '__main__':
 
                 # Plot
                 tsp_args = (s, p, g_mix)
-                bounds = [(-5.0, 5.0), (-5.0, 5.0)]
-                bounds = [(-5.0, 5.0), (-5.0, 5.0)]
+                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
+                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
 
-                x_r = 15
+                x_r = 50
                 #p.m['r'], p.m['s'] = 1.0, 1.0
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
                 TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
@@ -188,8 +188,12 @@ if __name__ == '__main__':
                                Force_Update=True)
                 TSP = TopShiftParam(p)
                 Bounds = [(-5, 5), (-5, 5), (0.1, 0.2), (0.1, 0.2)]
+                Bounds = [(-5, 10), (-5, 5)]#, (0.1, 0.2), (0.1, 0.2)]
+                #Bounds = [(0, 5), (0, -5)]
+                print 'p.m kij = {}'.format(p.m['k'])
                 tsp_args = (s, p, g_mix)
-                res = tgo(TSP.tsp_objective_function, Bounds, args=tsp_args, n=1000)
+                res = tgo(TSP.tsp_objective_function,
+                          Bounds, args=tsp_args, n=1000)
                 print('='*100)
                 print(res)
 

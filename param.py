@@ -219,8 +219,12 @@ class TopShiftParam:
         c = 1e-3  # 2.0  # Equilibrium point errors
 
 
-        b = 1e-6  # 1.0  # Lagrangian plane errors
-        c = 1e-5  # 2.0  # Equilibrium point errors
+        #b = 1e-15 # 1.0  # Lagrangian plane errors
+        #c = 1e-14  # 2.0  # Equilibrium point errors
+
+
+        #b = 1e-50  # 1.0  # Lagrangian plane errors
+        #c = 1e-50  # 2.0  # Equilibrium point errors
 
         # Stores for plots
         self.Epsilon_d = 0.0
@@ -313,11 +317,10 @@ class TopShiftParam:
             # Epsilon += a * epsilon_e + b * epsilon_e + c * epsilon_x
             Epsilon += epsilon_d + b * epsilon_e + c * epsilon_x
 
-
             # Store for plots
             self.Epsilon_d += epsilon_d
-            self.Epsilon_e += epsilon_e
-            self.Epsilon_x += epsilon_x
+            self.Epsilon_e += b * epsilon_e
+            self.Epsilon_x += c * epsilon_x
 
         if True:
             print('r = {}'.format(p.m['r']))
@@ -326,6 +329,7 @@ class TopShiftParam:
             print('self.Epsilon_e = {}'.format(self.Epsilon_e))
             print('self.Epsilon_x = {}'.format(self.Epsilon_x))
             print('Epsilon = {}'.format(Epsilon))
+
         return Epsilon
 
     def plot_ep(self, func,
@@ -343,12 +347,19 @@ class TopShiftParam:
         y_range = numpy.linspace(bounds[1][0],bounds[1][1], x_r)
         xg, yg = numpy.meshgrid(x_range, y_range)
         func_r = numpy.zeros((x_r, x_r))
+        func_ed = numpy.zeros((x_r, x_r))
+        func_ee = numpy.zeros((x_r, x_r))
+        func_ex = numpy.zeros((x_r, x_r))
+
         for i in range(xg.shape[0]):
             for j in range(yg.shape[0]):
                 X = [xg[i, j], yg[i, j]]  # [x_1, x_2]
 
                 f_out = func(X, *args)  # Scalar outputs
                 func_r[i, j] = numpy.float64(f_out)
+                func_ed[i, j] = numpy.float64(self.Epsilon_d)
+                func_ee[i, j] = numpy.float64(self.Epsilon_e)
+                func_ex[i, j] = numpy.float64(self.Epsilon_x)
 
 
         # Plots
@@ -365,7 +376,14 @@ class TopShiftParam:
                                offset=numpy.nanmin(Z)-0.05,
                                cmap=cm.coolwarm)
             ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3,
-                            cmap=cm.coolwarm)
+                            cmap=cm.coolwarm, label='$\epsilon$')
+            ax.plot_surface(X, Y, func_ed, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm, label='$\epsilon_D$')
+            ax.plot_surface(X, Y, func_ee, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm, label='$\epsilon_e$')
+            ax.plot_surface(X, Y, func_ex, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm, label='$\epsilon_x$')
+
         if False:
             surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                                    cmap=cm.coolwarm, linewidth=0,
