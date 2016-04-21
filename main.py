@@ -141,42 +141,57 @@ if __name__ == '__main__':
             from param import TopShiftParam
             from ncomp import g_mix
             import numpy
-            s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
+            if True:
+                s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
 
-            TSP = TopShiftParam(p)
+                TSP = TopShiftParam(p)
 
-            #X_I = numpy.array([0.1939063, 0.2])
-            #X_II = numpy.array([0.30898849, 0.33 ])
-            X_I = numpy.array([0.1939063])  # 'x'
-            X_II = numpy.array([0.308988493])  # 'y'
-            params = [1.0, 1.0]  # r and s
-            TSP.vdw_dwpm_params(params, p)
-            #print p.m['r']
-            #print p.m['s']
-            X_D = TSP.d_points(5, X_I, X_II)
+                #X_I = numpy.array([0.1939063, 0.2])
+                #X_II = numpy.array([0.30898849, 0.33 ])
+                X_I = numpy.array([0.1939063])  # 'x'
+                X_II = numpy.array([0.308988493])  # 'y'
+                params = [1.0, 1.0]  # r and s
+                TSP.vdw_dwpm_params(params, p)
+                #print p.m['r']
+                #print p.m['s']
+                X_D = TSP.d_points(5, X_I, X_II)
 
-            plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
-            f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
-            epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
-            print 'epsilon_d = {}'.format(epsilon_d)
-            epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
-            #print epsilon_e
+                plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
+                f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
+                epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
+                print 'epsilon_d = {}'.format(epsilon_d)
+                epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
+                #print epsilon_e
 
-            epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
-                                       X_D, g_mix, s, p)
+                epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
+                                           X_D, g_mix, s, p)
 
-            print 'epsilon_x = {}'.format(epsilon_x)
+                print 'epsilon_x = {}'.format(epsilon_x)
 
-            #Epsilon = TSP.tsp_objective_function(params, s, p, g_mix)
-            #print "Epsilon = {}".format(Epsilon)
+                #Epsilon = TSP.tsp_objective_function(params, s, p, g_mix)
+                #print "Epsilon = {}".format(Epsilon)
 
+                # Plot
+                tsp_args = (s, p, g_mix)
+                bounds = [(-5.0, 5.0), (-5.0, 5.0)]
+                bounds = [(-5.0, 5.0), (-5.0, 5.0)]
 
-            # Plot
-            tsp_args = (s, p, g_mix)
-            bounds = [(-100.0, 100.0), (-100.0, 100.0)]
-            x_r = 20
-            TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
+                x_r = 15
+                #p.m['r'], p.m['s'] = 1.0, 1.0
+                #bounds = [(0.1, 0.2), (0.1, 0.2)]
+                TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
 
+            if False:
+                from tgo import tgo
+
+                s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
+                               Force_Update=True)
+                TSP = TopShiftParam(p)
+                Bounds = [(-5, 5), (-5, 5), (0.1, 0.2), (0.1, 0.2)]
+                tsp_args = (s, p, g_mix)
+                res = tgo(TSP.tsp_objective_function, Bounds, args=tsp_args, n=1000)
+                print('='*100)
+                print(res)
 
         # Simulate specifications
         if data.P is not None and data.T is not None and data.Z_0 is None:

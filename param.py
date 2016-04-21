@@ -7,7 +7,7 @@ class TopShiftParam:
         if p.m['Model'] == 'DWPM':
             self.param_func = self.vdw_dwpm_params
 
-    def vdw_dwpm_params(self, params, p):
+    def vdw_dwpm_params(self, params, p, rs=True, kij=False):
         """
         This function accepts a params vector and feeds updates to the
         parameter class of the VdW-dwpm EOS (TODO: Move to van_der_waals module
@@ -20,24 +20,32 @@ class TopShiftParam:
                   ]
         """
         import logging
-        p.m['r'], p.m['s'] = params[0], params[1]
+        if rs:
+            p.m['r'], p.m['s'] = params[0], params[1]
 
-        if abs(p.m['r']) <= 1e-10:  # Avoid singularities
-            logging.warning("r parameter close to singularity, setting to r"
-                            " = 1e-3")
-            p.m['r'] = 1e-3
-        if abs(p.m['s']) <= 1e-10:
-            logging.warning("s parameter close to singularity, setting to s"
-                            " = 1e-3")
-            p.m['s'] = 1e-3
+            if abs(p.m['r']) <= 1e-10:  # Avoid singularities
+                logging.warning("r parameter close to singularity, "
+                                "setting to r"
+                                " = 1e-3")
+                p.m['r'] = 1e-3
+            if abs(p.m['s']) <= 1e-10:
+                logging.warning("s parameter close to singularity, "
+                                "setting to s"
+                                " = 1e-3")
+                p.m['s'] = 1e-3
 
-        # for i in range(1, p.m['n'] + 1):
-        #     for j in range(1, p.m['n'] + 1):
-        #         if i == j:
-        #             pass
-        #         else:
-        #             p.m['k'][i][j] = Params[pint]
-        #             pint += 1
+        if kij:
+            if rs:
+                pint = 2
+            else:
+                pint = 0
+            for i in range(1, p.m['n'] + 1):
+                for j in range(1, p.m['n'] + 1):
+                    if i == j:
+                        pass
+                    else:
+                        p.m['k'][i][j] = params[pint]
+                        pint += 1
         return p
 
     def d_points(self, N, X_I, X_II):  # Validated for binary
@@ -114,9 +122,12 @@ class TopShiftParam:
         epsilon_d = 0.0
         for fdg in f_dual_gap:
             # If the duality gap does not exist/convexity
-            if numpy.float(fdg) > 0.0:
-                epsilon_d += fdg
-
+            try:
+                if numpy.float(fdg) > 0.0:
+                    epsilon_d += fdg
+            except(ValueError):
+                if numpy.float(fdg[0]) > 0.0:
+                    epsilon_d += numpy.float(fdg[0])
         # (If duality gap exists/concavity at the point then we add no penalty)
         return epsilon_d
 
@@ -200,9 +211,16 @@ class TopShiftParam:
 
         Epsilon = 0.0
         # Error weights (TODO Assess need):
-        a = 1.0  # Duality gap does not exist errors
-        b = 1.0  # Lagrangian plane errors
-        c = 2.0  # Equilibrium point errors
+        #  a = 1.0  # Duality gap does not exist errors
+        b = 1e-2#1.0  # Lagrangian plane errors
+        c = 1e-1#2.0  # Equilibrium point errors
+
+        b = 1e-4  # 1.0  # Lagrangian plane errors
+        c = 1e-3  # 2.0  # Equilibrium point errors
+
+
+        b = 1e-6  # 1.0  # Lagrangian plane errors
+        c = 1e-5  # 2.0  # Equilibrium point errors
 
         # Stores for plots
         self.Epsilon_d = 0.0
@@ -252,7 +270,7 @@ class TopShiftParam:
                     epsilon_x = self.data_error([X_I, X_II],
                                                 p.m['Data phases'],
                                                 X_D, g_x_func, s, p)
-                except(numpy.linalg.linalg.LinAlgError, IndexError):
+                except(numpy.linalg.linalg.LinAlgError):#, IndexError):
                     logging.warning("LinAlgError in phase equil calculation"
                                     " setting epsilons to maximum")
                     epsilon_e = 1.0  # (max normalized plane error)
@@ -260,6 +278,25 @@ class TopShiftParam:
 
                     # Remove nans from dict
                     s.update_state(s, p, X=X_I, Force_Update=True)
+
+            # if epsilon_d < 1e-3:
+            #     try:
+            #         epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
+            #                                       X_I, X_II,
+            #                                       G_sol)
+            #         epsilon_x = self.data_error([X_I, X_II],
+            #                                     p.m['Data phases'],
+            #                                     X_D, g_x_func, s, p)
+            #     except(numpy.linalg.linalg.LinAlgError, IndexError):
+            #         logging.warning(
+            #             "LinAlgError in phase equil calculation"
+            #             " setting epsilons to maximum")
+            #         epsilon_e = 1.0  # (max normalized plane error)
+            #         epsilon_x = 1.0 * len(
+            #             p.m['Data phases'])  # (max eq error)
+            #
+            #         # Remove nans from dict
+            #         s.update_state(s, p, X=X_I, Force_Update=True)
 
             else:  # if duality gap does not exist set max error for data
                    # point
@@ -273,7 +310,8 @@ class TopShiftParam:
 
             # SUM all errors
             #print 'Epsilon = {}'.format(Epsilon)
-            Epsilon += a * epsilon_e + b * epsilon_x + c * epsilon_x
+            # Epsilon += a * epsilon_e + b * epsilon_e + c * epsilon_x
+            Epsilon += epsilon_d + b * epsilon_e + c * epsilon_x
 
 
             # Store for plots
