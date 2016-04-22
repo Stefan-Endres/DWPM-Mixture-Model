@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/Stefan-Endres/DWPM-Mixture-Model.svg?branch=master)](https://travis-ci.org/Stefan-Endres/DWPM-Mixture-Model)
 [![Code Climate](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/gpa.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)
 [![Test Coverage](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/coverage.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/coverage)
 [![Issue Count](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model/badges/issue_count.svg)](https://codeclimate.com/github/Stefan-Endres/DWPM-Mixture-Model)

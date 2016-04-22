@@ -392,7 +392,8 @@ class TGO(object):
         The original program is available and described at
         http://web.maths.unsw.edu.au/~fkuo/sobol/
         """
-        with open('new-joe-kuo-6.21201') as f:
+        import gzip
+        with gzip.open('new-joe-kuo-6.21201.gz') as f:
             unsigned = "uint64"
             # swallow header
             buffer = next(f)
