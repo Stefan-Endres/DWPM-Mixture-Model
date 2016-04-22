@@ -176,7 +176,7 @@ if __name__ == '__main__':
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
 
-                x_r = 50
+                x_r = 5
                 #p.m['r'], p.m['s'] = 1.0, 1.0
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
                 TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
