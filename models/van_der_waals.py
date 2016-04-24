@@ -28,13 +28,13 @@ class VdW:
         ------------
         math
         """
-        from math import sqrt, log 
-        if p['Model'] == "Soave":
-            p['m'] = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T'] \
+        from math import sqrt, log
+        if p['Model'][0] == "Soave":
+            m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T'] \
                       /p['T_c']))
-        elif p['Model'] == 'Adachi-Lu':
-            p['m'] = p['T_c'] * log(p['a_c']/s['a']) / (s['T'] - p['T_c']) 
-        return p    # = s['m']
+        elif p['Model'][0] == 'Adachi-Lu':
+            m = p['T_c'] * log(p['a_c']/s['a']) / (s['T'] - p['T_c'])
+        return m
         
     def a_T(self, s, p):
         """
@@ -55,9 +55,9 @@ class VdW:
         math
         """
         from math import e
-        if p['Model'] == "Soave":
+        if p['Model'][0] == "Soave":
             s['a'] = p['a_c']*(1.0 + p['m']*(1 - (s['T']/p['T_c'])**(0.5)))**2
-        elif p['Model'] == 'Adachi-Lu':
+        elif p['Model'][0] == 'Adachi-Lu':
             s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))  
         return s # = s['a']
 
@@ -198,9 +198,10 @@ class VdW:
         """
         import logging
         from math import log # NOTE: math.log is the natural logarithm, not b10   
-        from scipy.optimize import fsolve                    
-        s = self.a_T(s,p)    # Update s['a'] at specified T for given p['m']
-        s = self.V_root(s,p) # Update s['V_v'] and s['V_l']]  
+        from scipy.optimize import fsolve
+        # Update s['a'] at specified T for given p['m']
+        s['a'] = self.a_T(s, p)['a']
+        s = self.V_root(s,p) # Update s['V_v'] and s['V_l']]
         # The phase volumes at the specified pressure:
         s['V_v_P'], s['V_l_P'] = s['V_v'], s['V_l']
                 

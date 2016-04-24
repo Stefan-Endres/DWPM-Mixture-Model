@@ -43,7 +43,7 @@ def optim_a_m(p):
     
     s = {}
     s['b'] = p['b_c'] # b = b_c
-    #s['a'] = p['a_c'] # First estimate
+    s['a'] = p['a_c'] # First estimate
     
     p['m'] = 1e-10 # Initial estimate for 'm'.
     #s = VdW.a_T(s, p) ## Initial 'a 'from 'm' estimate
@@ -55,17 +55,18 @@ def optim_a_m(p):
     #%% find a solution for 'a', 'V_l' 'V_v' and 'm' at every T-Psat data point
     def solve_maxwell(i, s, p, tol = 1e-10):
         # Set state 's' = to data point in 'p'
-        tol = 1e-10
         s['P'], s['T'] = p['P'][i], p['T'][i]
         s = VdW.a_T(s, p) # Solve 'a' for current temperature.
         er  = 1           # Defines initial error
         while er > tol:
             a_old = s['a'] # Used to track iteration error
             s = VdW.V_root(s, p) # Solve 'V_l' 'V_v' state
-            s = VdW.a_maxwell(s, p) # Solve 'a' explicitly 
+            s = VdW.a_maxwell(s, p)  # Solve 'a' explicitly
             er = abs(s['a'] - a_old)
-        p = VdW.a_m_sol(s, p) # Update 'm'
-        return s['a'],p['m']#s, p
+
+        m = VdW.a_m_sol(s, p) # Update 'm'
+        p['m'] = m
+        return s['a'], p['m']#s, p
     #%% Compile and solve function at every data point.
     soln = map(solve_maxwell,range(len(p['P'])),
                itertools.repeat(s, len(p['P'])),
@@ -82,7 +83,7 @@ def optim_a_m(p):
         
     m0 = sum(m)/len(m)                    # Initial estimate for m
     mlsq = leastsq(residuals, m0, args=(numpy.array(a), numpy.array(p['T'])))
-    print mlsq[0][0]
+    print(mlsq[0][0])
     return mlsq[0]
 
 #%% Define pure simulation function
@@ -96,8 +97,8 @@ def pure_sim(data, i=0):
     ## (data.c[0], data.comps)
     s = {}
      # Find a_c, b_c  parameters if not available and test dimensional values
-    if (data.c[i]['a_c (Pa m6 mol-2)'][0] == ''
-        or data.c[i]['b_c (m3 mol-1)'][0] == ''):
+    if (data.c[i]['a_c (Pa m6 mol-2)'] == ''
+        or data.c[i]['b_c (m3 mol-1)'] == ''):
 
         try: # Check if all params are available
             data.c[i]['b_c (m3 mol-1)'] = p['R']*p['T_c']/(8.0*p['P_c'])
@@ -130,7 +131,7 @@ def pure_sim(data, i=0):
             raise IOError('Missing \'P_c\' and/or \'T_c\' paramter')
 
      # Find 'm' parameter in a dependency model parameter if not available
-    if data.c[i]['m ({})'.format(data.model)][0] == '' \
+    if data.c[i]['m ({})'.format(data.model[0])] == '' \
     or data.force_pure_update:  # Detect model params
                                 # or force optimization if true
         try: # Check if vapour pressure data is available
@@ -141,9 +142,9 @@ def pure_sim(data, i=0):
 
         #find_a_m() # Find params if data is available
         p['m'] = optim_a_m(p)
-        exec 'data.c[0][\'m ({})\'] = p[\'m\']'.format(data.model)
+        data.c[0]['\'m ({})\''.format(data.model)] = p['m']
         data.c[i]['m ({})'.format(data.model)] = p['m']
-        logging.info('New parameter found for'
+        logging.warning('New parameter found for'
                      ' {} model, m = {}'.format(data.model, p['m']))
 
     #%% Find phase equilibrium at specified Temperature point (T, V_v and V_l)
@@ -180,6 +181,7 @@ def pure_sim(data, i=0):
     robust))
     """
     if data.save_pure:
+        import os
         from csvDict import save_dict_as_csv
         # Order of headings to save in .csv
         Order = ['T (K)', 'P (Pa)', 'T_c (K)', 'P_c (Pa)', 'V_c (m3 mol-1)',

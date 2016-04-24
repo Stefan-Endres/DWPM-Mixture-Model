@@ -4,7 +4,7 @@ from models import van_der_waals
 VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions
-def plot_Psat(s, p, options, figno=None):
+def plot_Psat(s, p, options=None, figno=None):
     """
 
     Parameters
@@ -21,37 +21,48 @@ def plot_Psat(s, p, options, figno=None):
     """
     import matplotlib.pyplot as plot
     from numpy import linspace, interp
+    VdW = van_der_waals.VdW()
+
+    # inits
+    s['b'] = p['b_c']  # b = b_c
 
     #TODO: Change these s dict values to normal local variables and test
-
-    s['T_sat store'] = linspace(p['T'][0], p['T'][len(p['T'])-1])
-    s['P_sat store'] = []
-    s['P_est'] = interp(s['T_sat store'], p['T'], p['P'])
+    T_sat_store = linspace(p['T'][0], p['T'][len(p['T'])-1])
+    P_sat_store = []
+    print('len(T_sat_store = {}'.format(len(T_sat_store)))
+    P_est = interp(T_sat_store , p['T'], p['P'])
+    print 'P_est len = {}'.format(len(P_est))
     i = 0
-    for T, P in zip(s['T_sat store'][:len(s['T_sat store'])-1],
-                    s['P_est'][:len(s['T_sat store'])-1]): # Trim crit.
+    for T, P in zip(T_sat_store[:len(T_sat_store)-1],
+                    P_est[:len(T_sat_store)-1]): # Trim crit.
         s['T'] = T # Solve P_sat at this Temperature
         s['P'] = P # P est
-        s = VdW.Psat_V_roots(s,p,tol=1e-1)
-        s['P_sat store'].append(s['P_sat'])
+        #s['a'] = VdW.a_T['a']
+        s = VdW.Psat_V_roots(s, p, tol=1e-1)
+        P_sat_store.append(s['P_sat'])
 
-        s['P_sat store'].append(p['P_c']) # Append Critical point
+    P_sat_store.append(p['P_c']) # Append Critical point
+    #T_sat_store.append(p['T_c']) # Append Critical point
 
 
 
     plot.figure(figno)
-    plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
-    plot.rcParams.update(options)
+    #plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+    #plot.rcParams.update(options)
     p['P'] = [Pa for Pa in p['P']] # Pa -> kPa
-    s['P_sat store'] = [Pa for Pa in s['P_sat store']] # Pa -> kPa
+    #P_sat_store = [Pa for Pa in P_sat_store] # Pa -> kPa
     plot.plot(p['T'], p['P'], 'xr', label='Data points')
-    plot.plot(s['T_sat store'],s['P_sat store'], '--r',
+    print('len(T_sat_store = {}'.format(len(T_sat_store)))
+    print('len(P_sat_store = {}'.format(len(P_sat_store)))
+    plot.plot(T_sat_store, P_sat_store, '--r',
               label='Van der Waals EoS %s m = %s'% (p['Model'], p['m']))
     plot.xlabel("Temperature / K")
     plot.ylabel("Pressure$^{sat}$ / Pa")
     plot.title("Van der Waals EoS correlation for $%s$" \
-                % (p.c[0]['name'][0]))
-    plot.legend(loc=options['legend.loc'])
+                % (p['name'][0]))
+    #plot.legend(loc=options['legend.loc'])
+    plot.legend()
+    plot.show()
     return
 
 

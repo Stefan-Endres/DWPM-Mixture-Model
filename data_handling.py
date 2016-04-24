@@ -120,13 +120,19 @@ def parameter_build(Data):
          'Z_c' : Data['Z_c'][0],
          'R'   : Data['R (m3 Pa K-1 mol-1)'][0],
          'w'   : Data['w'][0],
-         'a_c' : Data['a_c (Pa m6 mol-2)'][0],
-         'b_c' : Data['b_c (m3 mol-1)'][0],
+         #'a_c' : Data['a_c (Pa m6 mol-2)'][0],
+         #'b_c' : Data['b_c (m3 mol-1)'][0],
          'vT'  : Data['virialT'],
          'vB'  : Data['virialB'],
          'Model': Data['model'],
          'name': Data['name']
          }
+    try:
+        p['a_c'] = Data['a_c (Pa m6 mol-2)'][0]
+        p['b_c'] = Data['b_c (m3 mol-1)'][0]
+    except(IndexError):
+        p['a_c'] = ''
+        p['b_c'] = ''
 
     if Data['model'] == 'Adachi-Lu': # Find model params if not defined
         p['m'] = Data['m (Adachi-Lu)'][0]

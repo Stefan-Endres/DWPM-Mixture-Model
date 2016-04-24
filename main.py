@@ -110,7 +110,7 @@ if __name__ == '__main__':
                         default=False,
                         help=' force a new optimisation for the m'
                              'parameter for the selected Model, to be '
-                             'used if new vapour datais added')
+                             'used if new vapour data is added')
 
     args = parser.parse_args()
     data.run_options(args)
@@ -122,6 +122,11 @@ if __name__ == '__main__':
 
         # Find all specified outputs
         s, p = pure.pure_sim(data, i=0)
+
+        # plot output
+        if data.plot_pure:
+            from plot import plot_Psat
+            plot_Psat(s, p)
 
     if len(data.comps) > 1:  # multi component simulation.
         from ncomp import phase_equilibrium_calculation as pec
