@@ -174,13 +174,24 @@ if __name__ == '__main__':
                 # Plot
                 tsp_args = (s, p, g_mix)
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
-                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
+                #bounds = [(-1000.0, 1000.0), (-1000.0, 1000.0)]
+                #bounds = [(0.05, 0.2), (0.05, 0.2)]
+                #bounds = [(1.0, 1.05), (1.0, 1.05)]
 
-                x_r = 5
-                #p.m['r'], p.m['s'] = 1.0, 1.0
+                x_r = 16
+                p.m['r'], p.m['s'] = 1.0, 1.0
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
                 TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
 
+                # res = scipy.optimize.minimize(TSP.tsp_objective_function,
+                #                               # [0.14,0.16],
+                #                                [0.124, 0.124],
+                #                                 args=tsp_args,
+                #                                method='L-BFGS-B')
+
+                #print(res)
+                # k_12 = 0.132857766805
+                # k_21 = 0.153093911027
             if False:
                 from tgo import tgo
 

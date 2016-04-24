@@ -999,7 +999,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_sol = d_res.x
         X_D.append(X_sol)
 
-        if True:  # NOTE: Reduced iterations from 6 to 3 !
+        #if True:  # NOTE: Reduced iterations from 6 to 3 !
+        if False:  # NOTE: Reduced iterations from 6 to 3 !
             if len(d_res.xl) > 0:
                 for i in range(len(d_res.xl)):
                     #print('X_D = {}'.format(X_D))

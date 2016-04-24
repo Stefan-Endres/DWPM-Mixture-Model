@@ -8,8 +8,12 @@
 .coverage
 htmlcov/
 
+# TinyDB
+.db
+
 # Sobol data
 new-joe-kuo-6.21201
+new-joe-kuo-6.21201.gz
 
 # Test scripts
 Sobol_Tests.py

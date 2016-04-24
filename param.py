@@ -45,7 +45,16 @@ class TopShiftParam:
                         pass
                     else:
                         p.m['k'][i][j] = params[pint]
+                        print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
+                        #if abs(1 - p.m['k'][i][j]) <= 1e-10:  # Avoid singularities
+                        #    logging.warning(
+                        #        "k_{0}{1} parameter close to singularity, "
+                         #       "setting to k_{0}{1}"
+                        #        " = 0.999".format(i, j))
+                        #   p.m['k'][i][j] = 0.999
                         pint += 1
+                        print('p[k] =')
+                        print(p.m['k'])
         return p
 
     def d_points(self, N, X_I, X_II):  # Validated for binary
@@ -161,6 +170,7 @@ class TopShiftParam:
         import numpy
         Z_0 = sorted(X_D)[len(X_D) // 2]
         #dual_equal(s, p, g_x_func, Z_0)
+        print('Running pec in data_error')
         X_eq, g_eq, phase_eq = pec(s, p, g_x_func, Z_0)
 
         if len(X_eq) < len(X_data):
@@ -215,8 +225,8 @@ class TopShiftParam:
         b = 1e-2#1.0  # Lagrangian plane errors
         c = 1e-1#2.0  # Equilibrium point errors
 
-        b = 1e-4  # 1.0  # Lagrangian plane errors
-        c = 1e-3  # 2.0  # Equilibrium point errors
+        b = 1e-2  # 1.0  # Lagrangian plane errors
+        c = 5e-3  # 2.0  # Equilibrium point errors
 
 
         #b = 1e-15 # 1.0  # Lagrangian plane errors
@@ -266,14 +276,18 @@ class TopShiftParam:
             epsilon_d = self.dual_gap_error_sum(f_dual_gap)
 
             # Find dual plane and phase equilibrium error
-            if epsilon_d == 0.0:
+            if False:#epsilon_d == 0.0:
                 try:
+                    print('Running eta error functions')
                     epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
                                                   X_I, X_II,
                                                   G_sol)
+                    print('Running x equilibrium error functions')
                     epsilon_x = self.data_error([X_I, X_II],
                                                 p.m['Data phases'],
                                                 X_D, g_x_func, s, p)
+
+                    print('Finished')
                 except(numpy.linalg.linalg.LinAlgError):#, IndexError):
                     logging.warning("LinAlgError in phase equil calculation"
                                     " setting epsilons to maximum")
@@ -283,24 +297,24 @@ class TopShiftParam:
                     # Remove nans from dict
                     s.update_state(s, p, X=X_I, Force_Update=True)
 
-            # if epsilon_d < 1e-3:
-            #     try:
-            #         epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
-            #                                       X_I, X_II,
-            #                                       G_sol)
-            #         epsilon_x = self.data_error([X_I, X_II],
-            #                                     p.m['Data phases'],
-            #                                     X_D, g_x_func, s, p)
-            #     except(numpy.linalg.linalg.LinAlgError, IndexError):
-            #         logging.warning(
-            #             "LinAlgError in phase equil calculation"
-            #             " setting epsilons to maximum")
-            #         epsilon_e = 1.0  # (max normalized plane error)
-            #         epsilon_x = 1.0 * len(
-            #             p.m['Data phases'])  # (max eq error)
-            #
-            #         # Remove nans from dict
-            #         s.update_state(s, p, X=X_I, Force_Update=True)
+            elif epsilon_d < 1e-3:
+                try:
+                    epsilon_e = self.norm_eta_sum(X_D, Lambda_sol_est,
+                                                  X_I, X_II,
+                                                  G_sol)
+                    epsilon_x = self.data_error([X_I, X_II],
+                                                p.m['Data phases'],
+                                                X_D, g_x_func, s, p)
+                except(numpy.linalg.linalg.LinAlgError, IndexError):
+                    logging.warning(
+                        "LinAlgError in phase equil calculation"
+                        " setting epsilons to maximum")
+                    epsilon_e = 1.0  # (max normalized plane error)
+                    epsilon_x = 1.0 * len(
+                        p.m['Data phases'])  # (max eq error)
+
+                    # Remove nans from dict
+                    s.update_state(s, p, X=X_I, Force_Update=True)
 
             else:  # if duality gap does not exist set max error for data
                    # point
@@ -325,6 +339,8 @@ class TopShiftParam:
         if True:
             print('r = {}'.format(p.m['r']))
             print('s = {}'.format(p.m['s']))
+            print('k_12 = {}'.format(p.m['k'][1][2]))
+            print('k_21 = {}'.format(p.m['k'][2][1]))
             print('self.Epsilon_d = {}'.format(self.Epsilon_d))
             print('self.Epsilon_e = {}'.format(self.Epsilon_e))
             print('self.Epsilon_x = {}'.format(self.Epsilon_x))
@@ -393,8 +409,10 @@ class TopShiftParam:
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
         ax.set_xlabel('$r$')
+        #ax.set_xlabel('$k_12$')
         #ax.set_xlim(0, 2)
         ax.set_ylabel('$s$')
+        #ax.set_ylabel('$k_21$')
         #ax.set_ylim(0, 2)
         ax.set_zlabel('$\epsilon$', rotation=90)
         plot.show()
