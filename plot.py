@@ -29,9 +29,7 @@ def plot_Psat(s, p, options=None, figno=None):
     #TODO: Change these s dict values to normal local variables and test
     T_sat_store = linspace(p['T'][0], p['T'][len(p['T'])-1])
     P_sat_store = []
-    print('len(T_sat_store = {}'.format(len(T_sat_store)))
     P_est = interp(T_sat_store , p['T'], p['P'])
-    print 'P_est len = {}'.format(len(P_est))
     i = 0
     for T, P in zip(T_sat_store[:len(T_sat_store)-1],
                     P_est[:len(T_sat_store)-1]): # Trim crit.
@@ -52,8 +50,6 @@ def plot_Psat(s, p, options=None, figno=None):
     p['P'] = [Pa for Pa in p['P']] # Pa -> kPa
     #P_sat_store = [Pa for Pa in P_sat_store] # Pa -> kPa
     plot.plot(p['T'], p['P'], 'xr', label='Data points')
-    print('len(T_sat_store = {}'.format(len(T_sat_store)))
-    print('len(P_sat_store = {}'.format(len(P_sat_store)))
     plot.plot(T_sat_store, P_sat_store, '--r',
               label='Van der Waals EoS %s m = %s'% (p['Model'], p['m']))
     plot.xlabel("Temperature / K")
