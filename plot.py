@@ -21,13 +21,13 @@ def plot_Psat(s, p, options=None, figno=None):
     """
     import matplotlib.pyplot as plot
     from numpy import linspace, interp
+    import logging
     VdW = van_der_waals.VdW()
 
     # inits
     s['b'] = p['b_c']  # b = b_c
 
-    #TODO: Change these s dict values to normal local variables and test
-    T_sat_store = linspace(p['T'][0], p['T'][len(p['T'])-1])
+    T_sat_store = linspace(min(p['T']), max(p['T']))
     P_sat_store = []
     P_est = interp(T_sat_store , p['T'], p['P'])
     i = 0
@@ -36,19 +36,19 @@ def plot_Psat(s, p, options=None, figno=None):
         s['T'] = T # Solve P_sat at this Temperature
         s['P'] = P # P est
         #s['a'] = VdW.a_T['a']
-        s = VdW.Psat_V_roots(s, p, tol=1e-1)
-        P_sat_store.append(s['P_sat'])
+        try:
+            s = VdW.Psat_V_roots(s, p, tol=1e-1)
+            P_sat_store.append(s['P_sat'])
+        except(IOError):
+            logging.warning("Could not converge Maxwell integral at "
+                            "point T = {}, P = {}".format(T, P))
+            P_sat_store.append(P) # Append estimate
 
     P_sat_store.append(p['P_c']) # Append Critical point
-    #T_sat_store.append(p['T_c']) # Append Critical point
-
-
 
     plot.figure(figno)
     #plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
     #plot.rcParams.update(options)
-    p['P'] = [Pa for Pa in p['P']] # Pa -> kPa
-    #P_sat_store = [Pa for Pa in P_sat_store] # Pa -> kPa
     plot.plot(p['T'], p['P'], 'xr', label='Data points')
     plot.plot(T_sat_store, P_sat_store, '--r',
               label='Van der Waals EoS %s m = %s'% (p['Model'], p['m']))
