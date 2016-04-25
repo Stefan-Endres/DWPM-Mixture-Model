@@ -125,9 +125,8 @@ if __name__ == '__main__':
 
         # plot output
         if data.plot_pure:
-            print data.comps
             from plot import PsatPlots
-            PP = PsatPlots(data.comps[0])
+            PP = PsatPlots(data.comps[0], data.model[0])
 
             if len(PP.DBr) == 0:
                 P_sat_store, T_sat_store = PP.psat_range(s, p)

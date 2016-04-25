@@ -5,19 +5,20 @@ VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions
 class PsatPlots:
-    def __init__(self, comp):
+    def __init__(self, comp, model):
         from tinydb import TinyDB, Query
         # init database
         self.db = TinyDB('.db/pure_db.json')
         pplots = Query()
         self.DBr = self.db.search((pplots.name == comp)
-                        & (pplots.dtype == 'psat_r'))
+                                  & (pplots.name == model)
+                                  & (pplots.dtype == 'psat_r'))
 
 
         return
 
     def save_psat_range(self, P_sat_store, T_sat_store, p):
-        from tinydb import TinyDB, Query
+        from tinydb import TinyDB
         import numpy
         db = TinyDB('.db/pure_db.json')
         db_store = {'dtype' : 'psat_r',
@@ -26,7 +27,7 @@ class PsatPlots:
                     'T_sat_r' : T_sat_store,
                     'P_data' : p['P'],
                     'T_data' : p['T'],
-                    'model': p['Model'],
+                    'model': p['Model'][0],
                     'm' : numpy.ndarray.tolist(p['m'])
                     }
         db.insert(db_store)
@@ -102,7 +103,7 @@ class PsatPlots:
         #plot.rcParams.update(options)
         plot.plot(T_data, P_data, 'xr', label='Data points')
         plot.plot(T_sat_store, P_sat_store, '--r',
-                  label='Van der Waals EoS %s m = %s'% (model, m))
+                  label='Van der Waals EoS %s m = %s'% (model[0], m[0]))
         plot.xlabel("Temperature / K")
         plot.ylabel("Pressure$^{sat}$ / Pa")
         plot.title("Van der Waals EoS correlation for $%s$" \
