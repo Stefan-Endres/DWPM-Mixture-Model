@@ -47,13 +47,12 @@ def optim_a_m(p):
     
     p['m'] = 1e-10 # Initial estimate for 'm'.
     #s = VdW.a_T(s, p) ## Initial 'a 'from 'm' estimate
-    
-    if round(p['P'][len(p['P'])-1],4) == round(p['P_c'],4): 
+    if round(p['P'][len(p['P'])-1],4) == round(p['P_c'],4):
         p['P'] = p['P'][:len(p['P'])-1] # Trim critical data points.
         p['T'] = p['T'][:len(p['T'])-1]
     # pass
     #%% find a solution for 'a', 'V_l' 'V_v' and 'm' at every T-Psat data point
-    def solve_maxwell(i, s, p, tol = 1e-10):
+    def solve_maxwell(i, s, p, tol = 1e-7):
         # Set state 's' = to data point in 'p'
         s['P'], s['T'] = p['P'][i], p['T'][i]
         s = VdW.a_T(s, p) # Solve 'a' for current temperature.

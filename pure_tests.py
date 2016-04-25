@@ -13,7 +13,7 @@ class TestPureFuncs(unittest.TestCase):
     data.comps = ['ethane']
     data.phases = ['x', 'y']
     data.eos = 'DWPM'
-    data.model = 'Adachi-Lu'
+    data.model = ['Adachi-Lu']
     data.r = None
     data.s = None
     data.T = None
@@ -47,8 +47,8 @@ class TestPureFuncs(unittest.TestCase):
         Soave model optimisation
         """
 
-        self.data.model = 'Soave'
-        self.data.c[0]['model'] = 'Soave'
+        self.data.model = ['Soave']
+        self.data.c[0]['model'] = ['Soave']
         self.data.c[0]['m (Soave)'][0] = ''
         s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose([self.p2_ans],[p['m'][0]], rtol=1e-03)
@@ -58,8 +58,8 @@ class TestPureFuncs(unittest.TestCase):
         """
         Adachi-Lu model optimisation
         """
-        self.data.model = 'Adachi-Lu'
-        self.data.c[0]['model'] = 'Adachi-Lu'
+        self.data.model = ['Adachi-Lu']
+        self.data.c[0]['model'] = ['Adachi-Lu']
         self.data.c[0]['m (Adachi-Lu)'][0] = ''
         s, p = pure.pure_sim(self.data)
         numpy.testing.assert_allclose([self.p3_ans],[p['m'][0]], rtol=1e-02)
