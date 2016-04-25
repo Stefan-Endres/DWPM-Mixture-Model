@@ -328,13 +328,11 @@ def plot_g_mix(s, p, g_x_func, Tie=None, plane_func=None, plan_args=None,
         logging.warn('Too many independent components to plot hypersurface '
                       +'in R^3.')
 
-class IsoDEst:
-    def __init__(self, T=None, P=None):
-        self.T = T
-        self.P = P
-        pass
 
 class IsoDetection:
+    """
+    Iso plots using phase equilibrium detection.
+    """
     def __init__(self, T=None, P=None):
         self.T = T
         self.P = P
@@ -814,17 +812,30 @@ class IsoDetection:
                         print('r_mph_eq[i][j] = {}'.format(r_mph_eq[i][j]))
                         print('r_mph_ph[i][j] = {}'.format(r_mph_ph[i][j]))
                         for l in range(len(r_mph_eq[i][j])):
-                            model_x_mph[r_mph_ph[i][j][l]].append(
-                                r_mph_eq[i][j][l])
+                            print 'r_mph_eq[i][j][l] = {}'.format(r_mph_eq[i][j][l])
+                            print 'r_mph_ph[i][j][l] = {}'.format(r_mph_ph[i][j][l])
+                            if p.m['n'] == 2:
+                                model_x_mph[r_mph_ph[i][j][l]].append(
+                                    r_mph_eq[i][j][l][0])
+                            else:
+                                model_x_mph[r_mph_ph[i][j][l]].append(
+                                    r_mph_eq[i][j][l])
+
                             model_p_mph[r_mph_ph[i][j][l]].append(P_range[i])
                             model_t_mph[r_mph_ph[i][j][l]].append(T_range[i])
                             # Attach a pressure and temperature
                             # point for each of these to keep dims
         # Sort:
-        # import numpy
-        # if model_p_mph is not None and (len(model_p_mph) > 0):
-        #     for ph in p.m['Valid phases']:
-        #         model_x_mph[ph] = numpy.sort(model_x_mph[ph] )
+        import numpy
+        if (model_p_mph is not None) and (len(model_p_mph) > 0):
+            for ph in p.m['Valid phases']:
+                #model_x_mph[ph] = numpy.sort(model_x_mph[ph] )
+                print('model_x_mph[{}] = {}'.format(ph, model_x_mph[ph]))
+                sind = numpy.argsort(model_x_mph[ph])
+                print('sind = {}'.format(sind))
+                model_x_mph[ph] = numpy.array(model_x_mph[ph])[sind]
+                model_p_mph[ph] = numpy.array(model_p_mph[ph])[sind]
+                model_t_mph[ph] = numpy.array(model_t_mph[ph])[sind]
 
         return model_x_mph, model_p_mph, model_t_mph
 
@@ -915,6 +926,7 @@ class IsoDetection:
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_mph[ph], model_p_mph[ph], '-',
                               label='{} model VLE'.format(ph))
+
 
         # LLE envelopes
         if not VLE_only:
