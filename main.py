@@ -125,8 +125,14 @@ if __name__ == '__main__':
 
         # plot output
         if data.plot_pure:
-            from plot import plot_Psat
-            plot_Psat(s, p)
+            print data.comps
+            from plot import PsatPlots
+            PP = PsatPlots(data.comps[0])
+
+            if len(PP.DBr) == 0:
+                P_sat_store, T_sat_store = PP.psat_range(s, p)
+
+            PP.plot_Psat(data.comps[0], p)
 
     if len(data.comps) > 1:  # multi component simulation.
         from ncomp import phase_equilibrium_calculation as pec
@@ -177,8 +183,9 @@ if __name__ == '__main__':
                 #print "Epsilon = {}".format(Epsilon)
 
                 # Plot
-                tsp_args = (s, p, g_mix)
+                tsp_args = (s, p, g_mix, False)
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
+                bounds = [(-5.0, 10.0), (-5.0, 10.0)]
                 #bounds = [(-1000.0, 1000.0), (-1000.0, 1000.0)]
                 #bounds = [(0.05, 0.2), (0.05, 0.2)]
                 #bounds = [(1.0, 1.05), (1.0, 1.05)]

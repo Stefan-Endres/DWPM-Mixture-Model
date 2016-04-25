@@ -607,39 +607,40 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
     
     s.update_state(s, p) # Update Volumes and activity coeff.
     
-    try:
-        Sigma_g_ref = 0.0
-        for i in range(1, p.m['n'] + 1): 
-            Sigma_g_ref -= s.c[i][ref] * g_R_k_i(s, p, k = ref, i=i)
+   # try:
+    Sigma_g_ref = 0.0
+    for i in range(1, p.m['n'] + 1):
+        Sigma_g_ref -= s.c[i][ref] * g_R_k_i(s, p, k = ref, i=i)
 
-        s.m['g_mix^R'] = {}
-        for ph in p.m['Valid phases']:
-                s.m['g_mix^R'][ph] = g_R_mix_i(s, p, k = ph) + Sigma_g_ref
+    s.m['g_mix^R'] = {}
+    for ph in p.m['Valid phases']:
+            s.m['g_mix^R'][ph] = g_R_mix_i(s, p, k = ph) + Sigma_g_ref
 
-        s.m['g_mix'] = {}
-        g_min = []
-        g_abs_min = long  # "inf" large int
-        for ph in p.m['Valid phases']:
-                s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, p, k=ph)
-                g_min.append(s.m['g_mix'][ph])
-                if s.m['g_mix'][ph] < g_abs_min: # Find lowest phase string
-                    s.m['g_mix']['ph min'] = ph
-                    g_abs_min = s.m['g_mix'][ph]
+    s.m['g_mix'] = {}
+    g_min = []
+    g_abs_min = long  # "inf" large int
+    for ph in p.m['Valid phases']:
+            s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, p, k=ph)
+            g_min.append(s.m['g_mix'][ph])
+            if s.m['g_mix'][ph] < g_abs_min: # Find lowest phase string
+                s.m['g_mix']['ph min'] = ph
+                g_abs_min = s.m['g_mix'][ph]
 
 
-        s.m['g_mix']['t'] = min(g_min)
+    s.m['g_mix']['t'] = min(g_min)
 
-        s.s['Math Error'] = False
+    s.s['Math Error'] = False
 
-    except(ValueError, ZeroDivisionError):
-        s.m['g_mix'] = {}
-        s.s['Math Error'] = True
-        logging.error('Math Domain error in g_mix(s,p)')
-        for ph in p.m['Valid phases']:
-                s.m['g_mix'][ph] = 0.0
+    # except(ValueError, ZeroDivisionError):
+    #     import numpy
+    #     s.m['g_mix'] = {}
+    #     s.s['Math Error'] = True
+    #     logging.error('Math Domain error in g_mix(s,p)')
+    #     for ph in p.m['Valid phases']:
+    #             s.m['g_mix'][ph] = numpy.nan#0.0
+    #
+    #     s.m['g_mix']['t'] = numpy.nan#0.0
 
-        s.m['g_mix']['t'] = 0.0
-            
     return s
 
 # %% Duality formulation

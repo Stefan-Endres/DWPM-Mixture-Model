@@ -4,62 +4,113 @@ from models import van_der_waals
 VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions
-def plot_Psat(s, p, options=None, figno=None):
-    """
+class PsatPlots:
+    def __init__(self, comp):
+        from tinydb import TinyDB, Query
+        # init database
+        self.db = TinyDB('.db/pure_db.json')
+        pplots = Query()
+        self.DBr = self.db.search((pplots.name == comp)
+                        & (pplots.dtype == 'psat_r'))
 
-    Parameters
-    ----------
-    s : class
-        Contains the dictionaries with the state of each component.
 
-    p : class
-        Contains the dictionary describing the mixture parameters.
+        return
 
-    options : dict
-              Options to pass to matplotlib.pyplot.plot
+    def save_psat_range(self, P_sat_store, T_sat_store, p):
+        from tinydb import TinyDB, Query
+        import numpy
+        db = TinyDB('.db/pure_db.json')
+        db_store = {'dtype' : 'psat_r',
+                    'name' : p['name'][0],
+                    'P_sat_r' : P_sat_store,
+                    'T_sat_r' : T_sat_store,
+                    'P_data' : p['P'],
+                    'T_data' : p['T'],
+                    'model': p['Model'],
+                    'm' : numpy.ndarray.tolist(p['m'])
+                    }
+        db.insert(db_store)
+        return
 
-    """
-    import matplotlib.pyplot as plot
-    from numpy import linspace, interp
-    import logging
-    VdW = van_der_waals.VdW()
+    def psat_range(self, s, p):
+        import numpy
+        import logging
+        VdW = van_der_waals.VdW()
 
-    # inits
-    s['b'] = p['b_c']  # b = b_c
+        # inits
+        s['b'] = p['b_c']  # b = b_c
 
-    T_sat_store = linspace(min(p['T']), max(p['T']))
-    P_sat_store = []
-    P_est = interp(T_sat_store , p['T'], p['P'])
-    i = 0
-    for T, P in zip(T_sat_store[:len(T_sat_store)-1],
-                    P_est[:len(T_sat_store)-1]): # Trim crit.
-        s['T'] = T # Solve P_sat at this Temperature
-        s['P'] = P # P est
-        #s['a'] = VdW.a_T['a']
-        try:
-            s = VdW.Psat_V_roots(s, p, tol=1e-1)
-            P_sat_store.append(s['P_sat'])
-        except(IOError):
-            logging.warning("Could not converge Maxwell integral at "
-                            "point T = {}, P = {}".format(T, P))
-            P_sat_store.append(P) # Append estimate
+        T_sat_store = numpy.linspace(min(p['T']), max(p['T']))
+        P_sat_store = []
+        P_est = numpy.interp(T_sat_store, p['T'], p['P'])
+        i = 0
+        # Loop through model points
+        for T, P in zip(T_sat_store[:len(T_sat_store) - 1],
+                        P_est[:len(T_sat_store) - 1]):  # Trim crit.
+            s['T'] = T  # Solve P_sat at this Temperature
+            s['P'] = P  # P est
+            try:
+                s = VdW.Psat_V_roots(s, p, tol=1e-1)
+                P_sat_store.append(s['P_sat'])
+            except(IOError):
+                logging.warning("Could not converge Maxwell integral at "
+                                "point T = {}, P = {}".format(T, P))
+                P_sat_store.append(P)  # Append estimate
 
-    P_sat_store.append(p['P_c']) # Append Critical point
+        P_sat_store.append(p['P_c'])  # Append Critical point
+        T_sat_store = numpy.ndarray.tolist(T_sat_store)
 
-    plot.figure(figno)
-    #plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
-    #plot.rcParams.update(options)
-    plot.plot(p['T'], p['P'], 'xr', label='Data points')
-    plot.plot(T_sat_store, P_sat_store, '--r',
-              label='Van der Waals EoS %s m = %s'% (p['Model'], p['m']))
-    plot.xlabel("Temperature / K")
-    plot.ylabel("Pressure$^{sat}$ / Pa")
-    plot.title("Van der Waals EoS correlation for $%s$" \
-                % (p['name'][0]))
-    #plot.legend(loc=options['legend.loc'])
-    plot.legend()
-    plot.show()
-    return
+        # Save results in databasis
+        self.save_psat_range(P_sat_store, T_sat_store, p)
+
+        return P_sat_store, T_sat_store
+
+    def plot_Psat(self, comp, options=None, figno=None):
+        """
+
+        Parameters
+        ----------
+        s : class
+            Contains the dictionaries with the state of each component.
+
+        p : class
+            Contains the dictionary describing the mixture parameters.
+
+        options : dict
+                  Options to pass to matplotlib.pyplot.plot
+
+        """
+        import matplotlib.pyplot as plot
+        from tinydb import TinyDB, Query
+        db = TinyDB('.db/pure_db.json')
+        pplots = Query()
+        DBr = db.search((pplots.name == comp)
+              & (pplots.dtype == 'psat_r'))
+
+        DBr[0]['P_sat_r']
+
+        P_sat_store = DBr[0]['P_sat_r']
+        T_sat_store = DBr[0]['T_sat_r']
+        P_data = DBr[0]['P_data']
+        T_data = DBr[0]['T_data']
+        model = DBr[0]['model']
+        m = DBr[0]['m']
+
+
+        plot.figure(figno)
+        #plot.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+        #plot.rcParams.update(options)
+        plot.plot(T_data, P_data, 'xr', label='Data points')
+        plot.plot(T_sat_store, P_sat_store, '--r',
+                  label='Van der Waals EoS %s m = %s'% (model, m))
+        plot.xlabel("Temperature / K")
+        plot.ylabel("Pressure$^{sat}$ / Pa")
+        plot.title("Van der Waals EoS correlation for $%s$" \
+                    % (comp))
+        #plot.legend(loc=options['legend.loc'])
+        plot.legend()
+        plot.show()
+        return
 
 
 # %% nComp Plots
@@ -275,6 +326,12 @@ def plot_g_mix(s, p, g_x_func, Tie=None, plane_func=None, plan_args=None,
         import logging
         logging.warn('Too many independent components to plot hypersurface '
                       +'in R^3.')
+
+class IsoDEst:
+    def __init__(self, T=None, P=None):
+        self.T = T
+        self.P = P
+        pass
 
 class IsoDetection:
     def __init__(self, T=None, P=None):
