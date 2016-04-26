@@ -21,7 +21,7 @@ class TestFunction(object):
         self.expected_funl = expected_funl
 
 class Test1(TestFunction):
-    def f(self, x, r, s):
+    def f(self, x):
         return x[0]**2 + x[1]**2
 
     def g(self, x):
@@ -446,7 +446,7 @@ class TestTgoSubFuncs(unittest.TestCase):
 
     TGOc.func = f_sub
 
-    T, H, F = TGOc.topograph()
+    T, H, _ = TGOc.topograph()
 
     def test_t1(self):
         """t-matrix construction:"""

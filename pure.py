@@ -4,7 +4,7 @@
 
 """
 #%% Imports
-from __future__ import division
+from __future__ import division, print_function
 from scipy.interpolate import interp1d
 import logging
 import data_handling
@@ -41,10 +41,8 @@ def optim_a_m(p):
     from scipy.optimize import leastsq
     import itertools
     
-    s = {}
-    s['b'] = p['b_c'] # b = b_c
-    s['a'] = p['a_c'] # First estimate
-    
+    s = {'b': p['b_c'], 'a': p['a_c']}
+
     p['m'] = 1e-10 # Initial estimate for 'm'.
     #s = VdW.a_T(s, p) ## Initial 'a 'from 'm' estimate
     if round(p['P'][len(p['P'])-1],4) == round(p['P_c'],4):
@@ -148,13 +146,12 @@ def pure_sim(data, i=0):
 
     #%% Find phase equilibrium at specified Temperature point (T, V_v and V_l)
     if data.T: # Note that if data.T is > 0 then the boolean is 'True'
-        s      = {}
-        s['b'] = p['b_c'] # b = b_c
-        s['a'] = p['a_c'] # First estimate
-        s['T'] = data.T
+        s = {'b': p['b_c'],
+             'a': p['a_c'],
+             'T': data.T}
         try:
             s['P'] = scipy.interpolate.interp1d(p['T'],p['P'])(s['T'])
-        except(ValueError):
+        except ValueError:
             raise IOError('Specified temperature {} K is larger than the criti'
                           'cal temperature {} K.'.format(s['T'],p['T_c']))
 
@@ -164,14 +161,14 @@ def pure_sim(data, i=0):
                                   P  = s['P_sat']/1000.0,
                                   Vv = s['V_v'],
                                   Vl = s['V_l']))
-        print out_str
+        print(out_str)
         logging.info(out_str)
 
     #%% Find phase equilibrium at specified Pressure point (P, V_v and V_l)
     try: #TODO:
         if data.P: # Note that if I['P'] is > 0 then the boolean is 'True'
             pass#VdW.Tsat_V_roots(s,p) # NOTE TODO!
-    except(KeyError):
+    except KeyError:
         pass
 
     #%% Save if True
@@ -193,7 +190,7 @@ def pure_sim(data, i=0):
                             '{}.csv'.format(data.c[i]['name'][0]))
 
         #sstr = 'Data/Pure_Component/{}.csv'.format(data.c[i]['name'][0])
-        print 'Saving new results to {}'.format(sstr)
+        print('Saving new results to {}'.format(sstr))
         save_dict_as_csv(data.c[i],sstr,Order)
 
     return s, p

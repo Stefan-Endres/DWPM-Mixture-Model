@@ -1,5 +1,6 @@
+ternary
+tinydb
 numpy
 scipy
 matplotlib
 UQToolbox
-logging

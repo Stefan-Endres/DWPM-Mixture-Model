@@ -78,7 +78,7 @@ class TestPureFuncs(unittest.TestCase):
         Phase equilibrium at fixed pressure
         """
         self.data.P = 1046007.02038
-        s, p = pure.pure_sim(self.data)
+        pure.pure_sim(self.data)
         numpy.testing.assert_allclose(1, 1, rtol=1e-02)
 
 class TestNewPure(unittest.TestCase): #TODO
