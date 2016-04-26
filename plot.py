@@ -406,31 +406,32 @@ class IsoDetection:
         """
         import numpy
 
-        # look for data in database
-        nodbdata = True
-        from tinydb import TinyDB, Query
-        self.db = TinyDB('.db/iso_db.json')
-        pplots = Query()
-        self.DBr = self.db.search((pplots.dtype == 'iso_r')
-                                  & (pplots.comps == self.comps)
-                                  & (pplots.T == T)
-                                  & (pplots.P == P)
-                                  & (pplots.r == p.m['r'])
-                                  & (pplots.s == p.m['s'])
-                                  & (pplots.kij == p.m['k'])
-                                  & (pplots.res == res)
-                                  & (pplots.LLE_only == LLE_only)
-                                  & (pplots.VLE_only == VLE_only)
-                                  )
-
-        if len(self.DBr) > 0:
-            nodbdata = False
-            import logging
-            plot_kwargs = self.DBr[0]['plot_kwargs']
-            logging.warn('Found data in database for specified params')
-
         if T is not None:
+            Pre = None
             for t in T:
+                # look for data in database
+                nodbdata = True
+                from tinydb import TinyDB, Query
+                self.db = TinyDB('.db/iso_db.json')
+                pplots = Query()
+                self.DBr = self.db.search((pplots.dtype == 'iso_r')
+                                          & (pplots.comps == self.comps)
+                                          & (pplots.T == t)
+                                          & (pplots.P == Pre)
+                                          & (pplots.r == p.m['r'])
+                                          & (pplots.s == p.m['s'])
+                                          & (pplots.kij == p.m['k'])
+                                          & (pplots.res == res)
+                                          & (pplots.LLE_only == LLE_only)
+                                          & (pplots.VLE_only == VLE_only)
+                                          )
+
+                if len(self.DBr) > 0:
+                    nodbdata = False
+                    import logging
+                    plot_kwargs = self.DBr[0]['plot_kwargs']
+                    logging.warn('Found data in database for specified params')
+
                 # Find model results and data points
                 (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
                  data_x_ph, data_t, data_p) =  self.iso_range(s, p,
@@ -469,7 +470,7 @@ class IsoDetection:
                     kij = p.m['k']
                     p_r = p.m['r']
                     p_s = p.m['s']
-                    self.save_iso_range(self.comps, P, T, kij, p_r, p_s, res,
+                    self.save_iso_range(self.comps, Pre, t, kij, p_r, p_s, res,
                                         LLE_only, VLE_only, plot_kwargs)
 
                 # Plot each isotherm
@@ -495,7 +496,31 @@ class IsoDetection:
                                  'request')
 
         if P is not None:
+            T = None
             for Pre in P:
+                # look for data in database
+                nodbdata = True
+                from tinydb import TinyDB, Query
+                self.db = TinyDB('.db/iso_db.json')
+                pplots = Query()
+                self.DBr = self.db.search((pplots.dtype == 'iso_r')
+                                          & (pplots.comps == self.comps)
+                                          & (pplots.T == t)
+                                          & (pplots.P == Pre)
+                                          & (pplots.r == p.m['r'])
+                                          & (pplots.s == p.m['s'])
+                                          & (pplots.kij == p.m['k'])
+                                          & (pplots.res == res)
+                                          & (pplots.LLE_only == LLE_only)
+                                          & (pplots.VLE_only == VLE_only)
+                                          )
+
+                if len(self.DBr) > 0:
+                    nodbdata = False
+                    import logging
+                    plot_kwargs = self.DBr[0]['plot_kwargs']
+                    logging.warn('Found data in database for specified params')
+
                 # Find model results and data points
                 (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph,
                  data_x_mph,

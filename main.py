@@ -250,6 +250,7 @@ if __name__ == '__main__':
             iso = IsoDetection(components=data.comps)
             import time
             start = time.time()
+            # Use res = 30 for database standard
             iso.plot_iso(s, p, g_x_func, res=30, n=1000, T=data.plot_isotherms,
                          VLE_only=True, n_dual=300, Plot_Results=True)
             print("="*90)
