@@ -43,9 +43,9 @@ install:
 # Run test
 script:
   - coverage run tgo_tests.py
-  - coverage run data_handling_tests.py
-  - coverage run pure_tests.py
-  - coverage run ncomp_tests.py
+  #- coverage run data_handling_tests.py
+  #- coverage run pure_tests.py
+  #- coverage run ncomp_tests.py
  
 after_success:
   - coveralls --config_file .coveragerc
