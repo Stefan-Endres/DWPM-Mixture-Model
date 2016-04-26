@@ -10,9 +10,7 @@ import logging
 import data_handling
 import numpy
 import scipy
-#from common import parameters
-from models import van_der_waals
-VdW = van_der_waals.VdW()
+from models import van_der_waals as VdW
 
 #%% Functions
 def optim_a_m(p):

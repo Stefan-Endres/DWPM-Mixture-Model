@@ -3,12 +3,8 @@
 
 
 import unittest
-import data_handling
-from models import van_der_waals
 import numpy
-import main
 from ncomp import *
-VdW = van_der_waals.VdW()
 
 #%% TEST FUNCTION  Binary NRTL
 def g_x_test_func(s, p, k=None, ref='x'):
