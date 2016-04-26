@@ -359,11 +359,8 @@ class TestTgoFuncs(unittest.TestCase):
     """
     def test_f1(self):
         """Multivariate test function 1: x[0]**2 + x[1]**2"""
-        r = [1, 2, 3]  # random args for test func tuple
-        s = True
-        run_test(test1_1, args=(r, s))
-        run_test(test1_2, args=(r, s))
-        #run_test(test1_3, args=(r, s))
+        run_test(test1_1)
+        run_test(test1_2)
 
     def test_f2(self):
         """Scalar opt test on f(x) = (x - 30) * sin(x)"""
