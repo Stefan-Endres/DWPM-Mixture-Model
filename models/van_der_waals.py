@@ -4,16 +4,16 @@
 
 """
 
-def a_m_sol(s, p):
+def a_m_sol(state, parameters):
     """
     Return explicit solution for 'm', at 'a', 'T'
 
     Parameters
     ----------
-    s : dictionary
+    state : dictionary
         Contains the current temperature 'T' and attraction paramter 'a'.
 
-    p : dictionary
+    parameters : dictionary
         Contains the critical parameters 'T_c', 'a_c'.
 
     Dependencies
@@ -21,24 +21,30 @@ def a_m_sol(s, p):
     math
     """
     from math import sqrt, log
-    if p['Model'][0] == "Soave":
-        m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T']/p['T_c']))
-    elif p['Model'][0] == 'Adachi-Lu':
-        m = p['T_c'] * log(p['a_c']/s['a']) / (s['T'] - p['T_c'])
+
+    T_c = parameters['T_c']
+    a_c = parameters['a_c']
+    T = state['T']
+    a = state['a']
+
+    if parameters['Model'][0] == "Soave":
+        m = (sqrt(a/a_c) - 1) / (1 - sqrt(T/T_c))
+    elif parameters['Model'][0] == 'Adachi-Lu':
+        m = T_c*log(a_c/a)/(T - T_c)
     else:
         raise ValueError("Unknown model")
     return m
 
-def a_T(s, p):
+def a_T(state, parameters):
     """
     Return explicit solution for 'a' at 'm', 'T'
 
     Parameters
     ----------
-    s : dictionary
+    state : dictionary
         Contains the current state variable temperature 'T'
 
-    p : dictionary
+    parameters : dictionary
         Contains the critical paramters 'T_c
         ', 'a_c' and the a dependancy
         model 'Model' with parameter 'm'
@@ -49,28 +55,35 @@ def a_T(s, p):
     """
     from math import e
 
-    model = p['Model'][0] if (len(p['Model']) == 1) else p['Model']
+    model = parameters['Model'][0] if (len(parameters['Model']) == 1) else parameters['Model']
+
+    T_c = parameters['T_c']
+    m = parameters['m']
+    a_c = parameters['a_c']
+    T = state['T']
 
     if model == "Soave":
-        s['a'] = p['a_c']*(1.0 + p['m']*(1 - (s['T']/p['T_c'])**0.5))**2
+        a = a_c * (1.0 + m*(1 - (T/T_c)**0.5))**2
     elif model == 'Adachi-Lu':
-        s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))
+        a = a_c*e**(m*(1 - T/T_c))
     else:
         raise ValueError("Unknown model")
 
-    return s # = s['a']
+    state['a'] = a
 
-def a_maxwell(s, p):
+    return state # = s['a']
+
+def a_maxwell(state, parameters):
     """
     Explicit solution of 'a' parameter of the VdW EoS Maxwell integral at
     Psat.
 
     Parameters
     ----------
-    s : dictionary
+    state : dictionary
         Contains the current temperature 'T' and phase volumes 'V_V','V_l'.
 
-    p : dictionary
+    parameters : dictionary
         Parameter dictionary container containing the universal gas
         constant paramter 'R'.
 
@@ -79,13 +92,21 @@ def a_maxwell(s, p):
     math
     """
     from math import log
-    s['a'] = -(p['R']*s['T']*s['V_l']*s['V_v']*log(s['V_v'] \
-                /(s['V_l'] - s['b']) \
-             - s['b']/(s['V_l'] - s['b'])) + ((s['V_l']**2) * s['V_v'] \
-             - s['V_l'] * (s['V_v']**2)) * s['P']) / (s['V_l'] - s['V_v'])
-    return s
+    V_v = state['V_v']
+    V_l = state['V_l']
+    P = state['P']
+    b = state['b']
+    T = state['T']
+    R = parameters['R']
 
-def V_root(s, p):
+    a = -(R*T*V_l*V_v*log(V_v/(V_l - b) - b/(V_l - b)) +
+          (V_l**2*V_v - V_l*V_v**2)*P) / (V_l - V_v)
+
+    state['a'] = a
+
+    return state
+
+def V_root(state, parameters):
     """
     Calculates the volume roots of the van der Waals equation using the
     analytic solution at specified values of P (or Psat), T, a(T) and b. If
@@ -93,11 +114,11 @@ def V_root(s, p):
 
     Parameters
     ----------
-    s : dictionary
+    state : dictionary
         Contains the current temperature state variables 'T', pressure 'P'
         and the VdW coefficients 'a' and 'b'.
 
-    p : dictionary
+    parameters : dictionary
         Contains the critical paramters 'T_c', 'a_c', 'R'.
 
     Dependencies
@@ -108,10 +129,10 @@ def V_root(s, p):
     from math import sqrt, acos, cos, pi
     try:
         # Coefficients of V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
-        C = [- (p['R']*s['T']/s['P'] + s['b']),   # Coefficient C_1
-             s['a']/s['P'],                       # Coefficient C_2
-             - s['a']*s['b']/s['P']               # Coefficient C_3
-            ]
+        C = [-(parameters['R'] * state['T'] / state['P'] + state['b']),  # Coefficient C_1
+             state['a'] / state['P'],  # Coefficient C_2
+             - state['a'] * state['b'] / state['P']  # Coefficient C_3
+             ]
         # Substitutions (see solution of Cubic equations:
         #                         mathworld.wolfram.com/CubicFormula.html )
         w = (3*C[1] - C[0]**2)/3.0
@@ -135,19 +156,19 @@ def V_root(s, p):
                     2*q_s*sqrt(-w/3.0)*cos(phi/3.0 + 4*pi/3.0) - C[0]/3.0
                   ]
         # Find physical volume roots
-        s['V_v'], s['V_l'] = max(V_roots), min(V_roots)
+        state['V_v'], state['V_l'] = max(V_roots), min(V_roots)
 
     except ValueError:
         import numpy
         # Coefficients of (C_0)V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
-        C = [ 1.0,                                # Coefficient C_0
-             - (p['R']*s['T']/s['P'] + s['b']),   # Coefficient C_1
-             s['a']/s['P'],                       # Coefficient C_2
-             - s['a']*s['b']/s['P']               # Coefficient C_3
-            ]
+        C = [1.0,  # Coefficient C_0
+             - (parameters['R'] * state['T'] / state['P'] + state['b']),  # Coefficient C_1
+             state['a'] / state['P'],  # Coefficient C_2
+             - state['a'] * state['b'] / state['P']  # Coefficient C_3
+             ]
         #try:
         V_roots = numpy.roots(C)
-        s['V_v'], s['V_l']  = max(V_roots.real), min(V_roots.real)
+        state['V_v'], state['V_l']  = max(V_roots.real), min(V_roots.real)
 
         #except(numpy.linalg.linalg.LinAlgError):  # Nan's in roots
         #    V_roots = numpy.array([0.0, 0.0, 0.0])
@@ -161,21 +182,21 @@ def V_root(s, p):
                                             V_roots[1].imag,
                                             V_roots[2].imag)
                      )
-    return s
+    return state
 
 #%%
-def Psat_V_roots(s, p, tol = 1e-20, estfactor=1e-3):
+def Psat_V_roots(state, parameters, tol = 1e-20, estfactor=1e-3):
     """
     Calculates the saturation pressure and volume roots of the Van der
     Waals equation at a specified temperature and pressure.
 
     Parameters
     ----------
-    s : dictionary
+    state : dictionary
         Contains the current state variable temperature 'T', pressure 'P'
         and the VdW coefficients 'a' and 'b'
 
-    p : dictionrary
+    parameters : dictionrary
         Contains the critical paramters 'T_c', 'a_c', 'R' and the a
         dependancy model 'Model' with parameter 'm'
 
@@ -199,45 +220,51 @@ def Psat_V_roots(s, p, tol = 1e-20, estfactor=1e-3):
     from math import log # NOTE: math.log is the natural logarithm, not b10
     from scipy.optimize import fsolve
     # Update s['a'] at specified T for given p['m']
-    s['a'] = a_T(s, p)['a']
-    s = V_root(s,p) # Update s['V_v'] and s['V_l']]
+    state['a'] = a_T(state, parameters)['a']
+    state = V_root(state, parameters) # Update s['V_v'] and s['V_l']]
     # The phase volumes at the specified pressure:
-    s['V_v_P'], s['V_l_P'] = s['V_v'], s['V_l']
+    state['V_v_P'], state['V_l_P'] = state['V_v'], state['V_l']
 
-    def P_maxwell(P,s,p):
-        s['P'] = P
-        s = a_T(s,p)
-        s = V_root(s,p) # Update s['V_v'] and s['V_l']
+    def P_maxwell(P, istate, iparameters):
+        istate['P'] = P
+        istate = a_T(istate, iparameters)
+        istate = V_root(istate, iparameters) # Update s['V_v'] and s['V_l']
         try:
-            return s['P']*(s['V_l'] - s['V_v']) \
-               + s['a']/s['V_v'] - (s['a']/s['V_l']) \
-               + p['R'] * s['T'] * log((s['V_v'] - s['b']) \
-                                      /(s['V_l'] - s['b']))
+            b = istate['b']
+            V_l = istate['V_l']
+            V_v = istate['V_v']
+            T = istate['T']
+            a = istate['a']
+            P = istate['P']
+            R = iparameters['R']
+
+            return P*(V_l - V_v) + a/V_v - a/V_l + R*T*log((V_v - b)/(V_l - b))
 
         except ValueError:
             raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
             ' to use a lower starting value s[\'P\'] before executing the'\
             +' function')
             logging.warn('Value error in P_maxwell, P = '
-                         + '{}'.format(s['P'])
+                         + '{}'.format(istate['P'])
                          )
 
     try:
-        s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
+        state['P_sat'] = fsolve(P_maxwell, state['P'], args=(state, parameters), xtol=tol)
     except IOError:
         try: # Scale to approx. P near P_sat
-            s['P'] = p['P_c']**(s['T']/p['T_c'])*estfactor
-            s = V_root(s,p) # Update s['V_v'] and s['V_l']
-            s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
+            state['P'] = parameters['P_c'] ** (state['T'] / parameters['T_c']) * estfactor
+            state = V_root(state, parameters) # Update s['V_v'] and s['V_l']
+            state['P_sat'] = fsolve(P_maxwell, state['P'], args=(state, parameters), xtol=tol)
         except IOError:
             raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
             ' to use a lower starting value s[\'P\'] or a lower'+\
             '\'downscale\' argument before executing the function.')
 
     from numpy import float64 # Convert 1x1 np arrays to floats
-    s['V_v'], s['V_l'], s['P_sat'], s['P'] = float64(s['V_v']), \
-    float64(s['V_l']), float64(s['P_sat']), float64(s['P'])
-    return s
+    for property in ['V_v', 'V_l', 'P_sat', 'P']:
+        state[property] = float64(state[property])
+
+    return state
 
     # Outpus are:  'V_v_P'   = Vapour phase volume at specified Pressure
     #              'V_l_P'   = Liquid phase volume at specified Pressure
