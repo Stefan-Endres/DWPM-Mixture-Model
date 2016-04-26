@@ -396,7 +396,7 @@ class TGO(object):
         with gzip.open('new-joe-kuo-6.21201.gz') as f:
             unsigned = "uint64"
             # swallow header
-            buffer = next(f)
+            next(f)
 
             L = int(numpy.log(N) // numpy.log(2.0)) + 1
 
