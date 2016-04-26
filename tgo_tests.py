@@ -21,10 +21,10 @@ class TestFunction(object):
         self.expected_funl = expected_funl
 
 class Test1(TestFunction):
-    def f(self, x):
+    def f(self, x, r=0, s=0):
         return x[0]**2 + x[1]**2
 
-    def g(self, x):
+    def g(self, x, r=0, s=0):
        return -(numpy.sum(x, axis=0) - 6.0)
 
 test1_1 = Test1(bounds=[(-1, 6), (-1, 6)],
