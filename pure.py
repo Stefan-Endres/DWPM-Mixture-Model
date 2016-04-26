@@ -146,10 +146,9 @@ def pure_sim(data, i=0):
 
     #%% Find phase equilibrium at specified Temperature point (T, V_v and V_l)
     if data.T: # Note that if data.T is > 0 then the boolean is 'True'
-        s      = {}
-        s['b'] = p['b_c'] # b = b_c
-        s['a'] = p['a_c'] # First estimate
-        s['T'] = data.T
+        s = {'b': p['b_c'],
+             'a': p['a_c'],
+             'T': data.T}
         try:
             s['P'] = scipy.interpolate.interp1d(p['T'],p['P'])(s['T'])
         except ValueError:
