@@ -53,10 +53,12 @@ class TestDataLoad(unittest.TestCase):
     data.phases = ['x','y']
     data.r = None
     data.s = None
+    data.k_params = None
     data.load_pure_data()
     data.load()
     data.c[0]['a_c (Pa m6 mol-2)'][0] = '' # Test param caculation
     data.c[1]['b_c (m3 mol-1)'][0] = ''
+
 
 
     crit_ans = numpy.array([0.34985866655, # data.c[0]['a_c (Pa m6 mol-2)'][0]
@@ -138,6 +140,7 @@ class TestNewData(unittest.TestCase):
     data.phases = ['x','y']
     data.r = None
     data.s = None
+    data.k_params = None
 
     data.load_pure_data() # Using data.comps
 
