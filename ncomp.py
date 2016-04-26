@@ -1245,8 +1245,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     X_eq.append(X_sol)  # Add first point to solution set
 
-    #TODO: Of len(d_res.xl) = 1 then we only need to optimize the solution
-    # plane again
+
     if (len(d_res.xl) < 2) and Sampling_Stepping:
         logging.basicConfig(level=logging.DEBUG)
         logging.warn('Less than 2 equilibrium points found in dual, increasing'

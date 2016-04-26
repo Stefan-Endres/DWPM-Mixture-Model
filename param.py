@@ -1,13 +1,66 @@
 #!/usr/bin/env python
 
 class TopShiftParam:
-    def __init__(self, p):
+    def __init__(self, p, rs=True, kij=False, rskij=False):
         from ncomp import phase_equilibrium_calculation as pec
         from ncomp import dual_equal
         if p.m['Model'] == 'DWPM':
             self.param_func = self.vdw_dwpm_params
+            self.rs = rs
+            self.kij = kij
+            self.rskij = rskij
 
-    def vdw_dwpm_params(self, params, p, rs=True, kij=False, rskij=False):
+    def optimise(self, s, p, g_x_func, Z_0, method='L-BFGS-B', bounds=None):
+        import scipy
+        import numpy
+        import logging
+        from tgo import tgo
+
+        logging.basicConfig(level=logging.DEBUG) # Make logging.info verbose
+
+        # Find local minima of dual func
+        tsp_args = (s, p, g_x_func, False)
+        #tsp_objective_function(self, )
+        if method == 'L-BFGS-B':
+            res_d = scipy.optimize.minimize(self.tsp_objective_function,
+                                            Z_0,
+                                            args=tsp_args,
+                                            method='L-BFGS-B'
+                                            )
+        elif method == 'tgo':
+            res_d = tgo(self.tsp_objective_function, bounds=bounds,
+                        args=tsp_args)
+
+
+        # Verbose report before computationally expensive equilibrium
+        # optimization over all data points
+        print('='*100)
+        logging.info(res_d)
+        print('='*100)
+
+        # Optimize over all equilibrium points using dual plane minima as a
+        # starting point
+        Z_0 = res_d.x
+        tsp_args = (s, p, g_x_func, True)
+
+        if method == 'L-BFGS-B':
+            res_eq = scipy.optimize.minimize(self.tsp_objective_function,
+                                            Z_0,
+                                            args=tsp_args,
+                                            method='L-BFGS-B'
+                                            )
+        elif method == 'tgo':
+            res_eq = tgo(self.tsp_objective_function, bounds=bounds,
+                        args=tsp_args)
+
+        print('=' * 100)
+        logging.info(res_eq)
+        print('=' * 100)
+        print('=' * 100)
+
+        return res_eq
+
+    def vdw_dwpm_params(self, params, p):
         """
         This function accepts a params vector and feeds updates to the
         parameter class of the VdW-dwpm EOS (TODO: Move to van_der_waals module
@@ -20,7 +73,7 @@ class TopShiftParam:
                   ]
         """
         import logging
-        if rs or rskij:
+        if self.rs or self.rskij:
             p.m['r'], p.m['s'] = params[0], params[1]
 
             if abs(p.m['r']) <= 1e-10:  # Avoid singularities
@@ -34,8 +87,8 @@ class TopShiftParam:
                                 " = 1e-10")
                 p.m['s'] = 1e-10
 
-        if kij or rskij:
-            if rs:
+        if self.kij or self.rskij:
+            if self.rs:
                 pint = 2
             else:
                 pint = 0
@@ -45,7 +98,7 @@ class TopShiftParam:
                         pass
                     else:
                         p.m['k'][i][j] = params[pint]
-                        print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
+                        #print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
                         #if abs(1 - p.m['k'][i][j]) <= 1e-10:  # Avoid singularities
                         #    logging.warning(
                         #        "k_{0}{1} parameter close to singularity, "
@@ -53,8 +106,8 @@ class TopShiftParam:
                         #        " = 0.999".format(i, j))
                         #   p.m['k'][i][j] = 0.999
                         pint += 1
-                        print('p[k] =')
-                        print(p.m['k'])
+                        #print('p[k] =')
+                        #print(p.m['k'])
         return p
 
     def d_points(self, N, X_I, X_II):  # Validated for binary
