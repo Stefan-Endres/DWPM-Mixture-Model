@@ -134,7 +134,7 @@ class TopShiftParam:
             try:
                 if numpy.float(fdg) > 0.0:
                     epsilon_d += fdg
-            except(ValueError):
+            except ValueError:
                 if numpy.float(fdg[0]) > 0.0:
                     epsilon_d += numpy.float(fdg[0])
         # (If duality gap exists/concavity at the point then we add no penalty)
@@ -279,7 +279,7 @@ class TopShiftParam:
                                                 p.m['Data phases'],
                                                 X_D, g_x_func, s, p)
 
-                except(numpy.linalg.linalg.LinAlgError):#, IndexError):
+                except numpy.linalg.linalg.LinAlgError:#, IndexError):
                     logging.warning("LinAlgError in phase equil calculation"
                                     " setting epsilons to maximum")
                     epsilon_e = 1.0  # (max normalized plane error)

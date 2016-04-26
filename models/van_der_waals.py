@@ -30,10 +30,11 @@ class VdW:
         """
         from math import sqrt, log
         if p['Model'][0] == "Soave":
-            m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T'] \
-                      /p['T_c']))
+            m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T']/p['T_c']))
         elif p['Model'][0] == 'Adachi-Lu':
             m = p['T_c'] * log(p['a_c']/s['a']) / (s['T'] - p['T_c'])
+        else:
+            raise ValueError("Unknown model")
         return m
         
     def a_T(self, s, p):
@@ -55,17 +56,15 @@ class VdW:
         math
         """
         from math import e
-        if len(p['Model']) == 1:
-            if p['Model'][0] == "Soave":
-                s['a'] = p['a_c']*(1.0 + p['m']*(1 - (s['T']/p['T_c'])**(0.5)))**2
-            elif p['Model'][0] == 'Adachi-Lu':
-                s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))
+
+        model = p['Model'][0] if (len(p['Model']) == 1) else p['Model']
+
+        if model == "Soave":
+            s['a'] = p['a_c']*(1.0 + p['m']*(1 - (s['T']/p['T_c'])**0.5))**2
+        elif model == 'Adachi-Lu':
+            s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))
         else:
-            if p['Model'] == "Soave":
-                s['a'] = p['a_c'] * (
-                                    1.0 + p['m'] * (1 - (s['T'] / p['T_c']) ** (0.5))) ** 2
-            elif p['Model'] == 'Adachi-Lu':
-                s['a'] = p['a_c'] * e ** (p['m'] * (1 - s['T'] / p['T_c']))
+            raise ValueError("Unknown model")
 
         return s # = s['a']
 
@@ -146,7 +145,7 @@ class VdW:
             # Find physical volume roots
             s['V_v'], s['V_l'] = max(V_roots), min(V_roots) 
     
-        except(ValueError):
+        except ValueError:
             import numpy
             # Coefficients of (C_0)V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
             C = [ 1.0,                                # Coefficient C_0
@@ -223,7 +222,7 @@ class VdW:
                    + p['R'] * s['T'] * log((s['V_v'] - s['b']) \
                                           /(s['V_l'] - s['b']))
 
-            except(ValueError):
+            except ValueError:
                 raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
                 ' to use a lower starting value s[\'P\'] before executing the'\
                 +' function')
@@ -233,12 +232,12 @@ class VdW:
 
         try:
             s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
-        except(IOError):
+        except IOError:
             try: # Scale to approx. P near P_sat
                 s['P'] = p['P_c']**(s['T']/p['T_c'])*estfactor
                 s = self.V_root(s,p) # Update s['V_v'] and s['V_l']
                 s['P_sat'] = fsolve(P_maxwell, s['P'], args=(s,p), xtol=tol)
-            except(IOError):
+            except IOError:
                 raise IOError('Math error in P_maxwell in Psat_V_roots, try'+\
                 ' to use a lower starting value s[\'P\'] or a lower'+\
                 '\'downscale\' argument before executing the function.')
