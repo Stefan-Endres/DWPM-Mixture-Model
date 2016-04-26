@@ -333,10 +333,10 @@ class IsoDetection:
     """
     Iso plots using phase equilibrium detection.
     """
-    def __init__(self, T=None, P=None):
+    def __init__(self, T=None, P=None, components=None):
         self.T = T
         self.P = P
-        pass
+        self.comps = components
 
     def plot_iso(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
                  tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
@@ -405,6 +405,30 @@ class IsoDetection:
         data_only : boolean, optional
                     If True only data will be plotted with no model simulations
         """
+        import numpy
+
+        # look for data in database
+        nodbdata = True
+        from tinydb import TinyDB, Query
+        self.db = TinyDB('.db/iso_db.json')
+        pplots = Query()
+        self.DBr = self.db.search((pplots.dtype == 'iso_r')
+                                  & (pplots.comps == self.comps)
+                                  & (pplots.T == T)
+                                  & (pplots.P == P)
+                                  & (pplots.r == p.m['r'])
+                                  & (pplots.s == p.m['s'])
+                                  & (pplots.kij == p.m['k'])
+                                  & (pplots.res == res)
+                                  & (pplots.LLE_only == LLE_only)
+                                  & (pplots.VLE_only == VLE_only)
+                                  )
+
+        if len(self.DBr) > 0:
+            nodbdata = False
+            import logging
+            plot_kwargs = self.DBr[0]['plot_kwargs']
+            logging.warn('Found data in database for specified params')
 
         if T is not None:
             for t in T:
@@ -415,33 +439,39 @@ class IsoDetection:
                                    n=n, tol=tol, gtol=gtol, n_dual=n_dual,
                                    phase_tol=phase_tol, LLE_only=LLE_only,
                                    VLE_only=VLE_only, Plot_Results=True,
-                                   data_only=data_only)
+                                   data_only=data_only, nodbdata=nodbdata)
 
                 # Process VLE points
-                plot_kwargs = {}
-                if not LLE_only:
-                    if not data_only:
-                        model_x_mph, model_p_mph, model_t_mph = \
-                            self.process_VLE_range(p, P_range, T_range,
-                                                   r_mph_eq, r_mph_ph)
-                    else:
-                        (model_x_mph, model_p_mph, model_t_mph) = (None, None,
-                                                                   None)
+                model_x_mph, model_p_mph, model_t_mph = None, None, None
+                if nodbdata:
+                    plot_kwargs = {}
+                    if not LLE_only:
+                        if not data_only:
+                            model_x_mph, model_p_mph, model_t_mph = \
+                                self.process_VLE_range(p, P_range, T_range,
+                                                       r_mph_eq, r_mph_ph)
 
-                    plot_kwargs['model_p_mph'] = model_p_mph
-                    plot_kwargs['model_x_mph'] = model_x_mph
+                        plot_kwargs['model_p_mph'] = model_p_mph
+                        plot_kwargs['model_x_mph'] = model_x_mph
 
                 # Process LLE points
-                if not VLE_only:
-                    if not data_only:
-                        model_x_ph, model_p_ph, model_t_ph = \
-                            self.process_LLE_range(p, P_range, T_range,
-                                                   r_ph_eq)
-                    else:
-                        (model_x_ph, model_p_ph, model_t_ph) = (None, None,
-                                                                   None)
-                    plot_kwargs['model_p_ph'] = model_p_ph
-                    plot_kwargs['model_x_ph'] = model_x_ph
+                model_x_ph, model_p_ph, model_t_ph = None, None, None
+                if nodbdata:
+                    if not VLE_only:
+                        if not data_only:
+                            model_x_ph, model_p_ph, model_t_ph = \
+                                self.process_LLE_range(p, P_range, T_range,
+                                                       r_ph_eq)
+                        plot_kwargs['model_p_ph'] = model_p_ph
+                        plot_kwargs['model_x_ph'] = model_x_ph
+
+                # Save data
+                if nodbdata:
+                    kij = p.m['k']
+                    p_r = p.m['r']
+                    p_s = p.m['s']
+                    self.save_iso_range(self.comps, P, T, kij, p_r, p_s, res,
+                                        LLE_only, VLE_only, plot_kwargs)
 
                 # Plot each isotherm
                 if p.m['n'] == 2:
@@ -462,7 +492,7 @@ class IsoDetection:
                     pass
                 else:
                     import logging
-                    logging.warn('Dimensionality too high, ignoring plot'
+                    logging.warning('Dimensionality too high, ignoring plot'
                                  'request')
 
         if P is not None:
@@ -483,27 +513,43 @@ class IsoDetection:
                                                            LLE_only=LLE_only,
                                                            VLE_only=VLE_only,
                                                            Plot_Results=True,
-                                                           data_only=data_only)
+                                                           data_only=data_only,
+                                                           nodbdata=nodbdata)
 
                 # Process VLE points
-                plot_kwargs = {}
-                if not LLE_only:
-                    model_x_mph, model_p_mph, model_t_mph = \
-                        self.process_VLE_range(p, P_range, T_range,
-                                               r_mph_eq, r_mph_ph)
+                model_x_mph, model_p_mph, model_t_mph = None, None, None
+                if nodbdata:
+                    plot_kwargs = {}
+                    if not LLE_only:
+                        if not data_only:
+                            model_x_mph, model_p_mph, model_t_mph = \
+                                self.process_VLE_range(p, P_range, T_range,
+                                                       r_mph_eq, r_mph_ph)
 
-                plot_kwargs['model_t_mph'] = model_t_mph
-                plot_kwargs['model_x_mph'] = model_x_mph
+                        plot_kwargs['model_t_mph'] = model_t_mph
+                        plot_kwargs['model_x_mph'] = model_x_mph
 
                 # Process LLE points
-                if not VLE_only:
-                    # Process results
-                    model_x_ph, model_p_ph, model_t_ph = \
-                        self.process_LLE_range(p, P_range, T_range,
-                                               r_ph_eq)
+                model_x_ph, model_p_ph, model_t_ph = None, None, None
+                if nodbdata:
+                    if not VLE_only:
+                        if not data_only:
+                            # Process results
+                            model_x_ph, model_p_ph, model_t_ph = \
+                                self.process_LLE_range(p, P_range, T_range,
+                                                       r_ph_eq)
 
-                    plot_kwargs['model_t_ph'] = model_t_ph
-                    plot_kwargs['model_x_ph'] = model_x_ph
+                        plot_kwargs['model_t_ph'] = model_t_ph
+                        plot_kwargs['model_x_ph'] = model_x_ph
+
+
+                # Save data
+                if nodbdata:
+                    kij = p.m['k']
+                    p_r = p.m['r']
+                    p_s = p.m['s']
+                    self.save_iso_range(self.comps, P, T, kij, p_r, p_s, res,
+                                        LLE_only, VLE_only, plot_kwargs)
 
                 # Plot each isotherm
                 if p.m['n'] == 2:
@@ -524,7 +570,7 @@ class IsoDetection:
                     pass
                 else:
                     import logging
-                    logging.warn(
+                    logging.warning(
                         'Dimensionality too high, ignoring plot'
                         'request')
         return
@@ -534,7 +580,7 @@ class IsoDetection:
     def iso_range(self, s, p, g_x_func, T=None, P=None, res=30, n=1000,
                   tol=1e-9, gtol=1e-2, n_dual=300, phase_tol=1e-3,
                   LLE_only=False, VLE_only=False, Plot_Results=False,
-                  data_only=False):
+                  data_only=False, nodbdata=True):
         """
         Function used to find model ranges over isotherms/bars and organize
         the results into data containers that can be used plot functions.
@@ -671,7 +717,7 @@ class IsoDetection:
                 data_x_ph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
         # Find model outputs
-        if not data_only:
+        if (not data_only) and (nodbdata):
             P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
                 er(g_x_func, s, p, PT_Range=PT_Range, n=n, res=res, tol=tol,
                    gtol=gtol, n_dual=n_dual, phase_tol=phase_tol,
@@ -679,11 +725,33 @@ class IsoDetection:
                    Plot_Results=Plot_Results)
 
         else:
+            import scipy
+            P_range = scipy.linspace(PT_Range[0][0], PT_Range[0][1], res)
+            T_range = scipy.linspace(PT_Range[1][0], PT_Range[1][1], res)
             r_ph_eq, r_mph_eq, r_mph_ph = None, None, None
 
         return (P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph, data_x_mph,
                 data_x_ph, data_t, data_p)
 
+    def save_iso_range(self, comps, P, T, kij, p_r, p_s, res,
+                       LLE_only, VLE_only, plot_kwargs):
+        from tinydb import TinyDB
+        import numpy
+        db = TinyDB('.db/iso_db.json')
+        db_store = {'dtype' : 'iso_r',
+                    'comps' : comps,
+                    'P' : P,
+                    'T' : T,
+                    'kij' : kij,
+                    'r' : p_r,
+                    's' : p_s,
+                    'res' : res,
+                    'LLE_only' : LLE_only,
+                    'VLE_only' : VLE_only,
+                    'plot_kwargs' : plot_kwargs
+                    }
+        db.insert(db_store)
+        return
 
     def process_LLE_range(self, p, P_range, T_range, r_ph_eq):  # UNTESTED
         """
@@ -836,6 +904,9 @@ class IsoDetection:
                 model_x_mph[ph] = numpy.array(model_x_mph[ph])[sind]
                 model_p_mph[ph] = numpy.array(model_p_mph[ph])[sind]
                 model_t_mph[ph] = numpy.array(model_t_mph[ph])[sind]
+                model_x_mph[ph] = numpy.ndarray.tolist(model_x_mph[ph])
+                model_p_mph[ph] = numpy.ndarray.tolist(model_p_mph[ph])
+                model_t_mph[ph] = numpy.ndarray.tolist(model_t_mph[ph])
 
         return model_x_mph, model_p_mph, model_t_mph
 
@@ -920,8 +991,8 @@ class IsoDetection:
             # Plot model points
             if model_p_mph is not None and (len(model_p_mph) > 0):
                 for ph in k:
-                    print('model_x_mph[{}] = {}'.format(ph, model_x_mph[ph]))
-                    print('model_p_mph[{}] = {}'.format(ph, model_p_mph[ph]))
+                    # print('model_x_mph[{}] = {}'.format(ph, model_x_mph[ph]))
+                    # print('model_p_mph[{}] = {}'.format(ph, model_p_mph[ph]))
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_mph[ph], model_p_mph[ph], '-',
@@ -938,8 +1009,8 @@ class IsoDetection:
             # Plot model points
             if model_p_ph is not None and (len(model_p_ph) > 0):
                 for ph in k:
-                    print('model_x_ph[ph] = {}'.format(model_x_ph[ph]))
-                    print('model_p_ph[ph] = {}'.format(model_p_ph[ph]))
+                    # print('model_x_ph[ph] = {}'.format(model_x_ph[ph]))
+                    # print('model_p_ph[ph] = {}'.format(model_p_ph[ph]))
                     # plot.plot(model_x[ph][1], model_p, '-',
                     #           label='{} model'.format(ph))
                     plot.plot(model_x_ph[ph], model_p_ph[ph], '-',

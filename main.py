@@ -247,10 +247,10 @@ if __name__ == '__main__':
         if data.plot_isotherms is not None:
             from ncomp import g_mix as g_x_func
             from plot import IsoDetection
-            iso = IsoDetection()
+            iso = IsoDetection(components=data.comps)
             import time
             start = time.time()
-            iso.plot_iso(s, p, g_x_func, res=3, n=1000, T=data.plot_isotherms,
+            iso.plot_iso(s, p, g_x_func, res=30, n=1000, T=data.plot_isotherms,
                          VLE_only=True, n_dual=300, Plot_Results=True)
             print("="*90)
             print('Done in {}'.format(time.time() - start))
