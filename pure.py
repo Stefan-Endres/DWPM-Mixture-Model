@@ -4,7 +4,7 @@
 
 """
 #%% Imports
-from __future__ import division
+from __future__ import division, print_function
 from scipy.interpolate import interp1d
 import logging
 import data_handling
@@ -161,7 +161,7 @@ def pure_sim(data, i=0):
                                   P  = s['P_sat']/1000.0,
                                   Vv = s['V_v'],
                                   Vl = s['V_l']))
-        print out_str
+        print(out_str)
         logging.info(out_str)
 
     #%% Find phase equilibrium at specified Pressure point (P, V_v and V_l)
@@ -190,7 +190,7 @@ def pure_sim(data, i=0):
                             '{}.csv'.format(data.c[i]['name'][0]))
 
         #sstr = 'Data/Pure_Component/{}.csv'.format(data.c[i]['name'][0])
-        print 'Saving new results to {}'.format(sstr)
+        print('Saving new results to {}'.format(sstr))
         save_dict_as_csv(data.c[i],sstr,Order)
 
     return s, p
