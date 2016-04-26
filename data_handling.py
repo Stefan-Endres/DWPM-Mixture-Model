@@ -199,8 +199,7 @@ class MixParameters:
 
         # Define model paramters
         # Empty lists for model interaction paramters
-        M['k'] = []
-        [M['k'].append(['nan']) for j in range(M['n'] + 1)]
+        M['k'] = [['nan'] for _ in range(M['n'] + 1)]
 
         if data.eos == 'DWPM':
             # Find the interaction paramters between and put them into
