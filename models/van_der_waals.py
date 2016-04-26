@@ -30,10 +30,11 @@ class VdW:
         """
         from math import sqrt, log
         if p['Model'][0] == "Soave":
-            m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T'] \
-                      /p['T_c']))
+            m = (sqrt(s['a']/p['a_c']) - 1) / (1 - sqrt(s['T']/p['T_c']))
         elif p['Model'][0] == 'Adachi-Lu':
             m = p['T_c'] * log(p['a_c']/s['a']) / (s['T'] - p['T_c'])
+        else:
+            raise ValueError("Unknown model")
         return m
         
     def a_T(self, s, p):
