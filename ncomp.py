@@ -26,9 +26,10 @@ class state:
 
 
     def mixed(self):
-        self.m = {}  # Mixture states
-        self.m['a_mix'] = {}  # Mixture activity coefficient states
-        self.m['b_mix'] = {}  # Mixture co-volume coefficient states
+        # Mixture states
+        self.m = {'a_mix': {}, # Mixture activity coefficient states
+                  'b_mix': {}, # Mixture co-volume coefficient states
+                 }
 
     def pure(self, p, i):
         self.c.append({})  # Pure component states
@@ -870,7 +871,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         #return -numpy.sum(X, axis=-1) + 1.0
         return -numpy.sum(X, axis=0) + 1.0
 
-    if k == None:
+    if k is None:
         k = p.m['Valid phases']
         
     # Initialize

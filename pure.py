@@ -41,10 +41,8 @@ def optim_a_m(p):
     from scipy.optimize import leastsq
     import itertools
     
-    s = {}
-    s['b'] = p['b_c'] # b = b_c
-    s['a'] = p['a_c'] # First estimate
-    
+    s = {'b': p['b_c'], 'a': p['a_c']}
+
     p['m'] = 1e-10 # Initial estimate for 'm'.
     #s = VdW.a_T(s, p) ## Initial 'a 'from 'm' estimate
     if round(p['P'][len(p['P'])-1],4) == round(p['P_c'],4):

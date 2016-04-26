@@ -250,8 +250,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, plane_func=None, plan_args=None,
         x_range = np.linspace(1e-15, 1.0, x_r)
         y_range = np.linspace(1e-15, 1.0, x_r)
         xg, yg = np.meshgrid(x_range, y_range)
-        g_mix_r = {}
-        g_mix_r['t'] = np.zeros((x_r, x_r))
+        g_mix_r = {'t': np.zeros((x_r, x_r))}
         for ph in p.m['Valid phases']:
             g_mix_r[ph] = np.zeros((x_r, x_r))
 
