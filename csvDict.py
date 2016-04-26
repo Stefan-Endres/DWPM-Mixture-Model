@@ -42,7 +42,7 @@ def save_dict_as_csv(Dict, Path, Order=None):
     import csv  
     import numpy
     with open(Path, 'wb') as outfile:
-        writer = csv.writer(open(Path, 'wb'))
+        writer = csv.writer(outfile)
         DictVals = 0.0                        
         for key, value in Dict.items():         # Find largest dictionary value
             if numpy.size(value) > DictVals:
