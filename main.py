@@ -153,13 +153,14 @@ if __name__ == '__main__':
                 TSP = TopShiftParam(p, rs=False, kij=True)
 
                 #Bounds = [(-5, 10), (-5, 5)]
-                print 'p.m kij = {}'.format(p.m['k'])
+                #print 'p.m kij = {}'.format(p.m['k'])
                 tsp_args = (s, p, g_mix)
 
                 Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
+                Z_0 = [0.1, 0.1]
 
                 TSP.optimise(s, p, g_x_func, Z_0,
-                             method='L-BFGS-B',
+                             method_d='L-BFGS-B',
                              bounds=None)
 
             if False:

@@ -10,53 +10,56 @@ class TopShiftParam:
             self.kij = kij
             self.rskij = rskij
 
-    def optimise(self, s, p, g_x_func, Z_0, method='L-BFGS-B', bounds=None):
+    def optimise(self, s, p, g_x_func, Z_0,
+                 method_d='L-BFGS-B',
+                 method_eq='L-BFGS-B',
+                 bounds=None):
+        """
+        optimise the objective function using the dual lagrange shifting method
+        to provide a starting value for the total equilibrium optimisation over
+        all data points
+        """
         import scipy
-        import numpy
         import logging
         from tgo import tgo
 
-        logging.basicConfig(level=logging.DEBUG) # Make logging.info verbose
+        # Make logging.info verbose in CLI
+        logging.basicConfig(level=logging.DEBUG)
 
         # Find local minima of dual func
         tsp_args = (s, p, g_x_func, False)
-        #tsp_objective_function(self, )
-        if method == 'L-BFGS-B':
+
+        if method_d == 'tgo':
+            res_d = tgo(self.tsp_objective_function, bounds=bounds,
+                        args=tsp_args)
+        else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
                                             args=tsp_args,
-                                            method='L-BFGS-B'
+                                            method=method_d
                                             )
-        elif method == 'tgo':
-            res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args)
-
 
         # Verbose report before computationally expensive equilibrium
         # optimization over all data points
         print('='*100)
         logging.info(res_d)
-        print('='*100)
 
         # Optimize over all equilibrium points using dual plane minima as a
         # starting point
         Z_0 = res_d.x
         tsp_args = (s, p, g_x_func, True)
 
-        if method == 'L-BFGS-B':
-            res_eq = scipy.optimize.minimize(self.tsp_objective_function,
-                                            Z_0,
-                                            args=tsp_args,
-                                            method='L-BFGS-B'
-                                            )
-        elif method == 'tgo':
+        if method_eq == 'tgo':
             res_eq = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args)
-
+                         args=tsp_args)
+        else:
+            res_eq = scipy.optimize.minimize(self.tsp_objective_function,
+                                             Z_0,
+                                             args=tsp_args,
+                                             method=method_d
+                                             )
         print('=' * 100)
         logging.info(res_eq)
-        print('=' * 100)
-        print('=' * 100)
 
         return res_eq
 
