@@ -56,17 +56,15 @@ class VdW:
         math
         """
         from math import e
-        if len(p['Model']) == 1:
-            if p['Model'][0] == "Soave":
-                s['a'] = p['a_c']* (1.0 + p['m'] * (1 - (s['T']/p['T_c']) ** 0.5)) ** 2
-            elif p['Model'][0] == 'Adachi-Lu':
-                s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))
+
+        model = p['Model'][0] if (len(p['Model']) == 1) else p['Model']
+
+        if model == "Soave":
+            s['a'] = p['a_c']*(1.0 + p['m']*(1 - (s['T']/p['T_c'])**0.5))**2
+        elif model == 'Adachi-Lu':
+            s['a'] = p['a_c']*e**(p['m']*(1 - s['T']/p['T_c']))
         else:
-            if p['Model'] == "Soave":
-                s['a'] = p['a_c'] * (
-                                    1.0 + p['m'] * (1 - (s['T'] / p['T_c']) ** 0.5)) ** 2
-            elif p['Model'] == 'Adachi-Lu':
-                s['a'] = p['a_c'] * e ** (p['m'] * (1 - s['T'] / p['T_c']))
+            raise ValueError("Unknown model")
 
         return s # = s['a']
 
