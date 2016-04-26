@@ -182,11 +182,15 @@ if __name__ == '__main__':
                 #bounds = [(0.05, 0.2), (0.05, 0.2)]
                 #bounds = [(1.0, 1.05), (1.0, 1.05)]
 
-                x_r = 16
+                x_r = 16#50
                 p.m['r'], p.m['s'] = 1.0, 1.0
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
-                TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
+                #TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
+                plot_kwargs = TSP.obj_func_range(TSP.tsp_objective_function,
+                                                 bounds, x_r, tsp_args,
+                                                 comps=data.comps)
 
+                TSP.plot_ep(plot_kwargs, axis_labels=['r', 's'])
                 # res = scipy.optimize.minimize(TSP.tsp_objective_function,
                 #                               # [0.14,0.16],
                 #                                [0.124, 0.124],

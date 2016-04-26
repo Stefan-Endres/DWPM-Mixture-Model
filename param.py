@@ -7,7 +7,7 @@ class TopShiftParam:
         if p.m['Model'] == 'DWPM':
             self.param_func = self.vdw_dwpm_params
 
-    def vdw_dwpm_params(self, params, p, rs=True, kij=False):
+    def vdw_dwpm_params(self, params, p, rs=True, kij=False, rskij=False):
         """
         This function accepts a params vector and feeds updates to the
         parameter class of the VdW-dwpm EOS (TODO: Move to van_der_waals module
@@ -20,21 +20,21 @@ class TopShiftParam:
                   ]
         """
         import logging
-        if rs:
+        if rs or rskij:
             p.m['r'], p.m['s'] = params[0], params[1]
 
             if abs(p.m['r']) <= 1e-10:  # Avoid singularities
                 logging.warning("r parameter close to singularity, "
                                 "setting to r"
-                                " = 1e-3")
-                p.m['r'] = 1e-3
+                                " = 1e-10")
+                p.m['r'] = 1e-10
             if abs(p.m['s']) <= 1e-10:
                 logging.warning("s parameter close to singularity, "
                                 "setting to s"
-                                " = 1e-3")
-                p.m['s'] = 1e-3
+                                " = 1e-10")
+                p.m['s'] = 1e-10
 
-        if kij:
+        if kij or rskij:
             if rs:
                 pint = 2
             else:
@@ -327,7 +327,7 @@ class TopShiftParam:
             self.Epsilon_e += b * epsilon_e
             self.Epsilon_x += c * epsilon_x
 
-        if True:
+        if False:
             print('r = {}'.format(p.m['r']))
             print('s = {}'.format(p.m['s']))
             print('k_12 = {}'.format(p.m['k'][1][2]))
@@ -339,19 +339,14 @@ class TopShiftParam:
 
         return Epsilon
 
-    def plot_ep(self, func,
-                bounds=[(0.8, 1.2), (0.8, 1.2)], x_r=6, args=()):
-        """
-        Plot the speficied single var input error function
-        over a range size x_r
-        """
-        from matplotlib import pyplot as plot
-        from mpl_toolkits.mplot3d import axes3d
-        import matplotlib.pyplot as plot
-        from matplotlib import cm
+    def obj_func_range(self, func, bounds=[(0.8, 1.2), (0.8, 1.2)], x_r=6,
+                       args=(), comps=None, vary='rs'):
         import numpy
-        x_range = numpy.linspace(bounds[0][0],bounds[0][1], x_r)
-        y_range = numpy.linspace(bounds[1][0],bounds[1][1], x_r)
+        from tinydb import TinyDB
+        import logging
+
+        x_range = numpy.linspace(bounds[0][0], bounds[0][1], x_r)
+        y_range = numpy.linspace(bounds[1][0], bounds[1][1], x_r)
         xg, yg = numpy.meshgrid(x_range, y_range)
         func_r = numpy.zeros((x_r, x_r))
         func_ed = numpy.zeros((x_r, x_r))
@@ -368,9 +363,47 @@ class TopShiftParam:
                 func_ee[i, j] = numpy.float64(self.Epsilon_e)
                 func_ex[i, j] = numpy.float64(self.Epsilon_x)
 
+        # Save results
 
+        plot_kwargs = {'func_r' : func_r,
+                       'xg' : xg,
+                       'yg' : yg,
+                       'func_ed' : func_ed,
+                       'func_ee' : func_ee,
+                       'func_ex' : func_ex,
+                       }
+        if False:
+            # TODO: Find an easy way to store multidimensional numpy arrays
+            db = TinyDB('.db/p_obj_db.json')
+            db_store = {'dtype' : 'p_obj_r',
+                        'comps' : comps,
+                        'bounds' : bounds,
+                        'x_r' : x_r,
+                        'vary' : vary,
+                        'plot_kwargs' : plot_kwargs}
+            db.insert(db_store)
+        return plot_kwargs
+
+    def plot_ep(self, plot_kwargs, axis_labels=['r', 's']):
+        """
+        Plot the speficied single var input error function
+        over a range size x_r
+        """
+        from matplotlib import pyplot as plot
+        from mpl_toolkits.mplot3d import axes3d
+        import matplotlib.pyplot as plot
+        from matplotlib import cm
+        import numpy
         # Plots
         fig = plot.figure()
+
+        func_r = plot_kwargs['func_r' ]
+        xg = plot_kwargs['xg']
+        yg = plot_kwargs['yg']
+        func_ed = plot_kwargs['func_ed']
+        func_ee = plot_kwargs['func_ee']
+        func_ex = plot_kwargs['func_ex']
+
         ax = fig.gca(projection='3d')
         X, Y = xg, yg
 
@@ -399,10 +432,10 @@ class TopShiftParam:
 
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
-        ax.set_xlabel('$r$')
+        ax.set_xlabel(axis_labels[0])
         #ax.set_xlabel('$k_12$')
         #ax.set_xlim(0, 2)
-        ax.set_ylabel('$s$')
+        ax.set_ylabel(axis_labels[1])
         #ax.set_ylabel('$k_21$')
         #ax.set_ylim(0, 2)
         ax.set_zlabel('$\epsilon$', rotation=90)
