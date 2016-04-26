@@ -53,7 +53,7 @@ class PsatPlots:
             try:
                 s = VdW.Psat_V_roots(s, p, tol=1e-1)
                 P_sat_store.append(s['P_sat'])
-            except(IOError):
+            except IOError:
                 logging.warning("Could not converge Maxwell integral at "
                                 "point T = {}, P = {}".format(T, P))
                 P_sat_store.append(P)  # Append estimate
@@ -107,7 +107,7 @@ class PsatPlots:
         plot.xlabel("Temperature / K")
         plot.ylabel("Pressure$^{sat}$ / Pa")
         plot.title("Van der Waals EoS correlation for $%s$" \
-                    % (comp))
+                   % comp)
         #plot.legend(loc=options['legend.loc'])
         plot.legend()
         plot.show()
@@ -742,7 +742,7 @@ class IsoDetection:
                                             r_ph_eq[i][ph][j][l])
                                         model_p_ph[ph].append(P_range[i])
                                         model_t_ph[ph].append(T_range[i])
-                                    except(IndexError):
+                                    except IndexError:
                                         model_x_ph[ph].append(None)
                                         model_p_ph[ph].append(None)
                                         model_t_ph[ph].append(None)
@@ -1152,7 +1152,7 @@ def plot_ep(func, x_r, s, p, args=()):
             s.update_state(s, p,  X = X, phase = ['All'], Force_Update=True)
             try:
                 ep.append(func(X, *args)[0])
-            except(IndexError):
+            except IndexError:
                 ep.append(func(X, *args)) # Scalar outputs
             #ep.append(func(X, *args))
 

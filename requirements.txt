@@ -1,3 +1,5 @@
+ternary
+tinydb
 numpy
 scipy
 matplotlib

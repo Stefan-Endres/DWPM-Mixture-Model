@@ -130,7 +130,7 @@ def parameter_build(Data):
     try:
         p['a_c'] = Data['a_c (Pa m6 mol-2)'][0]
         p['b_c'] = Data['b_c (m3 mol-1)'][0]
-    except(IndexError):
+    except IndexError:
         p['a_c'] = ''
         p['b_c'] = ''
 
@@ -238,7 +238,7 @@ class MixParameters:
             #  if key != 'x' and key != 'y' and key != 'k' and key != 'phases':
                 try:
                     M[key] = filter(lambda a: a != '', value)
-                except(TypeError):
+                except TypeError:
                     pass
 
         self.m = M

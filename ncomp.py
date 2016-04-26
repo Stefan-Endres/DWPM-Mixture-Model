@@ -205,7 +205,7 @@ class state:
             s.m['a'] = a_mix(s, p, phase='x') 
             s.m['b'] = b_mix(s, p, phase='x')   
             
-        except(KeyError):
+        except KeyError:
             raise IOError('Specify at least one viable phase as \'x\' for' 
                            'optimization routines')
             
@@ -2100,7 +2100,7 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
                                           # Plot_Results=True)
                                            Plot_Results=Plot_Results)
 
-        except(numpy.linalg.linalg.LinAlgError):
+        except numpy.linalg.linalg.LinAlgError:
             pass
             ph_eq = {}
             for ph in p.m['Valid phases']:
@@ -2197,7 +2197,7 @@ def parameter_goal_func(Params, g_x_func, s, p, n=100, LLE_only=False,
                               phase_tol=phase_tol,
                               Print_Results=Print_Results,
                               Plot_Results=Plot_Results)
-    except(IndexError):
+    except IndexError:
         return len(p.m['x'][1])
     # Find data error for VLE (r_mph_eq)
     epsilon = 0

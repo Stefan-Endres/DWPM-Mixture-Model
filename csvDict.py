@@ -48,8 +48,7 @@ def save_dict_as_csv(Dict, Path, Order=None):
             if numpy.size(value) > DictVals:
                 DictVals = numpy.size(value)
 
-        rows = []
-        rows.append([])                         # Heading Rows
+        rows = [[]]
         for i in range(DictVals+1):             # Value Rows
             rows.append([])  
             
@@ -62,12 +61,12 @@ def save_dict_as_csv(Dict, Path, Order=None):
                             rows[j+1].append(value[j])
                         else:
                             rows[j+1].append('\'\'')
-                    except(NameError): # If entry is a string not a float
+                    except NameError: # If entry is a string not a float
                         rows[j+1].append('\''+value[j]+'\'')
-                    except(IndexError): # If no entry found append empty value
+                    except IndexError: # If no entry found append empty value
                         rows[j+1].append('\'\'')
                         
-                    except(TypeError):# Issue with dictionary entry
+                    except TypeError:# Issue with dictionary entry
                         if type(value) is float or type(value) is str \
                         or type(value) is int: # If only 1 entry found
                             if j == 0: # Append val to first entry
@@ -88,11 +87,11 @@ def save_dict_as_csv(Dict, Path, Order=None):
                             rows[j+1].append(Dict[n][j])
                         else: # If empty entry print empty value
                             rows[j+1].append('\'\'')
-                    except(NameError):  # If entry is a string not a float
+                    except NameError:  # If entry is a string not a float
                         rows[j+1].append('\''+Dict[n][j]+'\'')
-                    except(IndexError):# If no entry found append empty value
+                    except IndexError:# If no entry found append empty value
                         rows[j+1].append('\'\'')
-                    except(TypeError):# Issue with dictionary entry
+                    except TypeError:# Issue with dictionary entry
                         if type(Dict[n]) is float or type(Dict[n]) is str \
                         or type(Dict[n]) is int: # If only 1 entry found
                             if j == 0: # Append val to first entry
@@ -155,7 +154,7 @@ def dict_conv_numstrings(Dict, numberset = set('0123456789e-'),
                     if not any((c in letterset) for c in n):
                         Dict[key][i] = float(Dict[key][i]) 
         
-            except(TypeError):
+            except TypeError:
                 pass      
             
     return Dict

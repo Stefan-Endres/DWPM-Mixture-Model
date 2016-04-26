@@ -154,7 +154,7 @@ def pure_sim(data, i=0):
         s['T'] = data.T
         try:
             s['P'] = scipy.interpolate.interp1d(p['T'],p['P'])(s['T'])
-        except(ValueError):
+        except ValueError:
             raise IOError('Specified temperature {} K is larger than the criti'
                           'cal temperature {} K.'.format(s['T'],p['T_c']))
 
@@ -171,7 +171,7 @@ def pure_sim(data, i=0):
     try: #TODO:
         if data.P: # Note that if I['P'] is > 0 then the boolean is 'True'
             pass#VdW.Tsat_V_roots(s,p) # NOTE TODO!
-    except(KeyError):
+    except KeyError:
         pass
 
     #%% Save if True
