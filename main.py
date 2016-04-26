@@ -12,14 +12,7 @@ python2 main.py -c acetone benzene water -p x y -T 273.15 -P 101e3 -r 1.0 -s 1.0
 import data_handling
 import ncomp
 import pure
-import plot
-import logging
-import os
-import numpy
-import scipy
-import scipy.interpolate
-from models import van_der_waals
-VdW = van_der_waals.VdW()
+
 import argparse
 
 if __name__ == '__main__':

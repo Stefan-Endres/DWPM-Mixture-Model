@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # (TODO)
-from models import van_der_waals
-VdW = van_der_waals.VdW()
 
 #%% Plot pure Functions
 class PsatPlots:

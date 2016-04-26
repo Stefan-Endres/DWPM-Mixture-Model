@@ -6,9 +6,7 @@ Script to simulate phase equilibria of multicomponent systems.
 
 # %% Imports
 from __future__ import division
-import data_handling
-from models import van_der_waals
-VdW = van_der_waals.VdW()
+from models import van_der_waals as VdW
 import data_handling
 import plot
 
