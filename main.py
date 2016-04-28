@@ -149,7 +149,7 @@ if __name__ == '__main__':
                            Force_Update=True)
 
             #if True:  # Local+global routine
-            if True:
+            if False:
                 print('r = {}'.format(p.m['r']))
                 print('s = {}'.format(p.m['s']))
                 TSP = TopShiftParam(p,
@@ -162,6 +162,7 @@ if __name__ == '__main__':
                 #Bounds = [(-5, 10), (-5, 5)]
                 #print 'p.m kij = {}'.format(p.m['k'])
                 tsp_args = (s, p, g_mix)
+                tsp_args = (s, p, g_mix, True, 30)
 
                 Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
                 #Z_0 = [0.1, 0.1]
@@ -172,8 +173,8 @@ if __name__ == '__main__':
                              bounds=[
                                      #(-5.0, 1.0),
                                      #(-5.0, 1.0),
-                                     (-3.0, 1.0),
-                                     (-3.0, 1.0),
+                                     (-5.0, 1.0),
+                                     (-5.0, 1.0),
                                      (-0.99, 0.99),
                                      (-0.99, 0.99)
                                      ])
@@ -194,7 +195,7 @@ if __name__ == '__main__':
                 #            [0.5031697, -0.21925562],
                 #            [0.14219801, 0.14171607],
                 #            [0.9, 0.9]])
-            if False:
+            if True:
                 #TODO: Move this to a unittest
                 s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
 
@@ -202,9 +203,12 @@ if __name__ == '__main__':
 
                 X_I = numpy.array([0.1939063])  # 'x'
                 X_II = numpy.array([0.308988493])  # 'y'
+                #X_I = numpy.array([0.1939063, 0.5])  # 'x'
+                #X_II = numpy.array([0.308988493, 0.1])  # 'y'
                 params = [1.0, 1.0]  # r and s
                 TSP.vdw_dwpm_params(params, p)
                 X_D = TSP.d_points(5, X_I, X_II)
+                #X_D = TSP.o_points(5, X_I, X_II)
 
                 plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
                 f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
@@ -215,7 +219,8 @@ if __name__ == '__main__':
                                            X_D, g_mix, s, p)
 
                 print 'epsilon_x = {}'.format(epsilon_x)
-
+                Z_0 = TSP.d_Z_0(X_I, X_II)
+                print 'Z_0 = {}'.format(Z_0)
 
             if True:
                 s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
@@ -236,6 +241,11 @@ if __name__ == '__main__':
                 bounds = [(-1.0, 1.0), (-1.0, 1.0)]
                 bounds = [(-2.0, 1.0), (-2.0, 1.0)]
                 bounds = [(-2.0, 1.05), (-2.0, 1.05)]
+
+                # co2-ethane dev
+                TSP = TopShiftParam(p, rs=False, kij=True)
+                tsp_args = (s, p, g_mix, False, True, 3)
+                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
                 x_r = 30#50
 
 
@@ -309,7 +319,7 @@ if __name__ == '__main__':
             import time
             start = time.time()
             # Use res = 30 for database standard
-            iso.plot_iso(s, p, g_x_func, res=30, n=3000, T=data.plot_isotherms,
+            iso.plot_iso(s, p, g_x_func, res=40, n=3000, T=data.plot_isotherms,
                          VLE_only=True, n_dual=300, Plot_Results=True)
             print("="*90)
             print('Done in {}'.format(time.time() - start))

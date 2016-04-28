@@ -43,10 +43,20 @@ class TopShiftParam:
         # optimization over all data points
         print('='*100)
         logging.info(res_d)
+        if self.rs:
+            print "-r {} -s {}".format(res_d.x[0], res_d.x[1])
+        if self.kij:
+            print "kij {} {}".format(res_d.x[0], res_d.x[1])
 
+        if self.rskij:
+            print "-r {} -s {} -kij {} {}".format(res_d.x[0],
+                                                  res_d.x[1],
+                                                  res_d.x[2],
+                                                  res_d.x[3])
         # Optimize over all equilibrium points using dual plane minima as a
         # starting point
         Z_0 = res_d.x
+        print "Z_0 = "
         tsp_args = (s, p, g_x_func, True)
 
         if method_eq == 'tgo':
@@ -78,8 +88,8 @@ class TopShiftParam:
         import logging
         if self.rs or self.rskij:
             p.m['r'], p.m['s'] = params[0], params[1]
-            print('r = {}'.format(params[0]))
-            print('s = {}'.format(params[1]))
+            #print('r = {}'.format(params[0]))
+            #print('s = {}'.format(params[1]))
 
             if abs(p.m['r']) <= 1e-10:  # Avoid singularities
                 logging.warning("r parameter close to singularity, "
@@ -103,7 +113,7 @@ class TopShiftParam:
                         pass
                     else:
                         p.m['k'][i][j] = params[pint]
-                        print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
+                        #print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
                         #if abs(1 - p.m['k'][i][j]) <= 1e-10:  # Avoid singularities
                         #    logging.warning(
                         #        "k_{0}{1} parameter close to singularity, "
@@ -119,7 +129,8 @@ class TopShiftParam:
 
         """
         Generates a set of N \in R^n vector points uniformly distributed on the
-        directional vector between data points X_I and X_II.
+        directional vector between data points X_I and X_II in the unstable
+        region
 
         These sampling points are used in the objective function to find the
         "degree of convexity" between the solution plane and the Gibbs free
@@ -137,6 +148,54 @@ class TopShiftParam:
             X_D.append(((n + 1) / (N + 1.0)) * X_diff + X_II)
 
         return X_D
+
+
+    def o_points(self, N, X_I, X_II):  # Validated for binary
+
+        """
+        Generates a set \in R^n vector points uniformly distributed on the
+        directional vector between data points X_I and X_II in the stable
+        region.
+
+        These sampling points are used in the objective function to find the
+        "degree of instability in the stable regions" between the solution
+        plane and the Gibbs free energy surface.
+
+        TODO: Use Sobol seq. stretched over X bounds
+        """
+        import numpy
+        X_o = []
+
+        X_diff = X_I - X_II
+
+        gen = True
+        n = N
+        while gen:
+            n += 1
+            point = ((n + 1) / (N + 1.0)) * X_diff + X_II
+            if sum(point) <= 0.0 or sum(point) >= 1.0:
+                gen = False
+            elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
+                pass
+            else:
+                X_o.append(point)
+
+        gen = True
+        n = -1
+        while gen:
+            n -= 1
+            point = ((n + 1) / (N + 1.0)) * X_diff + X_II
+            #print point
+            #print point < 0.0
+            #print numpy.any(point < 0.0)
+            if sum(point) <= 0.0 or sum(point) >= 1.0:
+                gen = False
+            elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
+                pass
+            else:
+                X_o.append(point)
+
+        return X_o
 
     def d_plane(self, g_x_func, s, p, X_I, X_II):  # Validated
         """
@@ -170,6 +229,11 @@ class TopShiftParam:
         G_sol = [G_sol_I, G_sol_II]
         return d_plane_sol, Lambda_sol_est, G_sol
 
+    def d_Z_0(self, X_I, X_II):
+        """
+        Estimate a feeding point between two equilibrium points
+        """
+        return (X_I + X_II)/2.0
 
     def dual_gap(self, g_x_func, plane, X_D, s, p):
         """
@@ -187,6 +251,10 @@ class TopShiftParam:
 
 
     def dual_gap_error_sum(self, f_dual_gap):
+        """
+        Add an error if the dual plane is not below the Gibbs surface at
+        all sampled points
+        """
         import numpy
         epsilon_d = 0.0
         for fdg in f_dual_gap:
@@ -199,6 +267,24 @@ class TopShiftParam:
                     epsilon_d += numpy.float(fdg[0])
         # (If duality gap exists/concavity at the point then we add no penalty)
         return epsilon_d
+
+    def surface_gap_error_sum(self, f_dual_gap_s):
+        """
+        Add an error if the dual plane is above the Gibbs surface at any
+        sampled point
+        """
+        import numpy
+        epsilon_s = 0.0
+        for fdg in f_dual_gap_s:
+            # If the duality gap does not exist/convexity
+            try:
+                if numpy.float(fdg) < 0.0:
+                    epsilon_s += abs(fdg)
+            except ValueError:
+                if numpy.float(fdg[0]) < 0.0:
+                    epsilon_s += numpy.float(abs(fdg[0]))
+        # (If dual plane is above the Gibbs surface no error is added
+        return epsilon_s
 
     def norm_eta_sum(self, X_D, Lambda_sol_est, X_I, X_II, G_sol):
         """
@@ -228,7 +314,9 @@ class TopShiftParam:
         from ncomp import phase_equilibrium_calculation as pec
         from ncomp import dual_equal
         import numpy
-        Z_0 = sorted(X_D)[len(X_D) // 2]
+        #Z_0 = sorted(X_D)[len(X_D) // 2]
+        # TODO: Estimate in middle of all equilibrium points in X_data
+        Z_0 = self.d_Z_0(X_data[0], X_data[1])
         #dual_equal(s, p, g_x_func, Z_0)
         X_eq, g_eq, phase_eq = pec(s, p, g_x_func, Z_0)
 
@@ -268,7 +356,10 @@ class TopShiftParam:
         return epsilon_x
 
 
-    def tsp_objective_function(self, params, s, p, g_x_func, dp_pec=True):
+    def tsp_objective_function(self, params, s, p, g_x_func,
+                               dp_pec=True,
+                               dual_s=True,
+                               N=5):
         """
         Objective function to minimize, accept some parameter set as first
         argument and calculated error over range of data points.
@@ -291,6 +382,7 @@ class TopShiftParam:
 
         # Stores for plots
         self.Epsilon_d = 0.0
+        self.Epsilon_s = 0.0
         self.Epsilon_e = 0.0
         self.Epsilon_x = 0.0
 
@@ -324,13 +416,28 @@ class TopShiftParam:
 
             # Generate (Note, this only needs to be done once and saved in a
             # set for the current data points)
-            X_D = self.d_points(5, X_I, X_II)
+            X_D = self.d_points(N, X_I, X_II)
             plane, Lambda_sol_est, G_sol = self.d_plane(g_x_func, s,
                                                         p, X_I, X_II)
-            f_dual_gap = self.dual_gap(g_x_func, plane, X_D, s, p)
+            f_dual_gap_d = self.dual_gap(g_x_func, plane, X_D, s, p)
 
             # Find dual gap error if it does not exist
-            epsilon_d = self.dual_gap_error_sum(f_dual_gap)
+            epsilon_d = self.dual_gap_error_sum(f_dual_gap_d)
+
+
+            # Find surface errors in the stable region
+            if dual_s:
+                # Generate (Note, this only needs to be done once and saved in a
+                # set for the current data points)
+                X_O = self.o_points(N, X_I, X_II)
+                #plane, Lambda_sol_est, G_sol = self.d_plane(g_x_func, s,
+                #                                            p, X_I, X_II)
+                f_dual_gap_s = self.dual_gap(g_x_func, plane, X_O, s, p)
+
+                # Find dual gap error if it does not exist
+                epsilon_s = self.surface_gap_error_sum(f_dual_gap_s)
+            else:
+                epsilon_s = 0.0
 
             # Find dual plane and phase equilibrium error
             if dp_pec:#epsilon_d == 0.0:
@@ -378,25 +485,29 @@ class TopShiftParam:
 
             # Convert all nested values to floats:
             epsilon_d = numpy.float(epsilon_d)
+            epsilon_s = numpy.float(epsilon_s/1000.0) #TODO:NOTE
             epsilon_e = numpy.float(epsilon_e)
             epsilon_x = numpy.float(epsilon_x)
 
             # SUM all errors
             #print 'Epsilon = {}'.format(Epsilon)
             # Epsilon += a * epsilon_e + b * epsilon_e + c * epsilon_x
-            Epsilon += epsilon_d + b * epsilon_e + c * epsilon_x
+            #Epsilon += epsilon_d + b * epsilon_e + c * epsilon_x
+            Epsilon += epsilon_d + epsilon_s + b * epsilon_e + c * epsilon_x
 
             # Store for plots
             self.Epsilon_d += epsilon_d
+            self.Epsilon_s += epsilon_s
             self.Epsilon_e += b * epsilon_e
             self.Epsilon_x += c * epsilon_x
 
-        if False:
+        if True:
             print('r = {}'.format(p.m['r']))
             print('s = {}'.format(p.m['s']))
             print('k_12 = {}'.format(p.m['k'][1][2]))
             print('k_21 = {}'.format(p.m['k'][2][1]))
             print('self.Epsilon_d = {}'.format(self.Epsilon_d))
+            print('self.Epsilon_s = {}'.format(self.Epsilon_s))
             print('self.Epsilon_e = {}'.format(self.Epsilon_e))
             print('self.Epsilon_x = {}'.format(self.Epsilon_x))
             print('Epsilon = {}'.format(Epsilon))
@@ -414,6 +525,7 @@ class TopShiftParam:
         xg, yg = numpy.meshgrid(x_range, y_range)
         func_r = numpy.zeros((x_r, x_r))
         func_ed = numpy.zeros((x_r, x_r))
+        func_es = numpy.zeros((x_r, x_r))
         func_ee = numpy.zeros((x_r, x_r))
         func_ex = numpy.zeros((x_r, x_r))
 
@@ -424,6 +536,7 @@ class TopShiftParam:
                 f_out = func(X, *args)  # Scalar outputs
                 func_r[i, j] = numpy.float64(f_out)
                 func_ed[i, j] = numpy.float64(self.Epsilon_d)
+                func_es[i, j] = numpy.float64(self.Epsilon_s)
                 func_ee[i, j] = numpy.float64(self.Epsilon_e)
                 func_ex[i, j] = numpy.float64(self.Epsilon_x)
 
@@ -433,6 +546,7 @@ class TopShiftParam:
                        'xg' : xg,
                        'yg' : yg,
                        'func_ed' : func_ed,
+                       'func_es' : func_es,
                        'func_ee' : func_ee,
                        'func_ex' : func_ex,
                        }
@@ -465,6 +579,7 @@ class TopShiftParam:
         xg = plot_kwargs['xg']
         yg = plot_kwargs['yg']
         func_ed = plot_kwargs['func_ed']
+        func_es = plot_kwargs['func_ed']
         func_ee = plot_kwargs['func_ee']
         func_ex = plot_kwargs['func_ex']
 
@@ -483,6 +598,8 @@ class TopShiftParam:
                             cmap=cm.coolwarm, label='$\epsilon$')
             ax.plot_surface(X, Y, func_ed, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_D$')
+            ax.plot_surface(X, Y, func_es, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm, label='$\epsilon_S$')
             ax.plot_surface(X, Y, func_ee, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_e$')
             ax.plot_surface(X, Y, func_ex, rstride=1, cstride=1, alpha=0.3,
