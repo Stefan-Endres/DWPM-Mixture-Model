@@ -127,6 +127,8 @@ def V_root(state, parameters):
     """
     import logging
     from math import sqrt, acos, cos, pi
+    if state['P'] == 0:
+        state['P'] = 3.0
     try:
         # Coefficients of V^3 + (C_1)V^2 + (C_2)V + C_3 = 0
         C = [-(parameters['R'] * state['T'] / state['P'] + state['b']),  # Coefficient C_1

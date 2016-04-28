@@ -56,7 +56,7 @@ class TopShiftParam:
             res_eq = scipy.optimize.minimize(self.tsp_objective_function,
                                              Z_0,
                                              args=tsp_args,
-                                             method=method_d
+                                             method=method_eq
                                              )
         print('=' * 100)
         logging.info(res_eq)
@@ -78,6 +78,8 @@ class TopShiftParam:
         import logging
         if self.rs or self.rskij:
             p.m['r'], p.m['s'] = params[0], params[1]
+            print('r = {}'.format(params[0]))
+            print('s = {}'.format(params[1]))
 
             if abs(p.m['r']) <= 1e-10:  # Avoid singularities
                 logging.warning("r parameter close to singularity, "
@@ -101,7 +103,7 @@ class TopShiftParam:
                         pass
                     else:
                         p.m['k'][i][j] = params[pint]
-                        #print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
+                        print('k_{}{} = {}'.format(i, j, p.m['k'][i][j]))
                         #if abs(1 - p.m['k'][i][j]) <= 1e-10:  # Avoid singularities
                         #    logging.warning(
                         #        "k_{0}{1} parameter close to singularity, "
@@ -152,6 +154,8 @@ class TopShiftParam:
         X_I = numpy.array(X_I)
         X_II = numpy.array(X_II)
 
+        #print('G_sol_I = {}'.format(G_sol_I))
+        #print('G_sol_II = {}'.format(G_sol_II))
         # Find duality multipliers at set
         if len(X_I) > 1:
             for x_i, x_ii in X_I, X_II:
@@ -293,8 +297,12 @@ class TopShiftParam:
         # Loop through all data points:
         for i in range(len(p.m['T'])):
             p.m['T'][i]
-            s.update_state(s, p, P=p.m['P'][i], T=p.m['T'][i],
-                           Force_Update=True)
+
+            try: #TODO: Deal with failures in Vroot here
+                s.update_state(s, p, P=p.m['P'][i], T=p.m['T'][i],
+                               Force_Update=True)
+            except numpy.linalg.linalg.LinAlgError:  # , IndexError):
+                pass
 
             # Loop through all phases in equilibrium to find points in
             # equilibrium

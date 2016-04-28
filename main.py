@@ -148,21 +148,52 @@ if __name__ == '__main__':
             s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                            Force_Update=True)
 
-            if True:  # Local+global routine
-
-                TSP = TopShiftParam(p, rs=False, kij=True)
+            #if True:  # Local+global routine
+            if True:
+                print('r = {}'.format(p.m['r']))
+                print('s = {}'.format(p.m['s']))
+                TSP = TopShiftParam(p,
+                                    rs=False,
+                                    #kij=True,
+                                    kij=False,
+                                    rskij = True
+                                    )
 
                 #Bounds = [(-5, 10), (-5, 5)]
                 #print 'p.m kij = {}'.format(p.m['k'])
                 tsp_args = (s, p, g_mix)
 
                 Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
-                Z_0 = [0.1, 0.1]
+                #Z_0 = [0.1, 0.1]
 
                 TSP.optimise(s, p, g_x_func, Z_0,
-                             method_d='L-BFGS-B',
-                             bounds=None)
+                             method_d='tgo',
+                             method_eq='L-BFGS-B',
+                             bounds=[
+                                     #(-5.0, 1.0),
+                                     #(-5.0, 1.0),
+                                     (-3.0, 1.0),
+                                     (-3.0, 1.0),
+                                     (-0.99, 0.99),
+                                     (-0.99, 0.99)
+                                     ])
+                             #bounds=[(-0.9, 10.0),
+                             #        (-0.9, 10.0)])
 
+                # INFO:root:     fun: 1.7114879767048208
+                # funl: array([1.71148798, 1.71148798, 1.71148798, 1.71148798,
+                #              2.46102029])
+                # message: 'Optimization terminated successfully.'
+                # nfev: 629
+                # nlfev: 529
+                # nljev: 0
+                # succes: True
+                # x: array([-0.3859668, 0.66988089])
+                # xl: array([[-0.3859668, 0.66988089],
+                #            [0.05860161, 0.22531247],
+                #            [0.5031697, -0.21925562],
+                #            [0.14219801, 0.14171607],
+                #            [0.9, 0.9]])
             if False:
                 #TODO: Move this to a unittest
                 s.update_state(s, p, P=24e5, T=263.1, X=[0.0], Force_Update=True)
@@ -185,20 +216,39 @@ if __name__ == '__main__':
 
                 print 'epsilon_x = {}'.format(epsilon_x)
 
+
+            if True:
+                s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
+                               Force_Update=True)
+
+                TSP = TopShiftParam(p, rs=False, kij=True)
                 # Plot
                 tsp_args = (s, p, g_mix, False)
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
                 bounds = [(-5.0, 10.0), (-5.0, 10.0)]
+                bounds = [(-1.0, 2.0), (-1.0, 2.0)]
+                bounds = [(-0.9, 0.9), (-0.9, 0.9)]
+               # bounds = [(-1.0, 10.0), (-1.0, 10.0)]
+                #bounds = [(0.0, 10.0), (0.0, 10.0)]
+                #bounds = [(2.0, 5.0), (2.0, 5.0)]
 
-                x_r = 16#50
-                p.m['r'], p.m['s'] = 1.0, 1.0
+                bounds = [(-5.0, 10.0), (-5.0, 10.0)]
+                bounds = [(-1.0, 1.0), (-1.0, 1.0)]
+                bounds = [(-2.0, 1.0), (-2.0, 1.0)]
+                bounds = [(-2.0, 1.05), (-2.0, 1.05)]
+                x_r = 30#50
+
+
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
                 #TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)
                 plot_kwargs = TSP.obj_func_range(TSP.tsp_objective_function,
                                                  bounds, x_r, tsp_args,
                                                  comps=data.comps)
 
-                TSP.plot_ep(plot_kwargs, axis_labels=['r', 's'])
+                TSP.plot_ep(plot_kwargs,
+                            #axis_labels=['r', 's']
+                            axis_labels=['$k_{12}$', '$k_{21}$']
+                            )
                 # res = scipy.optimize.minimize(TSP.tsp_objective_function,
                 #                               # [0.14,0.16],
                 #                                [0.124, 0.124],
@@ -259,7 +309,7 @@ if __name__ == '__main__':
             import time
             start = time.time()
             # Use res = 30 for database standard
-            iso.plot_iso(s, p, g_x_func, res=30, n=1000, T=data.plot_isotherms,
+            iso.plot_iso(s, p, g_x_func, res=30, n=3000, T=data.plot_isotherms,
                          VLE_only=True, n_dual=300, Plot_Results=True)
             print("="*90)
             print('Done in {}'.format(time.time() - start))

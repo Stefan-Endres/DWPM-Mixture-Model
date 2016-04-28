@@ -515,7 +515,17 @@ def g_R_mix_i(s, p, k='x'):  # (Validated)
     if k == 'y':  # 'y' = Vapour phase standard
         V = s.m['V_v'] 
     else:  # Assume all phases other than vapour are liquid, ex. 'x'
-        V = s.m['V_l'] 
+        V = s.m['V_l']
+
+    if V < s.m['b']:
+        import logging
+       # V = (1.0 + 100000*(s.m['b'] - V)) * s.m['b']
+        if V > 0:
+            V = s.m['b'] + 1e-15/(s.m['b'] - V) #* (1.0 + 1e-30)
+        if V < 0:
+            V = s.m['b'] + 1e-15/abs((V))
+
+        logging.warning("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
         
     return (s.m['P'] * V / (p.m['R'] * s.m['T']) - 1.0
             - log(s.m['P'] / (p.m['R'] * s.m['T']))
@@ -1000,7 +1010,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_sol)
 
         #if True:  # NOTE: Reduced iterations from 6 to 3 !
-        if False:  # NOTE: Reduced iterations from 6 to 3 !
+        if True:
             if len(d_res.xl) > 0:
                 for i in range(len(d_res.xl)):
                     #print('X_D = {}'.format(X_D))
@@ -1682,10 +1692,10 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
                                                  phase_tol=phase_tol,
                                                  Print_Results=Print_Results,
                                                  Plot_Results=Plot_Results)
-
-                        mph_eq_Ps.append(X_eq)
-                        mph_ph_Ps.append(phase_eq)
-                        Z_0_l_old.append(Z_0_l_old)
+                            #TODO: Check if these should be indented:
+                            mph_eq_Ps.append(X_eq)
+                            mph_ph_Ps.append(phase_eq)
+                            Z_0_l_old.append(Z_0_l_old)
 
                         # TODO: In future we can improve the robustness
                         # with additional tgo evals under more g_cons:
