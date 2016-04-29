@@ -148,38 +148,34 @@ if __name__ == '__main__':
             s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                            Force_Update=True)
 
-            #if True:  # Local+global routine
-            if False:
+            if True:  # Local+global routine
+            #if False:
                 print('r = {}'.format(p.m['r']))
                 print('s = {}'.format(p.m['s']))
                 TSP = TopShiftParam(p,
                                     rs=False,
-                                    #kij=True,
-                                    kij=False,
-                                    rskij = True
+                                    kij=True,
+                                    rskij = False
                                     )
 
                 #Bounds = [(-5, 10), (-5, 5)]
                 #print 'p.m kij = {}'.format(p.m['k'])
                 tsp_args = (s, p, g_mix)
-                tsp_args = (s, p, g_mix, True, 30)
+                tsp_args = (s, p, g_mix, False, True, 30)
 
                 Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
                 #Z_0 = [0.1, 0.1]
 
                 TSP.optimise(s, p, g_x_func, Z_0,
                              method_d='tgo',
+                             #method_d='L-BFGS-B',
                              method_eq='L-BFGS-B',
                              bounds=[
                                      #(-5.0, 1.0),
                                      #(-5.0, 1.0),
-                                     (-5.0, 1.0),
-                                     (-5.0, 1.0),
-                                     (-0.99, 0.99),
-                                     (-0.99, 0.99)
+                                     (-0.2, 0.99),
+                                     (-0.2, 0.99)
                                      ])
-                             #bounds=[(-0.9, 10.0),
-                             #        (-0.9, 10.0)])
 
                 # INFO:root:     fun: 1.7114879767048208
                 # funl: array([1.71148798, 1.71148798, 1.71148798, 1.71148798,
@@ -224,7 +220,7 @@ if __name__ == '__main__':
                 Z_0 = TSP.d_Z_0(X_I, X_II)
                 print 'Z_0 = {}'.format(Z_0)
 
-            if False:
+            if True:
                 s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                                Force_Update=True)
 
@@ -245,12 +241,14 @@ if __name__ == '__main__':
                 bounds = [(-2.0, 1.05), (-2.0, 1.05)]
 
                 # co2-ethane dev
+                #TSP = TopShiftParam(p, rs=False, kij=True)
                 TSP = TopShiftParam(p, rs=False, kij=True)
-                tsp_args = (s, p, g_mix, False, True, 3)
+                tsp_args = (s, p, g_mix, False, True, 5)
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
-                bounds = [(-1.0, 1.0), (-1.0, 1.0)]
-                x_r = 13#50
-
+                bounds = [(-10.0, 1.0), (-10.0, 1.0)]
+                bounds = [(-2.0, 1.0), (-2.0, 1.0)]
+                #bounds = [(0.001, 0.4), (0.001, 0.4)]
+                x_r = 16#50
 
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
                 #TSP.plot_ep(TSP.tsp_objective_function, bounds, x_r, tsp_args)

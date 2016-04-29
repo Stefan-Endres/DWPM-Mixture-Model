@@ -525,8 +525,9 @@ def g_R_mix_i(s, p, k='x'):  # (Validated)
         if V < 0:
             V = s.m['b'] + 1e-15/abs((V))
 
-        logging.warning("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
-        
+        #logging.warning("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
+        #logging.warn("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
+
     return (s.m['P'] * V / (p.m['R'] * s.m['T']) - 1.0
             - log(s.m['P'] / (p.m['R'] * s.m['T']))
             - log(V - s.m['b']) 
@@ -1010,7 +1011,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_D.append(X_sol)
 
         #if True:  # NOTE: Reduced iterations from 6 to 3 !
-        if True:
+        if False:
             if len(d_res.xl) > 0:
                 for i in range(len(d_res.xl)):
                     #print('X_D = {}'.format(X_D))
