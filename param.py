@@ -178,7 +178,6 @@ class TopShiftParam:
                 if X_diff[i] < 0:
                     point_i = -((n + 1) / (N + 1.0)) * X_I_l_diff[i] + X_I[i]
                     point.append(point_i)
-
                 if X_diff[i] > 0:
                     point_i = ((n + 1) / (N + 1.0)) * X_I_u_diff[i] + X_I[i]
                     point.append(point_i)
