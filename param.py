@@ -167,33 +167,88 @@ class TopShiftParam:
         X_o = []
 
         X_diff = X_I - X_II
+        print "X_diff = {}".format(X_diff)
 
-        gen = True
-        n = N
-        while gen:
-            n += 1
-            point = ((n + 1) / (N + 1.0)) * X_diff + X_II
-            if sum(point) <= 0.0 or sum(point) >= 1.0:
-                gen = False
-            elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
-                pass
-            else:
-                X_o.append(point)
+        X_I_u_diff = 1.0 - X_I
+        X_II_u_diff = 1.0 - X_II
+        X_I_l_diff = X_I
+        X_II_l_diff = X_II
 
-        gen = True
-        n = -1
-        while gen:
-            n -= 1
-            point = ((n + 1) / (N + 1.0)) * X_diff + X_II
-            #print point
-            #print point < 0.0
-            #print numpy.any(point < 0.0)
-            if sum(point) <= 0.0 or sum(point) >= 1.0:
-                gen = False
-            elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
-                pass
-            else:
-                X_o.append(point)
+
+        # Generate stable points from X_I to bound
+        for n in range(N):
+            point = []
+            for i in range(len(X_diff)):
+                if X_diff[i] < 0:
+                    point_i = -((n + 1) / (N + 1.0)) * X_I_l_diff[i] + X_I[i]
+                    point.append(point_i)
+
+                if X_diff[i] > 0:
+                    # point_i = -((n + 1) / (N + 1.0)) * X_II_l_diff[i] + X_II[i]
+                    # point.append(point_i)
+                    point_i = ((n + 1) / (N + 1.0)) * X_I_u_diff[i] + X_I[i]
+                    point.append(point_i)
+
+            point = numpy.array(point)
+
+            X_o.append(point)
+
+            # Generate stable points from X_II to bound
+        for n in range(N):
+            point = []
+            for i in range(len(X_diff)):
+                if X_diff[i] < 0:
+                    point_i = ((n + 1) / (N + 1.0)) * X_II_u_diff[i] + X_II[i]
+                    point.append(point_i)
+
+                if X_diff[i] > 0:
+                    # point_i = ((n + 1) / (N + 1.0)) * X_I_u_diff[i] + X_I[i]
+                    # point.append(point_i)
+                    point_i = -((n + 1) / (N + 1.0)) * X_II_l_diff[i] + X_II[i]
+                    point.append(point_i)
+
+            point = numpy.array(point)
+
+            X_o.append(point)
+
+        # for n in range(N):
+        #     point = ((n + 1) / (N + 1.0)) * X_diff + X_I
+        #     print 'lower point = {}'.format(point)
+        #     X_o.append(point)
+        #
+        # for n in range(N):
+        #     #n = -n
+        #     # X_D.append((n + 1) * X_sum / (N + 1))
+        #     point = -((n + 1) / (N + 1.0)) * X_diff + X_II
+        #     print 'higher point = {}'.format(point)
+        #     X_o.append(point)
+
+    # gen = True
+    #     n = N
+    #     while gen:
+    #         n += 1
+    #         point = ((n + 1) / (N + 1.0)) * X_diff + X_II
+    #         if sum(point) <= 0.0 or sum(point) >= 1.0:
+    #             gen = False
+    #         elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
+    #             pass
+    #         else:
+    #             X_o.append(point)
+    #
+    #     gen = True
+    #     n = -1
+    #     while gen:
+    #         n -= 1
+    #         point = ((n + 1) / (N + 1.0)) * X_diff + X_II
+    #         print point
+    #         #print point < 0.0
+    #         #print numpy.any(point < 0.0)
+    #         if sum(point) <= 0.0 or sum(point) >= 1.0:
+    #             gen = False
+    #         elif numpy.any(point < 0.0) or numpy.any(point > 1.0):
+    #             pass
+    #         else:
+    #             X_o.append(point)
 
         return X_o
 
@@ -614,10 +669,16 @@ class TopShiftParam:
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
         ax.set_xlabel(axis_labels[0])
-        #ax.set_xlabel('$k_12$')
+        if self.rs:
+            ax.set_xlabel('$r$')
+            ax.set_ylabel('$s$')
+
+        if self.kij:
+            ax.set_xlabel('$k_12$')
+            ax.set_ylabel('$k_21$')
         #ax.set_xlim(0, 2)
         ax.set_ylabel(axis_labels[1])
-        #ax.set_ylabel('$k_21$')
+
         #ax.set_ylim(0, 2)
         ax.set_zlabel('$\epsilon$', rotation=90)
         plot.show()
