@@ -212,9 +212,11 @@ class TopShiftParam:
         import numpy
         # Find gibbs surface values at each solution point
         s.update_state(s, p, X=X_I, Force_Update=True)
-        G_sol_I = g_x_func(s, p).m['g_mix']['t']
+        G_I = g_x_func(s, p).m['g_mix']  # Solution of all phases
+        G_sol_I = G_I['t']  # minimum Gibbs energy of all phase surfaces
         s.update_state(s, p, X=X_II, Force_Update=True)
-        G_sol_II = g_x_func(s, p).m['g_mix']['t']
+        G_II = g_x_func(s, p).m['g_mix']
+        G_sol_II = G_II['t']
         Lambda_sol_est = []
         X_I = numpy.array(X_I)
         X_II = numpy.array(X_II)
@@ -233,7 +235,8 @@ class TopShiftParam:
             return G_sol_I + sum(Lambda_sol_est * (X - X_I))
 
         G_sol = [G_sol_I, G_sol_II]
-        return d_plane_sol, Lambda_sol_est, G_sol
+        G_all = [G_I, G_II]
+        return d_plane_sol, Lambda_sol_est, G_sol, G_all
 
     def d_Z_0(self, X_I, X_II):
         """
@@ -297,6 +300,31 @@ class TopShiftParam:
                     epsilon_s += numpy.float(abs(fdg[0]))
         # (If dual plane is BELOW the Gibbs surface no error is added
         return epsilon_s
+
+    def phase_error(self, G_all, ph):
+        """
+        Returns an error if the lowest calculated model phase is not equal to
+        the data phase for multiphase systems.
+
+        Parameters
+        ----------
+        G_sol
+
+        Returns
+        -------
+
+        """
+        epsilon_ph = 0.0
+
+        if G_all['ph min'] == ph:
+            epsilon_ph = 0.0
+        else:
+            epsilon_ph = abs(G_all[ph] - G_all[G_all['ph min']])
+            #print 'G_all[ph] = {}'.format(G_all[ph])
+            #print 'G_all[G_all[\'ph min\']] = {}'.format(G_all[G_all['ph
+            # min']])
+
+        return epsilon_ph
 
     def norm_eta_sum(self, X_D, Lambda_sol_est, X_I, X_II, G_sol):
         """
@@ -395,6 +423,7 @@ class TopShiftParam:
         # Stores for plots
         self.Epsilon_d = 0.0
         self.Epsilon_s = 0.0
+        self.Epsilon_ph = 0.0
         self.Epsilon_e = 0.0
         self.Epsilon_x = 0.0
 
@@ -411,17 +440,28 @@ class TopShiftParam:
             # Loop through all phases in equilibrium to find points in
             # equilibrium
             X_eq_data = []  # Data container that contains X_I, X_II, ...
+            X_ph_data = []  # Data container that contains phases of
+                            #  X_I, X_II, ... (used to skip LLE points in
+                            # epsilon_ph routines)
+
             for ph in p.m['Data phases']:
                 X_eq_d = []
                 for n in range(1, p.m['n']):
                     X_eq_d.append(p.m[ph][n][i])
 
                 X_eq_data.append(numpy.array(X_eq_d))
+                X_ph_data.append(ph)
 
             # Find error at each point
             # TODO: Update this two phase equilibrium to arbitrarily high
+            # NOTE: It will probably be better to keep all functions with only
+            # two data points as input since the sequenced sampling points is
+            # generated on vectors between the points anyway; so instead
+            # iterate through all data points.
             X_I = X_eq_data[0]
             X_II = X_eq_data[1]
+            ph_I = X_ph_data[0]
+            ph_II = X_ph_data[1]
 
             if (X_II - X_I).all() == 0.0:  # Skip pure points
                 continue
@@ -430,13 +470,13 @@ class TopShiftParam:
             # set for the current data points)
 
             X_D = self.d_points(N, X_I, X_II)
-            plane, Lambda_sol_est, G_sol = self.d_plane(g_x_func, s,
-                                                        p, X_I, X_II)
+            plane, Lambda_sol_est, G_sol, G_all = self.d_plane(g_x_func, s,
+                                                               p, X_I, X_II)
+
             f_dual_gap_d = self.dual_gap(g_x_func, plane, X_D, s, p)
 
             # Find dual gap error if it does not exist
             epsilon_d = self.dual_gap_error_sum(f_dual_gap_d)
-
 
             # Find surface errors in the stable region
             if dual_s:
@@ -449,6 +489,17 @@ class TopShiftParam:
                 epsilon_s = self.surface_gap_error_sum(f_dual_gap_s)
             else:
                 epsilon_s = 0.0
+
+            # Find phase error if ph_data is not <= ph_model
+            if len(p.m['Valid phases']) > 1:
+                for ph, i in zip([ph_I, ph_II], range(2)):
+                    # (might extend to X_I, X_II, ...)
+                    if ph not in p.m['Valid phases']:
+                        continue  #TODO: Test if working by skipping LLE
+                    else:
+                        epsilon_ph = self.phase_error(G_all[i], ph)
+            else:
+                epsilon_ph = 0.0
 
             if False:
                 print('='*100)
@@ -505,6 +556,7 @@ class TopShiftParam:
             # Convert all nested values to floats:
             epsilon_d = numpy.float(epsilon_d)
             epsilon_s = numpy.float(epsilon_s)
+            epsilon_ph = numpy.float(epsilon_ph)
             epsilon_e = numpy.float(epsilon_e)
             epsilon_x = numpy.float(epsilon_x)
 
@@ -518,6 +570,7 @@ class TopShiftParam:
 
             self.Epsilon_d += epsilon_d
             self.Epsilon_s += epsilon_s
+            self.Epsilon_ph +=  epsilon_ph
             self.Epsilon_e += epsilon_e
             self.Epsilon_x += epsilon_x
 
@@ -527,11 +580,12 @@ class TopShiftParam:
         #a = 1.0 / max_surf
         self.Epsilon_d = self.Epsilon_d
         self.Epsilon_s = a * self.Epsilon_s
-        self.Epsilon_e = b * self.Epsilon_e /1.5
-        self.Epsilon_x = c * self.Epsilon_x /1.5
+        self.Epsilon_ph = self.Epsilon_ph
+        self.Epsilon_e = b * self.Epsilon_e #/1.5
+        self.Epsilon_x = c * self.Epsilon_x #/1.5
 
         # SUM all errors
-        Epsilon += self.Epsilon_d + self.Epsilon_s \
+        Epsilon += self.Epsilon_d + self.Epsilon_s  + self.Epsilon_ph\
                    + self.Epsilon_e + self.Epsilon_x
 
         if True:
@@ -541,6 +595,7 @@ class TopShiftParam:
             print('k_21 = {}'.format(p.m['k'][2][1]))
             print('self.Epsilon_d = {}'.format(self.Epsilon_d))
             print('self.Epsilon_s = {}'.format(self.Epsilon_s))
+            print('self.Epsilon_ph = {}'.format(self.Epsilon_ph))
             print('self.Epsilon_e = {}'.format(self.Epsilon_e))
             print('self.Epsilon_x = {}'.format(self.Epsilon_x))
             print('Epsilon = {}'.format(Epsilon))
@@ -559,6 +614,7 @@ class TopShiftParam:
         func_r = numpy.zeros((x_r, x_r))
         func_ed = numpy.zeros((x_r, x_r))
         func_es = numpy.zeros((x_r, x_r))
+        func_eph = numpy.zeros((x_r, x_r))
         func_ee = numpy.zeros((x_r, x_r))
         func_ex = numpy.zeros((x_r, x_r))
 
@@ -571,12 +627,15 @@ class TopShiftParam:
 
                 func_ed[i, j] = numpy.float64(self.Epsilon_d)
                 func_es[i, j] = numpy.float64(self.Epsilon_s)
+                func_es[i, j] = numpy.float64(self.Epsilon_ph)
                 func_ee[i, j] = numpy.float64(self.Epsilon_e)
                 func_ex[i, j] = numpy.float64(self.Epsilon_x)
-                print('self.Epsilon_d = {}'.format(self.Epsilon_d))
-                print('self.Epsilon_s = {}'.format(self.Epsilon_s))
-                print('self.Epsilon_e = {}'.format(self.Epsilon_e))
-                print('self.Epsilon_x = {}'.format(self.Epsilon_x))
+                if False:
+                    print('self.Epsilon_d = {}'.format(self.Epsilon_d))
+                    print('self.Epsilon_s = {}'.format(self.Epsilon_s))
+                    print('self.Epsilon_ph = {}'.format(self.Epsilon_ph))
+                    print('self.Epsilon_e = {}'.format(self.Epsilon_e))
+                    print('self.Epsilon_x = {}'.format(self.Epsilon_x))
 
         # Save results
 
@@ -585,6 +644,7 @@ class TopShiftParam:
                        'yg' : yg,
                        'func_ed' : func_ed,
                        'func_es' : func_es,
+                       'func_eph' : func_eph,
                        'func_ee' : func_ee,
                        'func_ex' : func_ex,
                        }
@@ -618,6 +678,7 @@ class TopShiftParam:
         yg = plot_kwargs['yg']
         func_ed = plot_kwargs['func_ed']
         func_es = plot_kwargs['func_es']
+        func_eph = plot_kwargs['func_eph']
         func_ee = plot_kwargs['func_ee']
         func_ex = plot_kwargs['func_ex']
 
@@ -638,6 +699,8 @@ class TopShiftParam:
                             cmap=cm.coolwarm, label='$\epsilon_D$')
             ax.plot_surface(X, Y, func_es, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_S$')
+            ax.plot_surface(X, Y, func_eph, rstride=1, cstride=1, alpha=0.3,
+                            cmap=cm.coolwarm, label='$\epsilon_ph$')
             ax.plot_surface(X, Y, func_ee, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_e$')
             ax.plot_surface(X, Y, func_ex, rstride=1, cstride=1, alpha=0.3,
