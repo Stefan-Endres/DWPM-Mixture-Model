@@ -60,6 +60,7 @@ class ImportData:
         self.plot_isobars = args.plot_isobars
         self.plot_gibbs = args.plot_gibbs
         self.plot_pure = args.plot_pure
+        self.plot_epsilon = args.plot_epsilon
         # Saves
         self.optimise = args.optimise
         self.save_results = args.save

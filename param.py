@@ -31,7 +31,7 @@ class TopShiftParam:
 
         if method_d == 'tgo':
             res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args)
+                        args=tsp_args, n=10000)
         else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
@@ -44,19 +44,19 @@ class TopShiftParam:
         print('='*100)
         logging.info(res_d)
         if self.rs:
-            print "-r {} -s {}".format(res_d.x[0], res_d.x[1])
+            print("-r {} -s {}".format(res_d.x[0], res_d.x[1]))
         if self.kij:
-            print "kij {} {}".format(res_d.x[0], res_d.x[1])
+            print("kij {} {}".format(res_d.x[0], res_d.x[1]))
 
         if self.rskij:
-            print "-r {} -s {} -kij {} {}".format(res_d.x[0],
+            print("-r {} -s {} -kij {} {}".format(res_d.x[0],
                                                   res_d.x[1],
                                                   res_d.x[2],
-                                                  res_d.x[3])
+                                                  res_d.x[3]))
         # Optimize over all equilibrium points using dual plane minima as a
         # starting point
         Z_0 = res_d.x
-        print "Z_0 = "
+        print("Z_0 = ")
         tsp_args = (s, p, g_x_func, True)
 
         if method_eq == 'tgo':
