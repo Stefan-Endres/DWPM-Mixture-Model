@@ -624,10 +624,9 @@ class TopShiftParam:
 
                 f_out = func(X, *args)  # Scalar outputs
                 func_r[i, j] = numpy.float64(f_out)
-
                 func_ed[i, j] = numpy.float64(self.Epsilon_d)
                 func_es[i, j] = numpy.float64(self.Epsilon_s)
-                func_es[i, j] = numpy.float64(self.Epsilon_ph)
+                func_eph[i, j] = numpy.float64(self.Epsilon_ph)
                 func_ee[i, j] = numpy.float64(self.Epsilon_e)
                 func_ex[i, j] = numpy.float64(self.Epsilon_x)
                 if False:
@@ -685,29 +684,50 @@ class TopShiftParam:
         ax = fig.gca(projection='3d')
         X, Y = xg, yg
 
-        # Gibbs phase surfaces
-        Z = func_r
+        # find annotation points
+        xa = numpy.max(xg)
+        ya = numpy.max(yg)
+        za = func_r[-1, -1]
 
+        # Gibbs phase surfaces
         if True:
-            print 'numpy.min(Z) = {}'.format(numpy.nanmin(Z))
-            cset = ax.contourf(X, Y, Z, zdir='z',
-                               offset=numpy.nanmin(Z)-0.05,
+            print 'numpy.min(Z) = {}'.format(numpy.nanmin(func_r))
+            cset = ax.contourf(X, Y, func_r, zdir='z',
+                               offset=numpy.nanmin(func_r)-0.05,
                                cmap=cm.coolwarm)
-            ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.3,
+            ax.plot_surface(X, Y, func_r, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon$')
+            ax.text(xa, ya, func_r[-1, -1], '$\epsilon$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_r[0, 0], '$\epsilon$')
             ax.plot_surface(X, Y, func_ed, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_D$')
+            ax.text(xa, ya, func_ed[-1, -1], '$\epsilon_D$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_ed[0, 0], '$\epsilon_D$')
             ax.plot_surface(X, Y, func_es, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_S$')
+            ax.text(xa, ya, func_es[-1, -1], '$\epsilon_S$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_es[0, 0], '$\epsilon_S$')
             ax.plot_surface(X, Y, func_eph, rstride=1, cstride=1, alpha=0.3,
-                            cmap=cm.coolwarm, label='$\epsilon_ph$')
+                            cmap=cm.coolwarm, label='$\epsilon_{ph}$')
+            ax.text(xa, ya, func_eph[-1, -1], '$\epsilon_{ph}$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_eph[0, 0], '$\epsilon_{ph}$')
             ax.plot_surface(X, Y, func_ee, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_e$')
+            ax.text(xa, ya, func_ee[-1, -1], '$\epsilon_e$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_ee[0, 0], '$\epsilon_e$')
             ax.plot_surface(X, Y, func_ex, rstride=1, cstride=1, alpha=0.3,
                             cmap=cm.coolwarm, label='$\epsilon_x$')
+            ax.text(xa, ya, func_ex[-1, -1], '$\epsilon_x$')
+            ax.text(numpy.min(xg), numpy.min(xg),
+                    func_ex[0, 0], '$\epsilon_x$')
 
         if False:
-            surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+            surf = ax.plot_surface(X, Y, func_r, rstride=1, cstride=1,
                                    cmap=cm.coolwarm, linewidth=0,
                                    antialiased=True, alpha=0.5,
                                    shade = True)

@@ -148,8 +148,8 @@ if __name__ == '__main__':
             s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                            Force_Update=True)
 
-            if True:  # Local+global routine
-            #if False:
+            #if True:  # Local+global routine
+            if False:
                 print('r = {}'.format(p.m['r']))
                 print('s = {}'.format(p.m['s']))
                 TSP = TopShiftParam(p,
@@ -224,30 +224,20 @@ if __name__ == '__main__':
                 s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                                Force_Update=True)
 
-                TSP = TopShiftParam(p, rs=False, kij=True)
                 # Plot
                 tsp_args = (s, p, g_mix, False)
-                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
-                bounds = [(-5.0, 10.0), (-5.0, 10.0)]
-                bounds = [(-1.0, 2.0), (-1.0, 2.0)]
-                bounds = [(-0.9, 0.9), (-0.9, 0.9)]
-               # bounds = [(-1.0, 10.0), (-1.0, 10.0)]
-                #bounds = [(0.0, 10.0), (0.0, 10.0)]
-                #bounds = [(2.0, 5.0), (2.0, 5.0)]
-
-                bounds = [(-5.0, 10.0), (-5.0, 10.0)]
-                bounds = [(-1.0, 1.0), (-1.0, 1.0)]
-                bounds = [(-2.0, 1.0), (-2.0, 1.0)]
-                bounds = [(-2.0, 1.05), (-2.0, 1.05)]
-
                 # co2-ethane dev
+                TSP = TopShiftParam(p, rs=True, kij=False)
                 #TSP = TopShiftParam(p, rs=False, kij=True)
-                TSP = TopShiftParam(p, rs=False, kij=True)
                 tsp_args = (s, p, g_mix, False, True, 5)
                 bounds = [(-10.0, 10.0), (-10.0, 10.0)]
                 bounds = [(-10.0, 1.0), (-10.0, 1.0)]
-                bounds = [(-2.0, 1.0), (-2.0, 1.0)]
+                bounds = [(-0.1, 1.0), (-0.1, 1.0)]
+                bounds = [(-0.1, 6.0), (-0.1, 6.0)]
                 #bounds = [(0.001, 0.4), (0.001, 0.4)]
+                bounds = [(-10.0, 10.0), (-10.0, 10.0)]
+                bounds = [(-100.0, 100.0), (-100.0, 100.0)]
+                bounds = [(-300.0, 300.0), (-300.0, 300.0)]
                 x_r = 16#50
 
                 #bounds = [(0.1, 0.2), (0.1, 0.2)]
