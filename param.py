@@ -31,7 +31,7 @@ class TopShiftParam:
 
         if method_d == 'tgo':
             res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args, n=10000)
+                        args=tsp_args, n=3000)
         else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
@@ -103,7 +103,7 @@ class TopShiftParam:
                 p.m['s'] = 1e-10
 
         if self.kij or self.rskij:
-            if self.rs:
+            if self.rs or self.rskij:
                 pint = 2
             else:
                 pint = 0

@@ -153,16 +153,16 @@ if __name__ == '__main__':
             s.update_state(s, p, P=24e5, T=263.1, X=[0.0],
                            Force_Update=True)
 
-            print('r = {}'.format(p.m['r']))
-            print('s = {}'.format(p.m['s']))
+            #print('r = {}'.format(p.m['r']))
+            #print('s = {}'.format(p.m['s']))
             TSP = TopShiftParam(p,
                                 rs=False,
-                                kij=True,
-                                rskij = False
+                                kij=False,
+                                rskij=True
                                 )
 
             tsp_args = (s, p, g_mix)
-            tsp_args = (s, p, g_mix, False, True, 30)
+            tsp_args = (s, p, g_mix, False, True, 5)
 
             Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
 
@@ -173,8 +173,8 @@ if __name__ == '__main__':
                          bounds=[
                                  (-5.0, 5.0),
                                  (-5.0, 5.0),
-                                 #(-0.2, 0.99),
-                                 #(-0.2, 0.99)
+                                 (-0.2, 0.99),
+                                 (-0.2, 0.99)
                                  ])
 
             if False:
