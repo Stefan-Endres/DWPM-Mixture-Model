@@ -31,7 +31,7 @@ class TopShiftParam:
 
         if method_d == 'tgo':
             res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args, n=3000)
+                        args=tsp_args, n=300)
         else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
@@ -62,6 +62,14 @@ class TopShiftParam:
         if method_eq == 'tgo':
             res_eq = tgo(self.tsp_objective_function, bounds=bounds,
                          args=tsp_args)
+
+        elif method_eq == 'SLSQP':
+            res_eq = scipy.optimize.minimize(self.tsp_objective_function,
+                                             Z_0,
+                                             args=tsp_args,
+                                             method=method_eq,
+                                             bounds=bounds
+                                             )
         else:
             res_eq = scipy.optimize.minimize(self.tsp_objective_function,
                                              Z_0,
@@ -419,6 +427,7 @@ class TopShiftParam:
         a = 1#/(N*2.0) # Stable surfaces
         b = 1.0/l_d # 1.0  # Lagrangian plane errors
         c = 1.0/(l_d*l_ph) # Equilibrium point errors
+        d = 10.0  # Wrong minimum phase error
 
         # Stores for plots
         self.Epsilon_d = 0.0
@@ -580,7 +589,7 @@ class TopShiftParam:
         #a = 1.0 / max_surf
         self.Epsilon_d = self.Epsilon_d
         self.Epsilon_s = a * self.Epsilon_s
-        self.Epsilon_ph = self.Epsilon_ph
+        self.Epsilon_ph = d * self.Epsilon_ph
         self.Epsilon_e = b * self.Epsilon_e #/1.5
         self.Epsilon_x = c * self.Epsilon_x #/1.5
 

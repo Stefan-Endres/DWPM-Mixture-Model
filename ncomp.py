@@ -560,6 +560,11 @@ def g_IG_k(s, p, k='x'):  # (Validated)
         if s.c[i][k] == 0.0:  # Prevent math errors from zero log call.
             pass  # should be = 0 as s2['y']*log(s2['y']) = 1*log(1) = 0
         else:
+            if s.c[i][k] < 0.0:
+                #TODO: This should never step outside bounds, found out why
+                # s.c[2][k] is ofter < 0
+                print 's.c[{}][{}] = {}'.format(i, k, s.c[i][k])
+                #s.c[i][k] = abs(s.c[i][k])
             Sigma_g_IG_k += s.c[i][k] * log(s.c[i][k])
     return Sigma_g_IG_k
 

@@ -162,19 +162,22 @@ if __name__ == '__main__':
                                 )
 
             tsp_args = (s, p, g_mix)
-            tsp_args = (s, p, g_mix, False, True, 5)
+            tsp_args = (s, p, g_mix, False, True, 3)
 
             Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
+            Z_0 = [p.m['r'], p.m['s'], p.m['k'][1][2], p.m['k'][2][1]]
 
             TSP.optimise(s, p, g_x_func, Z_0,
                          method_d='tgo',
                          #method_d='L-BFGS-B',
-                         method_eq='L-BFGS-B',
+                         #method_eq='L-BFGS-B',
+                         method_eq='SLSQP',
                          bounds=[
-                                 (-5.0, 5.0),
-                                 (-5.0, 5.0),
-                                 (-0.2, 0.99),
-                                 (-0.2, 0.99)
+                                 (-100.0, 100.0),
+                                 (-100.0, 100.0),
+                                 (-0.99, 0.99),
+                                 (-0.99, 0.99),
+                             #(-4.0, 5.0)
                                  ])
 
             if False:
@@ -215,11 +218,11 @@ if __name__ == '__main__':
 
             # Plot
             tsp_args = (s, p, g_mix, False)
-            #TSP = TopShiftParam(p, rs=True, kij=False)
-            TSP = TopShiftParam(p, rs=False, kij=True)
+            TSP = TopShiftParam(p, rs=True, kij=False)
+            #TSP = TopShiftParam(p, rs=False, kij=True)
             tsp_args = (s, p, g_mix, False, True, 5)
-            bounds = [(-5.0, 1.0), (-5.0, 1.0)]
-            x_r = 20
+            bounds = [(-5.0, 5.0), (-5.0, 5.0)]
+            x_r = 24
 
 
             plot_kwargs = TSP.obj_func_range(TSP.tsp_objective_function,
