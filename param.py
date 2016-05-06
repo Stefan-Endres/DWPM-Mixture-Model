@@ -512,12 +512,12 @@ class TopShiftParam:
 
                 # Find phase error if ph_data is not <= ph_model
                 if len(p.m['Valid phases']) > 1:
-                    for ph, i in zip([ph_I, ph_II], range(2)):
+                    for ph, j in zip([ph_I, ph_II], range(2)):
                         # (might extend to X_I, X_II, ...)
                         if ph not in p.m['Valid phases']:
                             continue  #TODO: Test if working by skipping LLE
                         else:
-                            epsilon_ph = self.phase_error(G_all[i], ph)
+                            epsilon_ph = self.phase_error(G_all[j], ph)
                 else:
                     epsilon_ph = 0.0
 
@@ -605,10 +605,10 @@ class TopShiftParam:
         #max_surf = max(self.Epsilon_d, self.Epsilon_s)
         #a = 1.0 / max_surf
         self.Epsilon_d = self.Epsilon_d
-        self.Epsilon_s = a * self.Epsilon_s
-        self.Epsilon_ph = d * self.Epsilon_ph
-        self.Epsilon_e = b * self.Epsilon_e #/1.5
-        self.Epsilon_x = c * self.Epsilon_x #/1.5
+        self.Epsilon_s *= a
+        self.Epsilon_ph *= d
+        self.Epsilon_e *= b  #/1.5
+        self.Epsilon_x *= c  #/1.5
 
         # SUM all errors
         Epsilon += self.Epsilon_d + self.Epsilon_s  + self.Epsilon_ph\
