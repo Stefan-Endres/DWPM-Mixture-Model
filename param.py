@@ -31,7 +31,7 @@ class TopShiftParam:
 
         if method_d == 'tgo':
             res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args, n=300)
+                        args=tsp_args, n=3000)
         else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
@@ -128,6 +128,16 @@ class TopShiftParam:
                          #       "setting to k_{0}{1}"
                         #        " = 0.999".format(i, j))
                         #   p.m['k'][i][j] = 0.999
+
+
+                        if abs(p.m['k'][i][j]) <= 1e-10:  # Avoid singularities
+                            logging.warning(
+                                "k_{}{} parameter close to singularity, "
+                                "setting to k_{}{} "
+                                "= 1 - 1e-10".format(i, j, i, j))
+
+                            p.m['k'][i][j] = 1.0 - 1e-10
+
                         pint += 1
                         #print('p[k] =')
                         #print(p.m['k'])
@@ -427,7 +437,7 @@ class TopShiftParam:
         a = 1#/(N*2.0) # Stable surfaces
         b = 1.0/l_d # 1.0  # Lagrangian plane errors
         c = 1.0/(l_d*l_ph) # Equilibrium point errors
-        d = 10.0  # Wrong minimum phase error
+        d = 1#00.0  # Wrong minimum phase error
 
         # Stores for plots
         self.Epsilon_d = 0.0
@@ -479,36 +489,43 @@ class TopShiftParam:
             # set for the current data points)
 
             X_D = self.d_points(N, X_I, X_II)
-            plane, Lambda_sol_est, G_sol, G_all = self.d_plane(g_x_func, s,
-                                                               p, X_I, X_II)
+            try:
+                plane, Lambda_sol_est, G_sol, G_all = self.d_plane(g_x_func, s,
+                                                                   p, X_I, X_II)
 
-            f_dual_gap_d = self.dual_gap(g_x_func, plane, X_D, s, p)
-
-            # Find dual gap error if it does not exist
-            epsilon_d = self.dual_gap_error_sum(f_dual_gap_d)
-
-            # Find surface errors in the stable region
-            if dual_s:
-                # Generate (Note, this only needs to be done once and saved in
-                # a set for the current data points)
-                X_O = self.o_points(N, X_I, X_II)
-                f_dual_gap_s = self.dual_gap(g_x_func, plane, X_O, s, p)
+                f_dual_gap_d = self.dual_gap(g_x_func, plane, X_D, s, p)
 
                 # Find dual gap error if it does not exist
-                epsilon_s = self.surface_gap_error_sum(f_dual_gap_s)
-            else:
-                epsilon_s = 0.0
+                epsilon_d = self.dual_gap_error_sum(f_dual_gap_d)
 
-            # Find phase error if ph_data is not <= ph_model
-            if len(p.m['Valid phases']) > 1:
-                for ph, i in zip([ph_I, ph_II], range(2)):
-                    # (might extend to X_I, X_II, ...)
-                    if ph not in p.m['Valid phases']:
-                        continue  #TODO: Test if working by skipping LLE
-                    else:
-                        epsilon_ph = self.phase_error(G_all[i], ph)
-            else:
-                epsilon_ph = 0.0
+                # Find surface errors in the stable region
+                if dual_s:
+                    # Generate (Note, this only needs to be done once and saved in
+                    # a set for the current data points)
+                    X_O = self.o_points(N, X_I, X_II)
+                    f_dual_gap_s = self.dual_gap(g_x_func, plane, X_O, s, p)
+
+                    # Find dual gap error if it does not exist
+                    epsilon_s = self.surface_gap_error_sum(f_dual_gap_s)
+                else:
+                    epsilon_s = 0.0
+
+                # Find phase error if ph_data is not <= ph_model
+                if len(p.m['Valid phases']) > 1:
+                    for ph, i in zip([ph_I, ph_II], range(2)):
+                        # (might extend to X_I, X_II, ...)
+                        if ph not in p.m['Valid phases']:
+                            continue  #TODO: Test if working by skipping LLE
+                        else:
+                            epsilon_ph = self.phase_error(G_all[i], ph)
+                else:
+                    epsilon_ph = 0.0
+
+            except numpy.linalg.linalg.LinAlgError:
+                logging.warning("Linear algebra error calculating dual plane")
+                epsilon_d = 10
+                epsilon_s = 10
+                epsilon_ph = 10
 
             if False:
                 print('='*100)

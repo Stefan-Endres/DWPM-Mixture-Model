@@ -157,12 +157,12 @@ if __name__ == '__main__':
             #print('s = {}'.format(p.m['s']))
             TSP = TopShiftParam(p,
                                 rs=False,
-                                kij=False,
-                                rskij=True
+                                kij=True,
+                                #rskij=True
                                 )
 
             tsp_args = (s, p, g_mix)
-            tsp_args = (s, p, g_mix, False, True, 3)
+            tsp_args = (s, p, g_mix, False, True, 6)
 
             Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
             Z_0 = [p.m['r'], p.m['s'], p.m['k'][1][2], p.m['k'][2][1]]
@@ -173,10 +173,10 @@ if __name__ == '__main__':
                          #method_eq='L-BFGS-B',
                          method_eq='SLSQP',
                          bounds=[
-                                 (-100.0, 100.0),
-                                 (-100.0, 100.0),
-                                 (-0.99, 0.99),
-                                 (-0.99, 0.99),
+                                 #(-100.0, 100.0),
+                                 #(-100.0, 100.0),
+                                 (-0.9, 0.99),
+                                 (-0.9, 0.99),
                              #(-4.0, 5.0)
                                  ])
 
@@ -218,11 +218,14 @@ if __name__ == '__main__':
 
             # Plot
             tsp_args = (s, p, g_mix, False)
-            TSP = TopShiftParam(p, rs=True, kij=False)
-            #TSP = TopShiftParam(p, rs=False, kij=True)
+            #TSP = TopShiftParam(p, rs=True, kij=False)
+            TSP = TopShiftParam(p, rs=False, kij=True)
             tsp_args = (s, p, g_mix, False, True, 5)
             bounds = [(-5.0, 5.0), (-5.0, 5.0)]
-            x_r = 24
+            bounds = [(0, 2.0), (-2.0, 4.0)]
+            bounds = [(0, 2.0), (0.0, 2.0)]
+            bounds = [(0, 2.01), (0.0, 2.01)]
+            x_r = 20
 
 
             plot_kwargs = TSP.obj_func_range(TSP.tsp_objective_function,

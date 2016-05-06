@@ -34,7 +34,8 @@ class PsatPlots:
     def psat_range(self, s, p):
         import numpy
         import logging
-        VdW = van_der_waals.VdW()
+        from models import van_der_waals as VdW
+        #VdW = van_der_waals.VdW()
 
         # inits
         s['b'] = p['b_c']  # b = b_c
