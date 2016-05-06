@@ -576,7 +576,7 @@ class IsoDetection:
                 # Plot each isotherm
                 if p.m['n'] == 2:
                     self.plot_iso_p_bin(Pre, p,
-                                        data_p=data_p,
+                                        #data_p=data_p,
                                         data_x_mph=data_x_mph,
                                         data_x_ph=data_x_ph,
                                         # model_p_mph=model_p_mph,
