@@ -173,8 +173,7 @@ def plot_g_mix(s, p, g_x_func, Tie=None, plane_func=None, plan_args=None,
     if p.m['n'] == 2:
         from matplotlib import pyplot as plot
         #% Initialize
-        g_mix_r = {} # Contains range of solutions for all phases
-        g_mix_r['t'] = []
+        g_mix_r = {'t': []}  # Contains range of solutions for all phases
         for ph in p.m['Valid phases']:
             g_mix_r[ph] = []
 
@@ -577,7 +576,7 @@ class IsoDetection:
                 # Plot each isotherm
                 if p.m['n'] == 2:
                     self.plot_iso_p_bin(Pre, p,
-                                        data_p=data_p,
+                                        #data_p=data_p,
                                         data_x_mph=data_x_mph,
                                         data_x_ph=data_x_ph,
                                         # model_p_mph=model_p_mph,
@@ -740,7 +739,7 @@ class IsoDetection:
                 data_x_ph[ph].append(numpy.array(p.m[ph][comp_n])[iso_ind])
 
         # Find model outputs
-        if (not data_only) and (nodbdata):
+        if (not data_only) and nodbdata:
             P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph = \
                 er(g_x_func, s, p, PT_Range=PT_Range, n=n, res=res, tol=tol,
                    gtol=gtol, n_dual=n_dual, phase_tol=phase_tol,

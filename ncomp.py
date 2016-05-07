@@ -523,7 +523,7 @@ def g_R_mix_i(s, p, k='x'):  # (Validated)
         if V > 0:
             V = s.m['b'] + 1e-15/(s.m['b'] - V) #* (1.0 + 1e-30)
         if V < 0:
-            V = s.m['b'] + 1e-15/abs((V))
+            V = s.m['b'] + 1e-15/abs(V)
 
         #logging.warning("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
         #logging.warn("V < b_mix in g_R_mix_i, setting to V = {}".format(V))
