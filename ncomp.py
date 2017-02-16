@@ -984,7 +984,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
-        if False:  # dual stepping plots
+        if True:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             print('X_sol: {}'.format(X_sol))
@@ -1027,7 +1027,7 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         LBD = lbd(X_sol, g_x_func, Lambda_sol, Z_0, s, p, k)
         # End if tol
 
-        if False:  # dual stepping plots
+        if True:  # dual stepping plots
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             #print('X_sol: {}'.format(X_sol))

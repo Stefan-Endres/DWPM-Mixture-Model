@@ -156,7 +156,7 @@ if __name__ == '__main__':
             #print('r = {}'.format(p.m['r']))
             #print('s = {}'.format(p.m['s']))
             TSP = TopShiftParam(p,
-                                rs=False,
+                                rs=True,
                                 kij=True,
                                 #rskij=True
                                 )
@@ -167,14 +167,21 @@ if __name__ == '__main__':
             Z_0 = [p.m['k'][1][2], p.m['k'][2][1]]
             Z_0 = [p.m['r'], p.m['s'], p.m['k'][1][2], p.m['k'][2][1]]
 
+            ### Dev
+            if False:
+                TSP.tsp_objective_function(Z_0, s, p, g_x_func,
+                                           dp_pec=False)
+            ###
+
+            #if False:
             TSP.optimise(s, p, g_x_func, Z_0,
                          method_d='tgo',
                          #method_d='L-BFGS-B',
                          #method_eq='L-BFGS-B',
                          method_eq='SLSQP',
                          bounds=[
-                                 #(-100.0, 100.0),
-                                 #(-100.0, 100.0),
+                                 (-20.0, 20.0),
+                                 (-20.0, 20.0),
                                  (-0.9, 0.99),
                                  (-0.9, 0.99),
                              #(-4.0, 5.0)
@@ -218,14 +225,13 @@ if __name__ == '__main__':
 
             # Plot
             tsp_args = (s, p, g_mix, False)
-            #TSP = TopShiftParam(p, rs=True, kij=False)
-            TSP = TopShiftParam(p, rs=False, kij=True)
+            TSP = TopShiftParam(p, rs=True, kij=False)
+            #TSP = TopShiftParam(p, rs=False, kij=True)
             tsp_args = (s, p, g_mix, False, True, 5)
-            bounds = [(-5.0, 5.0), (-5.0, 5.0)]
-            bounds = [(0, 2.0), (-2.0, 4.0)]
-            bounds = [(0, 2.0), (0.0, 2.0)]
-            bounds = [(0, 2.01), (0.0, 2.01)]
-            x_r = 20
+            bounds = [(-5.0, 4.0), (-5.0, 4.0)]
+            #bounds = [(-2.0, 2.0), (-2.0, 2.0)]
+            #bounds = [(-0.15, 0.99), (-0.15, 0.99)]
+            x_r = 40
 
 
             plot_kwargs = TSP.obj_func_range(TSP.tsp_objective_function,
@@ -268,7 +274,7 @@ if __name__ == '__main__':
             start = time.time()
             # Use res = 30 for database standard
             iso.plot_iso(s, p, g_x_func, res=40, n=3000, T=data.plot_isotherms,
-                         VLE_only=True, n_dual=300, Plot_Results=True)
+                         VLE_only=True, n_dual=300, Plot_Results=False)
             print("="*90)
             print('Done in {}'.format(time.time() - start))
             print("="*90)

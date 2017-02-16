@@ -31,7 +31,10 @@ class TopShiftParam:
 
         if method_d == 'tgo':
             res_d = tgo(self.tsp_objective_function, bounds=bounds,
-                        args=tsp_args, n=3000)
+                        args=tsp_args,
+                        #n=100
+                        n=5000
+                        )
         else:
             res_d = scipy.optimize.minimize(self.tsp_objective_function,
                                             Z_0,
@@ -448,7 +451,8 @@ class TopShiftParam:
 
         # Loop through all data points:
         for i in range(len(p.m['T'])):
-            p.m['T'][i]
+            #p.m['T'][i]
+            #print "T = {}".format(p.m['T'][i])
 
             try: #TODO: Deal with failures in Vroot here
                 s.update_state(s, p, P=p.m['P'][i], T=p.m['T'][i],
@@ -582,6 +586,7 @@ class TopShiftParam:
             # Convert all nested values to floats:
             epsilon_d = numpy.float(epsilon_d)
             epsilon_s = numpy.float(epsilon_s)
+            #print "epsilon_s = {}".format(epsilon_s)
             epsilon_ph = numpy.float(epsilon_ph)
             epsilon_e = numpy.float(epsilon_e)
             epsilon_x = numpy.float(epsilon_x)
@@ -606,7 +611,7 @@ class TopShiftParam:
         #a = 1.0 / max_surf
         self.Epsilon_d = self.Epsilon_d
         self.Epsilon_s *= a
-        self.Epsilon_ph *= d
+        self.Epsilon_ph *= d*10
         self.Epsilon_e *= b  #/1.5
         self.Epsilon_x *= c  #/1.5
 
