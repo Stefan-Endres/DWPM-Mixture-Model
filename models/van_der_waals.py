@@ -187,7 +187,7 @@ def V_root(state, parameters):
     return state
 
 #%%
-def Psat_V_roots(state, parameters, tol = 1e-20, estfactor=1e-3):
+def Psat_V_roots(state, parameters, tol=1e-20, estfactor=1e-3):
     """
     Calculates the saturation pressure and volume roots of the Van der
     Waals equation at a specified temperature and pressure.

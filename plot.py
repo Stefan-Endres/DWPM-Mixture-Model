@@ -902,8 +902,8 @@ class IsoDetection:
                         print('r_mph_eq[i][j] = {}'.format(r_mph_eq[i][j]))
                         print('r_mph_ph[i][j] = {}'.format(r_mph_ph[i][j]))
                         for l in range(len(r_mph_eq[i][j])):
-                            print 'r_mph_eq[i][j][l] = {}'.format(r_mph_eq[i][j][l])
-                            print 'r_mph_ph[i][j][l] = {}'.format(r_mph_ph[i][j][l])
+                            print('r_mph_eq[i][j][l] = {}'.format(r_mph_eq[i][j][l]))
+                            print('r_mph_ph[i][j][l] = {}'.format(r_mph_ph[i][j][l]))
                             if p.m['n'] == 2:
                                 model_x_mph[r_mph_ph[i][j][l]].append(
                                     r_mph_eq[i][j][l][0])
@@ -1288,7 +1288,7 @@ def plot_ep(func, x_r, s, p, args=()):
         Z = func_r
 
         if True:
-            print 'numpy.min(Z) = {}'.format(numpy.nanmin(Z))
+            print('numpy.min(Z) = {}'.format(numpy.nanmin(Z)))
 
             cset = ax.contourf(X, Y, Z, zdir='z', offset=numpy.nanmin(Z)-0.05,
                                cmap=cm.coolwarm)

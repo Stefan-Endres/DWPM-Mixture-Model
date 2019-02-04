@@ -147,7 +147,7 @@ def dict_conv_numstrings(Dict, numberset = set('0123456789e-'),
     {'x': [123.0, 'abc', '12c', '12\xc3\xa4']}
     """
 
-    for key, value in Dict.iteritems():   
+    for key, value in Dict.items():
         for i,n in enumerate(Dict[key]):
             try:
                 if any((c in numberset) for c in n):
@@ -229,7 +229,7 @@ def load_csv_as_dict(Path, start_row=1, skip_rows=None, conv_numstrings=True, \
                     i += 1    
                     continue
                 
-            for key, value in row.iteritems():
+            for key, value in row.items():
                 Dict.setdefault(key, []).append(value)
                 
             i += 1  
@@ -262,9 +262,9 @@ def load_csv_as_dict(Path, start_row=1, skip_rows=None, conv_numstrings=True, \
     
     # Remove empty entires
     if empty_entries:
-        for key, value in Dict.iteritems(): # Filter out empty '' values
+        for key, value in Dict.items(): # Filter out empty '' values
             if not value.__class__ == float:
-                Dict[key] = filter(lambda a: a != '', value)
+                Dict[key] = list(filter(lambda a: a != '', value))
     
     return Dict
 

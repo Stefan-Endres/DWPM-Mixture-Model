@@ -722,7 +722,7 @@ class TopShiftParam:
 
         # Gibbs phase surfaces
         if True:
-            print 'numpy.min(Z) = {}'.format(numpy.nanmin(func_r))
+            print('numpy.min(Z) = {}'.format(numpy.nanmin(func_r)))
             cset = ax.contourf(X, Y, func_r, zdir='z',
                                offset=numpy.nanmin(func_r)-0.05,
                                cmap=cm.coolwarm)

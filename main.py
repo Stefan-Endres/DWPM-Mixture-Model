@@ -202,19 +202,19 @@ if __name__ == '__main__':
                 TSP.vdw_dwpm_params(params, p)
                 X_D = TSP.d_points(5, X_I, X_II)
                 X_o = TSP.o_points(5, X_I, X_II)
-                print 'X_o = {}'.format(X_o)
+                print('X_o = {}'.format(X_o))
 
                 plane, Lambda_sol_est, G_sol = TSP.d_plane(g_mix, s, p, X_I, X_II)
                 f_dual_gap = TSP.dual_gap(g_mix, plane, X_D, s, p)
                 epsilon_d = TSP.dual_gap_error_sum(f_dual_gap)
-                print 'epsilon_d = {}'.format(epsilon_d)
+                print('epsilon_d = {}'.format(epsilon_d))
                 epsilon_e = TSP.norm_eta_sum(X_D, Lambda_sol_est, X_I, X_II, G_sol)
                 epsilon_x = TSP.data_error([X_I, X_II], ['x', 'y'],
                                            X_D, g_mix, s, p)
 
-                print 'epsilon_x = {}'.format(epsilon_x)
+                print('epsilon_x = {}'.format(epsilon_x))
                 Z_0 = TSP.d_Z_0(X_I, X_II)
-                print 'Z_0 = {}'.format(Z_0)
+                print('Z_0 = {}'.format(Z_0))
 
         if data.plot_epsilon:
             from param import TopShiftParam

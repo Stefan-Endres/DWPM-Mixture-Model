@@ -1,0 +1,29 @@
+ 
+Traceback (most recent call last):
+  File "/opt/pycharm-community/helpers/pydev/pydev_run_in_console.py", line 71, in <module>
+    globals = run_file(file, None, None)
+  File "/opt/pycharm-community/helpers/pydev/pydev_run_in_console.py", line 31, in run_file
+    pydev_imports.execfile(file, globals, locals)  # execute the script
+  File "main.py", line 179, in <module>
+    (-0.99, 0.99)
+  File "param.py", line 59, in optimise
+    method=method_eq
+  File "/usr/lib/python2.7/site-packages/scipy/optimize/_minimize.py", line 447, in minimize
+    callback=callback, **options)
+  File "/usr/lib/python2.7/site-packages/scipy/optimize/lbfgsb.py", line 330, in _minimize_lbfgsb
+    f, g = func_and_grad(x)
+  File "/usr/lib/python2.7/site-packages/scipy/optimize/lbfgsb.py", line 273, in func_and_grad
+    f = fun(x, *args)
+  File "/usr/lib/python2.7/site-packages/scipy/optimize/optimize.py", line 289, in function_wrapper
+    return function(*(wrapper_args + args))
+  File "param.py", line 344, in tsp_objective_function
+    X_D, g_x_func, s, p)
+  File "param.py", line 233, in data_error
+    X_eq, g_eq, phase_eq = pec(s, p, g_x_func, Z_0)
+  File "ncomp.py", line 1247, in phase_equilibrium_calculation
+    X_sol, Lambda_sol, d_res = dual_equal(s, p, g_x_func, Z_0, tol=tol, n=n)
+  File "ncomp.py", line 975, in dual_equal
+    Lambda_sol = numpy.delete(lp_sol.x, numpy.shape(lp_sol.x)[0] - 1)
+IndexError: tuple index out of range
+
+Process finished with exit code 1
