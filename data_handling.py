@@ -7,7 +7,8 @@ ex.
 >>> dataset1.load_VLE(['acetone','water'])
 >>> dataset2.load_VLE(['benzene','cyclohexane'])
 """
-import ConfigParser
+#import ConfigParser
+import configparser
 import os
 import numpy
 import logging
@@ -20,7 +21,7 @@ class ImportData:
 
         # Read configuration file
         # TODO: Add argparse optionals to read from.
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         configfile = 'config.cfg'
 
         if os.path.exists(configfile):
@@ -146,9 +147,10 @@ def parameter_build(Data):
     else:
         pass
 
-    for key, value in p.iteritems(): # Filter out '' values
+    for key, value in p.items(): # Filter out '' values
         if not (value.__class__ == float or value.__class__ == numpy.float64):
-            p[key] = filter(lambda a: a != '', value)
+            if not key is 'Model':
+                p[key] = list(filter(lambda a: a != '', value))
 
     return p
 
@@ -229,15 +231,21 @@ class MixParameters:
                 M['s'] = data_VLE['s']
             else:
                 M['s'] = data.s
+            #if type(M['r']) == list:
+            #    if len(M['r']) > 0:
+            #        M['r'] = M['r'][0]
+            #if type(M['s']) == list:
+            #    if len(M['s']) > 0:
+            #        M['s'] = M['s'][0]
 
         else:
-            logging.warn('Specified model not implemented')
+            logging.warning('Specified model not implemented')
 
-        for key, value in M.iteritems():  # Filter out '' values
+        for key, value in M.items():  # Filter out '' values
             if not value.__class__ == float:
             #  if key != 'x' and key != 'y' and key != 'k' and key != 'phases':
                 try:
-                    M[key] = filter(lambda a: a != '', value)
+                    M[key] = list(filter(lambda a: a != '', value))
                 except TypeError:
                     pass
 

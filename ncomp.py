@@ -9,6 +9,7 @@ from __future__ import division
 from models import van_der_waals as VdW
 import data_handling
 import plot
+import numpy
 
 
 # %% Define state variable class
@@ -563,7 +564,7 @@ def g_IG_k(s, p, k='x'):  # (Validated)
             if s.c[i][k] < 0.0:
                 #TODO: This should never step outside bounds, found out why
                 # s.c[2][k] is ofter < 0
-                print 's.c[{}][{}] = {}'.format(i, k, s.c[i][k])
+                print('s.c[{}][{}] = {}'.format(i, k, s.c[i][k]))
                 #s.c[i][k] = abs(s.c[i][k])
             Sigma_g_IG_k += s.c[i][k] * log(s.c[i][k])
     return Sigma_g_IG_k
@@ -633,7 +634,7 @@ def g_mix(s, p, k=None, ref='x', update_system=False):  # (Validated)
 
     s.m['g_mix'] = {}
     g_min = []
-    g_abs_min = long  # "inf" large int
+    g_abs_min = numpy.inf#long  # "inf" large int
     for ph in p.m['Valid phases']:
             s.m['g_mix'][ph] = s.m['g_mix^R'][ph] + g_IG_k(s, p, k=ph)
             g_min.append(s.m['g_mix'][ph])
@@ -738,12 +739,12 @@ def ubd(X_D, Z_0, g_x_func, s, p, k=None):
             A[k, i] = -(Z_0[i] - X_D[k][i])
 
     if False:
-        print 'c shape = {}'.format(numpy.shape(c))
-        print 'A shape = {}'.format(numpy.shape(A))
-        print 'b shape = {}'.format(numpy.shape(b))
-        print 'c = {}'.format(c)
-        print 'A = {}'.format(A)
-        print 'b = {}'.format(b)
+        print('c shape = {}'.format(numpy.shape(c)))
+        print('A shape = {}'.format(numpy.shape(A)))
+        print('b shape = {}'.format(numpy.shape(b)))
+        print('c = {}'.format(c))
+        print('A = {}'.format(A))
+        print('b = {}'.format(b))
 
     return c, A, b
 
@@ -984,7 +985,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
         UBD = -lp_sol.fun  # Final func value is neg. of minimised max. problem
 
-        if True:  # dual stepping plots
+        # dual stepping plots
+        if 0:
             print('Iteration number: {}'.format(iteration))
             #print('Lambda_sol: {}'.format(Lambda_sol))
             print('X_sol: {}'.format(X_sol))
@@ -1049,11 +1051,11 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
 
 
     if False:  # Print results optional
-        print 'Final UBD = {}'.format(UBD)
-        print 'Final LBD = {}'.format(LBD)
-        print 'Final UBD - LBD = {}'.format(UBD - LBD)
-        print 'Final Z_eq = {}'.format(X_sol)
-        print 'Final Lambda_d = {}'.format(Lambda_d)
+        print('Final UBD = {}'.format(UBD))
+        print('Final LBD = {}'.format(LBD))
+        print('Final UBD - LBD = {}'.format(UBD - LBD))
+        print('Final Z_eq = {}'.format(X_sol))
+        print('Final Lambda_d = {}'.format(Lambda_d))
 
     if False:  # Feed point plane estimate dev
         x_r = 1000
@@ -1065,8 +1067,8 @@ def dual_equal(s, p, g_x_func, Z_0, k=None, P=None, T=None, tol=1e-9, n=100):
         X_II = numpy.array([ 0.30898849])
         s.update_state(s, p, X=X_II, Force_Update=True)
         G_sol_II = g_x_func(s, p).m['g_mix']['t']
-        print' G_sol_I = {}'.format(G_sol_I)
-        print' G_sol_II = {}'.format(G_sol_II)
+        print(' G_sol_I = {}'.format(G_sol_I))
+        print(' G_sol_II = {}'.format(G_sol_II))
         # Plane estimates
         # (NOTE: These lambda estimates need to be done for each component
         # in higher dimensions)
@@ -1258,7 +1260,6 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
      # d_res.fun  # lbd plane solution at equil point
      # d_res.xl  # local composition solutions from final tgo
      # d_res.funl  # lbd plane at local composition solutions
-
     X_eq.append(X_sol)  # Add first point to solution set
 
 
@@ -1318,13 +1319,13 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
 
     # Check of all points are flagged for deletion with no equilibrium point.
     if len(Flag) == len(d_res.xl):
-        logging.warn('All equilibrium points excluded with current phase'
+        logging.warning('All equilibrium points excluded with current phase'
                      'tolerance, temporarily lowering phase_tol')
         Flag = x_plane_tol(d_res.xl, phase_tol * 1e-1)
         if len(Flag) == len(d_res.xl):
             Flag = x_plane_tol(d_res.xl, phase_tol * 1e-2)
             if len(Flag) == len(d_res.xl):
-                logging.warn('Failed to find equilibrium point within '
+                logging.warning('Failed to find equilibrium point within '
                              'phase_tol')
 
                 return X_eq, g_eq, phase_eq
@@ -1353,7 +1354,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     X_eq = x_plane(X_eq, d_res.fun, d_res.funl, d_res.xl, gtol)
 
     if len(X_eq) < 2:
-        logging.warn('Less than 2 equilibrium points found within dual plane '
+        logging.warning('Less than 2 equilibrium points found within dual plane '
                      'within surface tolerance, temporarily increasing gtol')
 
         X_eq = x_plane(X_eq, d_res.fun, d_res.funl, d_res.xl, gtol*1e2)
@@ -1378,8 +1379,8 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
     if Plot_Results:
         # Gibbs mix func with Tie lines
         from scipy import linspace
-        print 'Feeding Lamda_d = {} to ep. func.'.format(Lambda_sol)
-        print [[X_eq[1], X_eq[0]]]  # TODO: Allow for more points?
+        print('Feeding Lamda_d = {} to ep. func.'.format(Lambda_sol))
+        print([[X_eq[1], X_eq[0]]])  # TODO: Allow for more points?
         if p.m['n'] == 2:  # Plot binary tie lines
             plot.plot_g_mix(s, p, g_x_func, Tie =[[X_eq[1], X_eq[0]]]
                             , x_r=1000)
@@ -1404,6 +1405,7 @@ def phase_equilibrium_calculation(s, p, g_x_func, Z_0, k=None, P=None, T=None,
             x_r = 100#400
             plane_args = (Lambda_sol, Z_0, g_x_func, s, p, ['All'])
             plot.plot_ep(dual_lagrange, x_r, s, p, args=plane_args)
+
     return X_eq, g_eq, phase_eq
 
 # Phase seperation detection
@@ -1505,7 +1507,7 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     """
     # TODO: Update this documentation
     import numpy
-    from UQToolbox.sobol_lib import i4_sobol_generate
+    #from UQToolbox.sobol_lib import i4_sobol_generate  #TODO: Use own code from shgo
     from tgo import tgo
     import copy
     # init returns
@@ -1516,7 +1518,8 @@ def phase_seperation_detection(g_x_func, s, p, P, T, n=100, LLE_only=False,
     # Generate sampling points.
     m = p.m['n'] - 1
     skip = 4
-    points = i4_sobol_generate(m, n, skip)
+    #points = i4_sobol_generate(m, n, skip)
+    points = sobol_points_10k(n, m)  #TODO: Check n, m order
     points = numpy.column_stack([points[i] for i in range(m)])
     points = points[numpy.sum(points, axis=-1) <= 1.0]
     S = numpy.empty(n, dtype=bool)
@@ -2134,6 +2137,70 @@ def equilibrium_range(g_x_func, s, p, Data_Range=False, PT_Range=None, n=100,
     return P_range, T_range, r_ph_eq, r_mph_eq, r_mph_ph
 
 
+# Sampling
+def sobol_points_10k(N, D):
+    """
+    sobol.cc by Frances Kuo and Stephen Joe translated to Python 3 by
+    Carl Sandrock 2016-03-31
+
+    The original program is available and described at
+    http://web.maths.unsw.edu.au/~fkuo/sobol/
+    """
+    import gzip
+    import os
+    path = os.path.join(os.path.dirname(__file__), 'shgo_m', 'sobol_vec.gz')
+    f = gzip.open(path, 'rb')
+    unsigned = "uint64"
+    # swallow header
+    next(f)
+
+    L = int(numpy.log(N) // numpy.log(2.0)) + 1
+
+    C = numpy.ones(N, dtype=unsigned)
+    for i in range(1, N):
+        value = i
+        while value & 1:
+            value >>= 1
+            C[i] += 1
+
+    points = numpy.zeros((N, D), dtype='double')
+
+    # XXX: This appears not to set the first element of V
+    V = numpy.empty(L + 1, dtype=unsigned)
+    for i in range(1, L + 1):
+        V[i] = 1 << (32 - i)
+
+    X = numpy.empty(N, dtype=unsigned)
+    X[0] = 0
+    for i in range(1, N):
+        X[i] = X[i - 1] ^ V[C[i - 1]]
+        points[i, 0] = X[i] / 2 ** 32
+
+    for j in range(1, D):
+        F_int = [int(item) for item in next(f).strip().split()]
+        (d, s, a), m = F_int[:3], [0] + F_int[3:]
+
+        if L <= s:
+            for i in range(1, L + 1):
+                V[i] = m[i] << (32 - i)
+        else:
+            for i in range(1, s + 1):
+                V[i] = m[i] << (32 - i)
+            for i in range(s + 1, L + 1):
+                V[i] = V[i - s] ^ (
+                    V[i - s] >> numpy.array(s, dtype=unsigned))
+                for k in range(1, s):
+                    V[i] ^= numpy.array(
+                        (((a >> (s - 1 - k)) & 1) * V[i - k]),
+                        dtype=unsigned)
+
+        X[0] = 0
+        for i in range(1, N):
+            X[i] = X[i - 1] ^ V[C[i - 1]]
+            points[i, j] = X[i] / 2 ** 32  # *** the actual points
+
+    f.close()
+    return points
 
 if __name__ == '__main__':
     pass
