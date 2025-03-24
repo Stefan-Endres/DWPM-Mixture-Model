@@ -106,15 +106,16 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     #   b_ub[k]      = G(x_d).
     for k, x_d in enumerate(X_D):
         for i in range(n):
-            A_ub[k, i] = x_d[i] - Z_0[i]
+            A_ub[k, i] = x_d[i] - Z_0[i]  # Equal to -(Z_0[i] - x_d[i])
         A_ub[k, -1] = +1.0
         b_ub[k] = g_func(x_d)
 
     # (3) Bounds for decision vars [Lambda_1..Lambda_n, eta].
     # Limit Lambdas to [-lambda_bound, lambda_bound],  eta is unbounded.
     import math
-    big_inf = 1.0e15
-    bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
+    #big_inf = 1.0e15
+    #bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
+    bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
 
     return c, A_ub, b_ub, bounds
 
@@ -125,6 +126,7 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
 def solve_dual_equilibrium(
     g_func,
     Z_0,
+    g_func_args=None,
     shgo_n=10,
     tol=1e-9,
     max_iter=20,
@@ -178,6 +180,7 @@ def solve_dual_equilibrium(
       Otherwise, if feed is stable or no lower G(x) is found,
       solver might converge with Lambda ~ 0.
     """
+    #TODO: Add g_func_args
     Z_0 = np.asarray(Z_0, dtype=float)
     n = len(Z_0)
 
@@ -271,6 +274,8 @@ def solve_dual_equilibrium(
                    constraints=nonlin_con,
                    n=shgo_n)
 
+        #TODO: The speed of the method can be improved by adding all solutions of shgo
+        #     (with res.funl values near zero) to the X_D set instead of just x_star.
         if not res.success:
             print(f"[Iter {iteration}] SHGO LBD fail: {res.message}")
             break
