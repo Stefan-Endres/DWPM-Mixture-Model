@@ -37,6 +37,36 @@ def lbd(x, g_func, Lambda, Z_0):
     """
     return g_func(x) + np.dot(Lambda, (Z_0 - x))
 
+def lbd_o1_new(x, g_func, Lambda, Z_0):
+    """
+    Evaluate the lower-bounding function for the dual problem.
+
+    Original docstring unchanged...
+    """
+
+    # x is now in R^(n-1). The user's g_func expects x in R^(n-1) as well.
+    # However, Z_0 is length n. So if we need to form (Z_0 - x_full),
+    # we must expand x to n dimensions first:
+    x_full = np.concatenate([x, [1.0 - np.sum(x)]])  # Minimal expansion
+
+    return g_func(x) + np.dot(Lambda, (Z_0 - x_full))
+
+def lbd_o1_new(x, g_func, Lambda, Z_0):
+    """
+    Evaluate the lower-bounding function for the dual problem.
+
+    Original docstring unchanged...
+    """
+
+    # x is now in R^(n-1). The user's g_func expects x in R^(n-1) as well.
+    # However, Z_0 is length n. So if we need to form (Z_0 - x_full),
+    # we must expand x to n dimensions first:
+   # x_full = np.concatenate([x, [1.0 - np.sum(x)]])  # Minimal expansion
+
+    #return g_func(x) + np.dot(Lambda, (Z_0 - x_full))
+    return g_func(x) + np.dot(Lambda, (Z_0[:-1] - x))
+
+
 
 ##############################################################################
 # 2) UBD problem construction
@@ -94,6 +124,7 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
 
     # (1) Constraint: eta <= G(Z_0)
     G_feed = g_func(Z_0)
+    print(f'G_feed = {G_feed}')
     A_ub[num_points, -1] = +1.0   # +1 * eta
     b_ub[num_points] = G_feed
 
@@ -108,6 +139,8 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
         for i in range(n):
             A_ub[k, i] = x_d[i] - Z_0[i]  # Equal to -(Z_0[i] - x_d[i])
         A_ub[k, -1] = +1.0
+        print(f'b_ub[k] = {b_ub[k] } '
+              f'g_func(x_d) = {g_func(x_d)}')
         b_ub[k] = g_func(x_d)
 
     # (3) Bounds for decision vars [Lambda_1..Lambda_n, eta].
@@ -118,6 +151,47 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
 
     return c, A_ub, b_ub, bounds
+
+
+def ubd_o1_new(X_D, Z_0, g_func, lambda_bound=1e2):
+    """
+    Builds the linear program (LP) for the upper bounding problem, as before.
+
+    Original docstring unchanged...
+    """
+    import numpy as np
+    n = len(Z_0)   # n is total number of components
+
+    # c => minimize -eta => c[-1] = -1
+    c = np.zeros(n + 1)
+    c[-1] = -1.0
+
+    num_points = len(X_D)
+    A_ub = np.zeros((num_points + 1, n + 1))
+    b_ub = np.zeros(num_points + 1)
+
+    # (1) Constraint: eta <= G(Z_0)
+    G_feed = g_func(Z_0[:n-1])  # Only pass the first n-1 of feed to user’s g_func
+    A_ub[num_points, -1] = +1.0
+    b_ub[num_points] = G_feed
+
+    # (2) For each x_d in X_D (which are now (n-1)-dim),
+    #     expand to n-dim and call g_func(x_d) properly:
+    for k, x_d in enumerate(X_D):
+        x_full = np.concatenate([x_d, [1.0 - np.sum(x_d)]])  # expand
+        # The row: +eta - sum_i [Lambda_i * (Z_0[i] - x_full[i])] <= G(x_d).
+        for i in range(n):
+            A_ub[k, i] = x_full[i] - Z_0[i]
+        A_ub[k, -1] = +1.0
+
+        b_ub[k] = g_func(x_d)  # user’s g_func wants (n-1)-vector
+
+    # (3) Bounds for decision vars [Lambda_1..Lambda_n, eta].
+    import math
+    bounds = [(-lambda_bound, lambda_bound)] * n + [(-math.inf, math.inf)]
+
+    return c, A_ub, b_ub, bounds
+
 
 
 ##############################################################################
@@ -183,34 +257,30 @@ def solve_dual_equilibrium(
     #TODO: Add g_func_args
     Z_0 = np.asarray(Z_0, dtype=float)
     n = len(Z_0)
-
     assert abs(Z_0.sum() - 1.0) < 1e-12, "Z_0 must sum to 1"
     assert np.all(Z_0 >= 0), "Z_0 must be >= 0 in each component"
+
+    Z_0 = Z_0[:-1]
 
     # Build initial set X_D with corner-ish points + feed
     X_D = []
     eps = 1e-8
 
     # "Almost pure" corners: x[i] near 1, distribute small remainder to others
-    for i in range(n):
-        x_corner = np.full(n, (1.0 - (1e-8*(n-1))) / (n-1))  # distribute leftover
-        x_corner[i] = 1.0 - eps*(n-1)
-        # Clip to ensure [min_x, max_x], then re-normalize if necessary
-        x_corner = np.clip(x_corner, min_x, max_x)
-        # Make sure sum is 1:
-        # We'll do a quick approach: scale the clipped vector
-        # so it sums to ~1 but each component remains in [min_x, max_x].
-        norm_factor = x_corner.sum()
-        if norm_factor < 1e-14:
-            # fallback if everything is clipped
-            x_corner[i] = 1.0
-        else:
-            x_corner /= norm_factor
-        X_D.append(x_corner)
 
+    for i in range(n):
+        x_corner = np.full(n, min_x)
+        x_corner[i] = 1.0 - eps * (n - 1)
+        # etc., but ensure x_corner is length n, i.e. old (n-1).
+        # Clip, normalize, etc.
+        X_D.append(x_corner)
         # near-zero in i-th component => x[i]=min_x
         # distribute leftover among the other (n-1) in [min_x, max_x]
-        x_low = np.full(n, (1.0 - min_x*(n)) / (n-1))
+        if n == 1:
+            # Fallback: there's no "other" component
+            x_low = np.array([1.0])
+        else:
+            x_low = np.full(n, (1.0 - min_x * n) / (n - 1))
         x_low[i] = min_x
         # Clip & re-normalize
         x_low = np.clip(x_low, min_x, max_x)
@@ -224,13 +294,18 @@ def solve_dual_equilibrium(
 
     # Add feed
     feed_clipped = np.clip(Z_0, min_x, max_x)
+    print(f'feed_clipped = {feed_clipped}')
     sum_feed = feed_clipped.sum()
     if sum_feed < 1e-14:
         feed_clipped[0] = 1.0  # fallback
     else:
         feed_clipped /= sum_feed
+
     X_D.append(feed_clipped)
 
+    X_D.append(feed_clipped)
+
+    print(f'X_D = {X_D}')
     # Evaluate initial LBD & UBD
     LBD = -1e15
     UBD = g_func(feed_clipped)
@@ -256,22 +331,28 @@ def solve_dual_equilibrium(
         cur_UBD = -lp_res.fun
 
         # (B) Solve LBD with shgo
-        def lbd_obj(x, gf, lam, feed):
+        def lbd_obj(xprime, gf, lam, feed):
+            x = np.append(xprime, 1 - np.sum(xprime))
             return lbd(x, gf, lam, feed)
 
-        # sum(x)=1 => eq constraint
-        def sum_constraint(x):
-            return np.sum(x) - 1.0
-
-        nonlin_con = NonlinearConstraint(sum_constraint, 0.0, 0.0)
-
         # Bounds: x in [min_x, max_x]
-        shgo_bounds = [(min_x, max_x)]*n
+        print(f'n = {n}')
+        print(f'min_x = {min_x}')
+        print(f'max_x = {max_x}')
+        shgo_bounds = [(min_x, max_x)] * (n - 1)
 
+        # Prepare options dict:
+        #TODO: Add to solver after fixing
+        options = {}
+        symm = np.zeros(n)
+        options['symmetry'] = symm
+
+        # Run main solver
+        #print(f'lbd_obj = {;}')
+        print(f'shgo_bounds = {shgo_bounds}')
         res = shgo(lbd_obj,
                    bounds=shgo_bounds,
                    args=(g_func, Lambda_sol, feed_clipped),
-                   constraints=nonlin_con,
                    n=shgo_n)
 
         #TODO: The speed of the method can be improved by adding all solutions of shgo
@@ -279,7 +360,8 @@ def solve_dual_equilibrium(
         if not res.success:
             print(f"[Iter {iteration}] SHGO LBD fail: {res.message}")
             break
-        x_star = res.x
+
+        x_star = np.append(res.x, 1 - np.sum(res.x))
         val_star = res.fun
         cur_LBD = val_star
 
@@ -305,6 +387,134 @@ def solve_dual_equilibrium(
         UBD = cur_UBD
 
     return x_star, Lambda_sol, history
+
+
+def solve_dual_equilibrium_o1_new(
+    g_func,
+    Z_0,
+    g_func_args=None,
+    shgo_n=10,
+    tol=1e-9,
+    max_iter=20,
+    min_x=1e-10,
+    max_x=1-1e-10,
+    lambda_bound=1e2
+):
+    """
+    Finds a dual hyperplane using the Mitsos/Barton approach, etc.
+
+    Original docstring unchanged...
+    """
+
+    Z_0 = np.asarray(Z_0, dtype=float)
+    n   = len(Z_0)
+
+    assert abs(Z_0.sum() - 1.0) < 1e-12, "Z_0 must sum to 1"
+    # no change
+
+    # Build initial set X_D in the (n-1)-dim space:
+    X_D = []
+    eps = 1e-8
+
+    # "corner-like" points in the reduced dimension:
+    for i in range(n-1):
+        x_corner = np.zeros(n-1)
+        x_corner[i] = 1.0 - eps*(n-2) if (n>2) else 1.0 - eps
+        # clip
+        x_corner = np.clip(x_corner, min_x, max_x)
+        s_ = x_corner.sum()
+        if s_>1.0:
+            x_corner /= s_
+        X_D.append(x_corner)
+
+        # near-min
+        x_min = np.full(n-1, (1.0 - min_x*(n-1))/(n-2)) if n>2 else np.zeros(1)
+        x_min[i] = min_x
+        x_min = np.clip(x_min, min_x, max_x)
+        s_ = x_min.sum()
+        if s_>1.0:
+            x_min /= s_
+        X_D.append(x_min)
+
+    # Add feed minus last component:
+    x_feed = Z_0[:n-1]
+    x_feed = np.clip(x_feed, min_x, max_x)
+    s_ = x_feed.sum()
+    if s_>1.0:
+        x_feed /= s_
+    X_D.append(x_feed)
+
+    LBD = -1e15
+    # Evaluate feed in the user’s g_func (which is dimension n-1)
+    feed_val = g_func(x_feed)
+    UBD = feed_val
+
+    history = {
+        'iterations': [],
+        'UBD': [],
+        'LBD': [],
+        'Lambda': [],
+        'X_star': []
+    }
+
+    for iteration in range(1, max_iter+1):
+
+        # (A) Solve UBD (LP)
+        c, A_ub, b_ub, lp_bounds = ubd(X_D, Z_0, g_func, lambda_bound=lambda_bound)
+        lp_res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=lp_bounds, method='highs')
+        if not lp_res.success:
+            print(f"[Iter {iteration}] LP failed: {lp_res.message}")
+            break
+        Lambda_sol = lp_res.x[:n]
+        eta_sol    = lp_res.x[-1]
+        cur_UBD    = -lp_res.fun
+
+        # (B) Solve LBD with shgo in R^(n-1).
+        #     We'll do "sum(x) <= 1" and x[i]>=min_x, x[i]<=max_x as constraints.
+        def lbd_obj(x):
+            return lbd(x, g_func, Lambda_sol, Z_0)
+
+        # inequality: sum(x) <= 1
+        def sum_constraint(x):
+            return np.sum(x)
+
+        nonlin_con = NonlinearConstraint(sum_constraint, -np.inf, 1.0)
+
+        # bounds in each dimension: [min_x, max_x]
+        shgo_bounds = [(min_x, max_x)]*(n-1)
+
+        res = shgo(lbd_obj, bounds=shgo_bounds, constraints=nonlin_con, n=shgo_n)
+
+        if not res.success:
+            print(f"[Iter {iteration}] SHGO LBD fail: {res.message}")
+            break
+
+        x_star = res.x  # (n-1)-dim
+        val_star = res.fun
+        cur_LBD = val_star
+
+        history['iterations'].append(iteration)
+        history['UBD'].append(cur_UBD)
+        history['LBD'].append(cur_LBD)
+        history['Lambda'].append(Lambda_sol)
+        history['X_star'].append(x_star)
+
+        # Add discovered point to X_D
+        X_D.append(x_star)
+
+        gap = abs(cur_UBD - cur_LBD)
+        print(f"[Iter {iteration}] UBD={cur_UBD:.6g}, LBD={cur_LBD:.6g}, gap={gap:.3g}")
+        if gap < tol:
+            print(f"Converged at iteration {iteration} with gap={gap:.3g}")
+            break
+
+        LBD = cur_LBD
+        UBD = cur_UBD
+
+    # Return the final x_star plus multipliers.
+    # x_star is in R^(n-1).  The user’s g_func sees that as “the composition.”
+    return x_star, Lambda_sol, history
+
 
 
 # %% Dual plane eta for optim visualization
