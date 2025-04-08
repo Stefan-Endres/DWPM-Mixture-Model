@@ -42,6 +42,7 @@ def lbd(x, g_func, Lambda, Z_0):
     float
         G(x) + Lambda dot (Z_0 - x).
     """
+
     return g_func(x) + np.dot(Lambda, (Z_0 - x))
 
 
@@ -97,6 +98,8 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
 
     num_points = len(X_D)
     A_ub = np.zeros((num_points + 1, n + 1))
+    print(f'A_ub.shape = {A_ub.shape}')
+    print(f'n = {n}')
     b_ub = np.zeros(num_points + 1)
 
     # (1) Constraint: eta <= G(Z_0)
@@ -112,6 +115,9 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     #   A_ub[k, -1]  = +1.
     #   b_ub[k]      = G(x_d).
     for k, x_d in enumerate(X_D):
+        #print(f'list(range(n)) = {list(range(n))}')
+        #print(f'x_d = {x_d}')
+        #print(f' Z_0 = { Z_0}')
         for i in range(n):
             A_ub[k, i] = x_d[i] - Z_0[i]  # Equal to -(Z_0[i] - x_d[i])
         A_ub[k, -1] = +1.0
@@ -123,7 +129,11 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     #big_inf = 1.0e15
     #bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
     bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
-
+    bounds = [(-lambda_bound, lambda_bound)] * n + [(-np.inf, np.inf)]
+    print(f'c = {c}')
+    print(f'A_ub = {A_ub}')
+    print(f'b_ub = {b_ub}')
+    print(f'bounds = {bounds}')
     return c, A_ub, b_ub, bounds
 
 
@@ -250,6 +260,7 @@ def solve_dual_equilibrium(
         'X_star': []
     }
 
+    print(f'X_D = {X_D}')
     for iteration in range(1, max_iter+1):
 
         # (A) Solve UBD via LP

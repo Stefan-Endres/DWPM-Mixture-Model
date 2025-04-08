@@ -1,4 +1,5 @@
 #%% Critical imports
+import copy
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,12 +36,24 @@ def lbd(x, g_func, Lambda, Z_0):
     float
         G(x) + Lambda dot (Z_0 - x).
     """
+    if 1:
+        print(f'Z_0 = {Z_0}')
+        print(f'Lambda = {Lambda}')
+        print(f'x = {x}')
+        print(f'g_func(x) = {g_func(x)}')
+        print(f'g_func(x) + np.dot(Lambda, (Z_0 - x)) = {g_func(x) + np.dot(Lambda, (Z_0 - x))}')
+
+    n = len(Z_0)
+  #  x_full = np.zeros(n + 1)
+  #  x_full[-1] = 1 - np.sum(x)
+  #  x_full[:-1] = x
     return g_func(x) + np.dot(Lambda, (Z_0 - x))
+    #  return g_func(x) + np.dot(Lambda, (Z_0 -  x_full))
 
 ##############################################################################
 # 2) UBD problem construction
 ##############################################################################
-def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
+def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
     """
     Builds the linear program (LP) for the upper bounding problem:
 
@@ -84,15 +97,20 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     n = len(Z_0)
 
     # c => minimize -eta => c[-1] = -1
+    #c = np.zeros(n)
     c = np.zeros(n + 1)
     c[-1] = -1.0
 
     num_points = len(X_D)
+    #A_ub = np.zeros((num_points + 1, n + 1))
+    #A_ub = np.zeros((num_points + 1, n))
     A_ub = np.zeros((num_points + 1, n + 1))
+    print(f'A_ub.shape = {A_ub.shape}')
+    print(f'n = {n}')
     b_ub = np.zeros(num_points + 1)
 
     # (1) Constraint: eta <= G(Z_0)
-    G_feed = g_func(Z_0)
+    G_feed = G_P # = g_func(Z_0)
     print(f'G_feed = {G_feed}')
     A_ub[num_points, -1] = +1.0   # +1 * eta
     b_ub[num_points] = G_feed
@@ -104,10 +122,16 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     #   A_ub[k, i]   = - (Z_0[i] - x_d[i]) = (x_d[i] - Z_0[i]).
     #   A_ub[k, -1]  = +1.
     #   b_ub[k]      = G(x_d).
+
     for k, x_d in enumerate(X_D):
+        #for i in range(n - 1):
+        #print(f'list(range(n)) = {list(range(n))}')
+        #print(f'x_d = {x_d}')
+        #print(f' Z_0 = { Z_0}')
         for i in range(n):
             A_ub[k, i] = x_d[i] - Z_0[i]  # Equal to -(Z_0[i] - x_d[i])
-        A_ub[k, -1] = +1.0
+
+        A_ub[k, -1] = +1.0  # A_ub[:, -1] = set all eta coefficients = 1
         print(f'b_ub[k] = {b_ub[k] } '
               f'g_func(x_d) = {g_func(x_d)}')
         b_ub[k] = g_func(x_d)
@@ -118,7 +142,11 @@ def ubd(X_D, Z_0, g_func, lambda_bound=1e2):
     #big_inf = 1.0e15
     #bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
     bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
-
+    #bounds = [(1e-10, lambda_bound)] * (n - 1) + [(-np.inf, np.inf)]
+    print(f'c = {c}')
+    print(f'A_ub = {A_ub}')
+    print(f'b_ub = {b_ub}')
+    print(f'bounds = {bounds}')
     return c, A_ub, b_ub, bounds
 
 
@@ -195,48 +223,124 @@ def solve_dual_equilibrium(
     eps = 1e-8
 
     # "Almost pure" corners: x[i] near 1, distribute small remainder to others
+    # NOTE: Should be reduced by to n-1, but we need to keep n for the LP.
+    if 0:  # Old code below:
+        for i in range(n):
+            x_corner = np.full(n, min_x)
+            print(f'x_corner = {x_corner}')
+            x_corner[i] = 1.0 - eps * (n - 1)
+            # etc., but ensure x_corner is length n, i.e. old (n-1).
+            # Clip, normalize, etc.
+            X_D.append(x_corner)
+            # near-zero in i-th component => x[i]=min_x
+            # distribute leftover among the other (n-1) in [min_x, max_x]
+            if n == 1:
+                # Fallback: there's no "other" component
+                x_low = np.array([1.0])
+            else:
+                x_low = np.full(n, (1.0 - min_x * n) / (n - 1))
+            x_low[i] = min_x
+            # Clip & re-normalize
+            x_low = np.clip(x_low, min_x, max_x)
+            s_ = x_low.sum()
+            if s_ < 1e-14:
+                # fallback
+                x_low[i] = 1.0
+            else:
+                x_low /= s_
+            X_D.append(x_low)
 
-    for i in range(n):
-        x_corner = np.full(n, min_x)
-        x_corner[i] = 1.0 - eps * (n - 1)
-        # etc., but ensure x_corner is length n, i.e. old (n-1).
-        # Clip, normalize, etc.
-        X_D.append(x_corner)
-        # near-zero in i-th component => x[i]=min_x
-        # distribute leftover among the other (n-1) in [min_x, max_x]
-        if n == 1:
-            # Fallback: there's no "other" component
-            x_low = np.array([1.0])
-        else:
-            x_low = np.full(n, (1.0 - min_x * n) / (n - 1))
-        x_low[i] = min_x
-        # Clip & re-normalize
-        x_low = np.clip(x_low, min_x, max_x)
-        s_ = x_low.sum()
-        if s_ < 1e-14:
-            # fallback
-            x_low[i] = 1.0
-        else:
-            x_low /= s_
-        X_D.append(x_low)
+    #print(f'X_D = {X_D}')
+    # New code attempt:
+    print(f'list(range(n-1))={list(range(n-1))}')
+    if 1:
+        lp_bounds = [None] * (n - 1)  # we'll store (L_i, U_i) for each i
 
-    # Add feed
-    feed_clipped = np.clip(Z_0, min_x, max_x)
-    print(f'feed_clipped = {feed_clipped}')
-    sum_feed = feed_clipped.sum()
-    if sum_feed < 1e-14:
-        feed_clipped[0] = 1.0  # fallback
+        for i in range(n - 1):
+            # Generate corner "bar" point:
+            x_bar_i = copy.copy(Z_0)
+            x_bar_i[i] = 1.0 - np.sum(np.delete(Z_0, i))
+            x_bar_i = np.clip(x_bar_i, min_x, max_x)
+
+            # Generate corner "hat" point:
+            x_hat_i = copy.copy(Z_0)
+            x_hat_i[i] = 0.0
+            x_hat_i = np.clip(x_hat_i, min_x, max_x)
+
+            # Evaluate G-values:
+            G_feed = g_func(Z_0)
+            G_bar = g_func(x_bar_i)
+            G_hat = g_func(x_hat_i)
+
+            # Build candidate slopes => each corner yields one slope, e.g.:
+            #    slope_bar = [ G_bar - G_feed ] / [ Z_0[i] - x_bar_i[i] ]
+            #    slope_hat = ...
+            # or whichever formula you prefer.  We'll do a quick example:
+
+            slopes_min = []
+            slopes_max = []
+
+            denom_bar = Z_0[i] - x_bar_i[i]
+            if abs(denom_bar) > 1e-12:
+                slope_bar = (G_bar - G_feed) / denom_bar
+                if denom_bar > 0:
+                    slopes_max.append(slope_bar)
+                else:
+                    slopes_min.append(slope_bar)
+
+            denom_hat = Z_0[i] - x_hat_i[i]
+            if abs(denom_hat) > 1e-12:
+                slope_hat = (G_hat - G_feed) / denom_hat
+                if denom_hat > 0:
+                    slopes_max.append(slope_hat)
+                else:
+                    slopes_min.append(slope_hat)
+
+            # Combine candidate min / max:
+            lambda_min = max(slopes_min) if slopes_min else -1e6
+            lambda_max = min(slopes_max) if slopes_max else +1e6
+
+            lp_bounds[i] = (lambda_min, lambda_max)
     else:
-        feed_clipped /= sum_feed
+        for i in range(n - 1):
+            print(f'i = {i}')
+            x_bar_i = copy.copy(Z_0)
+            x_bar_i[i] = 1 - np.sum(np.delete(Z_0, i))
+            x_bar_i = np.clip(x_bar_i, min_x, max_x)
+            print(f'x_bar_i = {x_bar_i}')
+            x_bar_i = np.atleast_1d(x_bar_i)
+            X_D.append(x_bar_i)
 
-    X_D.append(feed_clipped)
+           # x_hat_i = np.zeros(n-1)
+            x_hat_i = copy.copy(Z_0)#[i]
+            x_hat_i[i] = 0.0
+            x_hat_i = np.clip(x_hat_i, min_x, max_x)
+            x_hat_i = np.atleast_1d(x_hat_i)
+            X_D.append(x_hat_i)
 
-    X_D.append(feed_clipped)
+    #X_D.append(np.array([0.0000001]))  # tes
+    #X_D.append(np.array([0.9999999]))
+    #print(f'X_D = {X_D}')
+    # Add feed
+    Z0_clipped = np.clip(Z_0, min_x, max_x)  # Removed because this should never be needed
+    #Z_0 = np.clip(Z_0, min_x, max_x)
+    print(f'Z0_clipped = {Z0_clipped}')
+    print(f'Z_0 = {Z_0}')
+    #print(f'Z0_clipped = {Z0_clipped}')
+    sum_feed = Z_0.sum()
+    if sum_feed < 1e-14:
+        Z_0[0] = 1.0  # fallback
+    else:
+        Z_0 /= sum_feed
+
+    #X_D.append(np.array([0.0]))
+
+    X_D.append(Z0_clipped)
 
     print(f'X_D = {X_D}')
     # Evaluate initial LBD & UBD
     LBD = -1e15
-    UBD = g_func(feed_clipped)
+    UBD = g_func(Z0_clipped)
 
     history = {
         'iterations': [],
@@ -246,22 +350,27 @@ def solve_dual_equilibrium(
         'X_star': []
     }
 
+    G_P = g_func(Z_0)  # G_feed remains unchanged throughout the iterations
     for iteration in range(1, max_iter+1):
 
         # (A) Solve UBD via LP
-        c, A_ub, b_ub, lp_bounds = ubd(X_D, feed_clipped, g_func, lambda_bound=lambda_bound)
+        c, A_ub, b_ub, lp_bounds = ubd(X_D, Z0_clipped, g_func, lambda_bound=lambda_bound, G_P=G_P)
         lp_res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=lp_bounds, method='highs')
         if not lp_res.success:
             print(f"[Iter {iteration}] LP failed: {lp_res.message}")
             break
-        Lambda_sol = lp_res.x[:n]  # the multipliers
+        print(f'lp_res.x = {lp_res.x}')
+        #Lambda_sol = lp_res.x[:n]  # the multipliers
+        Lambda_sol = lp_res.x[:-1]  # the multipliers
+        print(f'Lambda_sol = {Lambda_sol}')
         eta_sol = lp_res.x[-1]
         cur_UBD = -lp_res.fun
 
         # (B) Solve LBD with shgo
-        def lbd_obj(xprime, gf, lam, feed):
-            x = np.append(xprime, 1 - np.sum(xprime))
-            return lbd(x, gf, lam, feed)
+        if 0:  # no longer needed
+            def lbd_obj(xprime, gf, lam, feed):
+                x = np.append(xprime, 1 - np.sum(xprime))
+                return lbd(x, gf, lam, feed)
 
         # Bounds: x in [min_x, max_x]
         print(f'n = {n}')
@@ -275,13 +384,22 @@ def solve_dual_equilibrium(
         symm = np.zeros(n)
         options['symmetry'] = symm
 
+        # sum(x)=1 => eq constraint
+        def sum_constraint(x):
+            return np.sum(x) - 1.0
+
+        nonlin_con = NonlinearConstraint(sum_constraint, 0.0, 0.0)
+
         # Run main solver
         #print(f'lbd_obj = {;}')
         print(f'shgo_bounds = {shgo_bounds}')
-        res = shgo(lbd_obj,
+        res = shgo(#lbd_obj,
+                   func=lbd,
                    bounds=shgo_bounds,
-                   args=(g_func, Lambda_sol, feed_clipped),
-                   n=shgo_n)
+                   args=(g_func, Lambda_sol, Z0_clipped),
+                   constraints=nonlin_con,
+                   n=shgo_n
+        )
 
         #TODO: The speed of the method can be improved by adding all solutions of shgo
         #     (with res.funl values near zero) to the X_D set instead of just x_star.
@@ -289,7 +407,8 @@ def solve_dual_equilibrium(
             print(f"[Iter {iteration}] SHGO LBD fail: {res.message}")
             break
 
-        x_star = np.append(res.x, 1 - np.sum(res.x))
+        #x_star = np.append(res.x, 1 - np.sum(res.x))
+        x_star = res.x
         val_star = res.fun
         cur_LBD = val_star
 
