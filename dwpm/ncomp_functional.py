@@ -400,7 +400,7 @@ def solve_dual_equilibrium(
                    bounds=shgo_bounds,
                    args=(g_func, Lambda_sol, Z0_clipped),
                    constraints=nonlin_con,
-                   n=1e4#shgo_n
+                   n=shgo_n
         )
         print(f'res = {res}')
         #TODO: The speed of the method can be improved by adding all solutions of shgo
