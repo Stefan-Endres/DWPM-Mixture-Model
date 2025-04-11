@@ -3,7 +3,8 @@ import copy
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-from shgo import shgo  # !pip install shgo
+#from shgo import shgo  # !pip install shgo
+from scipy.optimize import shgo
 from scipy.optimize import linprog
 import numpy as np
 from scipy.optimize import linprog, shgo
@@ -36,7 +37,7 @@ def lbd(x, g_func, Lambda, Z_0):
     float
         G(x) + Lambda dot (Z_0 - x).
     """
-    if 1:
+    if 0:
         print(f'Z_0 = {Z_0}')
         print(f'Lambda = {Lambda}')
         print(f'x = {x}')
@@ -112,6 +113,7 @@ def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
     # (1) Constraint: eta <= G(Z_0)
     G_feed = G_P # = g_func(Z_0)
     print(f'G_feed = {G_feed}')
+    #A_ub[num_points, -1] = +1.0   # +1 * eta
     A_ub[num_points, -1] = +1.0   # +1 * eta
     b_ub[num_points] = G_feed
 
@@ -139,9 +141,9 @@ def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
     # (3) Bounds for decision vars [Lambda_1..Lambda_n, eta].
     # Limit Lambdas to [-lambda_bound, lambda_bound],  eta is unbounded.
     import math
-    #big_inf = 1.0e15
-    #bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
-    bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
+    big_inf = 1.0e15
+    bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
+    #bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
     #bounds = [(1e-10, lambda_bound)] * (n - 1) + [(-np.inf, np.inf)]
     print(f'c = {c}')
     print(f'A_ub = {A_ub}')
@@ -386,9 +388,9 @@ def solve_dual_equilibrium(
 
         # sum(x)=1 => eq constraint
         def sum_constraint(x):
-            return np.sum(x) - 1.0
+            return np.sum(x) # <= 1.0
 
-        nonlin_con = NonlinearConstraint(sum_constraint, 0.0, 0.0)
+        nonlin_con = NonlinearConstraint(sum_constraint, -np.inf, 1.0)
 
         # Run main solver
         #print(f'lbd_obj = {;}')
@@ -398,9 +400,9 @@ def solve_dual_equilibrium(
                    bounds=shgo_bounds,
                    args=(g_func, Lambda_sol, Z0_clipped),
                    constraints=nonlin_con,
-                   n=shgo_n
+                   n=1e4#shgo_n
         )
-
+        print(f'res = {res}')
         #TODO: The speed of the method can be improved by adding all solutions of shgo
         #     (with res.funl values near zero) to the X_D set instead of just x_star.
         if not res.success:

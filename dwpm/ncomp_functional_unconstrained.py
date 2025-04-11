@@ -281,6 +281,7 @@ def solve_dual_equilibrium(
         def sum_constraint(x):
             return np.sum(x) - 1.0
 
+        # Equivalent to an _equality_ constraint since pinned from lb and ub
         nonlin_con = NonlinearConstraint(sum_constraint, 0.0, 0.0)
 
         # Bounds: x in [min_x, max_x]
