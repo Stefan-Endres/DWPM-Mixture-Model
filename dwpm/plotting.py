@@ -6,9 +6,10 @@ from mpl_toolkits.mplot3d import Axes3D
 #%% Binary plots
 def plot_g_binary(
     g_func,
-    g_func_args=None,
+    g_func_args=(),
     xlabel='$x_1$',
     ylabel='Gibbs Free Energy, $g(x)$',
+    legend_label='G(x)',
     sol_label='Solution tangent plane',
     x_min=1e-4,
     x_max=1 - 1e-4,
@@ -61,11 +62,12 @@ def plot_g_binary(
     ...     return 0.01*x[0] + (x[0]-0.5)**4 - 0.2*(x[0]-0.5)**2
     >>> plot_g_binary(example_g, eq_points=[0.2, 0.8])
     """
+    print(f'g([0.5]) = {g_func([0.5])}')
     x_vals = np.linspace(x_min, x_max, num_points)
     g_vals = [g_func([x, 1-x], *g_func_args) for x in x_vals]
 
     plt.figure(figsize=(8, 5))
-    plt.plot(x_vals, g_vals, color=color_surface, label='G(x)')
+    plt.plot(x_vals, g_vals, color=color_surface, label=legend_label)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -131,6 +133,143 @@ def plot_g_binary(
 
     plt.legend()
     plt.show()
+
+def plot_g_binary_1D(
+    g_func,
+    g_func_args=(),
+    xlabel='$x_1$',
+    ylabel='Gibbs Free Energy, $g(x)$',
+    legend_label='G(x)',
+    sol_label='Solution tangent plane',
+    x_min=1e-4,
+    x_max=1 - 1e-4,
+    num_points=200,
+    eq_points=None,
+    # Default colors:
+    color_surface=(1.0, 0.498, 0.0),  # Approx "tab:orange"
+    color_planes=(0.1216, 0.4667, 0.7059),  # Approx "tab:blue"
+    color_vertical=(0.5, 0.5, 0.5)         # Gray for vertical lines
+):
+    """
+    1D version of `plot_g_binary` which assumes the g_func takes only scalar 1D `x`
+    compositions as opposed to the full vector [x1, x2] where x2 should be = 1 - x1.
+
+    Plots a one-dimensional Gibbs free energy function G(x) for a binary mixture,
+    with optional equilibrium highlights.
+
+    Parameters
+    ----------
+    g_func : callable
+        A Gibbs free energy function of one variable, G(x),
+        with domain x in (0,1).
+    g_func_args : tuple, optional
+        Additional arguments passed to `g_func` after `x`.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    legend_label : str
+        Label for the G(x) curve in the legend.
+    sol_label : str
+        Label for the tangent chord in the legend.
+    x_min : float, optional
+        Minimum x-value for plotting (to avoid singularities at x=0).
+    x_max : float, optional
+        Maximum x-value for plotting (to avoid singularities at x=1).
+    num_points : int, optional
+        Number of points in the plotting grid from x_min to x_max.
+    eq_points : list of [float, float], or list of such lists
+        Each sublist [x_alpha, x_beta] defines endpoints of a common tangent chord.
+        Will draw dashed vertical lines and the tangent plane between them.
+    color_surface : tuple of 3 floats
+        RGB color for the G(x) surface curve. Default is approximately tab:orange.
+    color_planes : tuple of 3 floats
+        RGB color for the chords. Default is approximately tab:blue.
+    color_vertical : tuple of 3 floats
+        RGB color for the vertical lines. Default is gray.
+
+    Returns
+    -------
+    None
+        Displays a matplotlib figure.
+
+    Example
+    -------
+    >>> def example_g(x):
+    ...     return 0.01*x[0] + (x[0]-0.5)**4 - 0.2*(x[0]-0.5)**2
+    >>> plot_g_binary_1D(example_g, eq_points=[[0.2, 0.8]])
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib import transforms
+
+    #print(f'g([0.5]) = {g_func([0.5])}')
+    x_vals = np.linspace(x_min, x_max, num_points)
+    g_vals = [g_func([x], *g_func_args) for x in x_vals]
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(x_vals, g_vals, color=color_surface, label=legend_label)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+
+    # Handle legacy input: [x_alpha, x_beta] instead of [[x_alpha, x_beta]]
+    if (
+        eq_points is not None and
+        isinstance(eq_points, (list, tuple)) and
+        len(eq_points) == 2 and
+        all(isinstance(x, (float, int)) for x in eq_points)
+    ):
+        eq_points = [eq_points]
+
+    if eq_points is not None and len(eq_points) > 0:
+        for segment in eq_points:
+            if len(segment) != 2:
+                continue  # skip malformed entries
+
+            x_alpha, x_beta = sorted(segment)
+            for i, x_star in enumerate([x_alpha, x_beta]):
+                #print(f'x_star = {x_star}')
+                plt.axvline(x_star, color=color_vertical, linestyle='--', alpha=0.8)
+
+                label_text = r"$x^{\alpha}$" if i == 0 else r"$x^{\beta}$"
+                ax = plt.gca()
+                trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+                plt.annotate(
+                    label_text,
+                    xy=(x_star, 0),
+                    xycoords=trans,
+                    xytext=(0, -25),
+                    textcoords='offset points',
+                    ha='center',
+                    va='top',
+                    color=color_vertical,
+                    annotation_clip=False
+                )
+
+            G_alpha = g_func([x_alpha], *g_func_args)
+            G_beta = g_func([x_beta], *g_func_args)
+
+            if abs(x_beta - x_alpha) > 1e-14:
+                m = (G_beta - G_alpha) / (x_beta - x_alpha)
+                #print(f'm = {m}')
+                def chord(x):
+                    return G_alpha + m * (x - x_alpha)
+
+                chord_full = [chord(x) for x in x_vals]
+                plt.plot(x_vals, chord_full,
+                         color=color_planes, linestyle='--', alpha=0.6)
+
+                x_sub = np.linspace(x_alpha, x_beta, 50)
+                chord_sub = [chord(x) for x in x_sub]
+                plt.plot(x_sub, chord_sub,
+                         color=color_planes, linestyle='-', linewidth=2.0,
+                         label=sol_label)
+
+    plt.legend()
+    plt.show()
+
 
 
 #%% Ternary plots

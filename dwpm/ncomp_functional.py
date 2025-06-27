@@ -17,7 +17,7 @@ from scipy.optimize import linprog, shgo, NonlinearConstraint
 ##############################################################################
 # 1) LBD function
 ##############################################################################
-def lbd(x, g_func, Lambda, Z_0):
+def lbd(x, g_func, Lambda, Z_0, g_func_args=()):
     """
     Evaluate the lower-bounding function for the dual problem.
 
@@ -48,13 +48,13 @@ def lbd(x, g_func, Lambda, Z_0):
   #  x_full = np.zeros(n + 1)
   #  x_full[-1] = 1 - np.sum(x)
   #  x_full[:-1] = x
-    return g_func(x) + np.dot(Lambda, (Z_0 - x))
+    return g_func(x, *g_func_args) + np.dot(Lambda, (Z_0 - x))
     #  return g_func(x) + np.dot(Lambda, (Z_0 -  x_full))
 
 ##############################################################################
 # 2) UBD problem construction
 ##############################################################################
-def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
+def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2, g_func_args=()):
     """
     Builds the linear program (LP) for the upper bounding problem:
 
@@ -134,9 +134,10 @@ def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
             A_ub[k, i] = x_d[i] - Z_0[i]  # Equal to -(Z_0[i] - x_d[i])
 
         A_ub[k, -1] = +1.0  # A_ub[:, -1] = set all eta coefficients = 1
-        print(f'b_ub[k] = {b_ub[k] } '
-              f'g_func(x_d) = {g_func(x_d)}')
-        b_ub[k] = g_func(x_d)
+        if 0:
+            print(f'b_ub[k] = {b_ub[k] } '
+                  f'g_func(x_d) = {g_func(x_d, *g_func_args)}')
+        b_ub[k] = g_func(x_d, *g_func_args)
 
     # (3) Bounds for decision vars [Lambda_1..Lambda_n, eta].
     # Limit Lambdas to [-lambda_bound, lambda_bound],  eta is unbounded.
@@ -145,10 +146,11 @@ def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
     bounds = [(-lambda_bound, lambda_bound)] * n + [(-big_inf, big_inf)]
     #bounds = [(1e-10, lambda_bound)] * n + [(-np.inf, np.inf)]
     #bounds = [(1e-10, lambda_bound)] * (n - 1) + [(-np.inf, np.inf)]
-    print(f'c = {c}')
-    print(f'A_ub = {A_ub}')
-    print(f'b_ub = {b_ub}')
-    print(f'bounds = {bounds}')
+    if 0:
+        print(f'c = {c}')
+        print(f'A_ub = {A_ub}')
+        print(f'b_ub = {b_ub}')
+        print(f'bounds = {bounds}')
     return c, A_ub, b_ub, bounds
 
 
@@ -158,7 +160,7 @@ def ubd(X_D, Z_0, g_func, G_P=0, lambda_bound=1e2):
 def solve_dual_equilibrium(
     g_func,
     Z_0,
-    g_func_args=None,
+    g_func_args=(),
     shgo_n=10,
     tol=1e-9,
     max_iter=20,
@@ -270,9 +272,9 @@ def solve_dual_equilibrium(
             x_hat_i = np.clip(x_hat_i, min_x, max_x)
 
             # Evaluate G-values:
-            G_feed = g_func(Z_0)
-            G_bar = g_func(x_bar_i)
-            G_hat = g_func(x_hat_i)
+            G_feed = g_func(Z_0, *g_func_args)
+            G_bar = g_func(x_bar_i, *g_func_args)
+            G_hat = g_func(x_hat_i, *g_func_args)
 
             # Build candidate slopes => each corner yields one slope, e.g.:
             #    slope_bar = [ G_bar - G_feed ] / [ Z_0[i] - x_bar_i[i] ]
@@ -342,7 +344,7 @@ def solve_dual_equilibrium(
     print(f'X_D = {X_D}')
     # Evaluate initial LBD & UBD
     LBD = -1e15
-    UBD = g_func(Z0_clipped)
+    UBD = g_func(Z0_clipped, *g_func_args)
 
     history = {
         'iterations': [],
@@ -352,11 +354,12 @@ def solve_dual_equilibrium(
         'X_star': []
     }
 
-    G_P = g_func(Z_0)  # G_feed remains unchanged throughout the iterations
+    G_P = g_func(Z_0, *g_func_args)  # G_feed remains unchanged throughout the iterations
     for iteration in range(1, max_iter+1):
 
         # (A) Solve UBD via LP
-        c, A_ub, b_ub, lp_bounds = ubd(X_D, Z0_clipped, g_func, lambda_bound=lambda_bound, G_P=G_P)
+        c, A_ub, b_ub, lp_bounds = ubd(X_D, Z0_clipped, g_func, lambda_bound=lambda_bound, G_P=G_P,
+                                       g_func_args=g_func_args)
         lp_res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=lp_bounds, method='highs')
         if not lp_res.success:
             print(f"[Iter {iteration}] LP failed: {lp_res.message}")
@@ -372,7 +375,7 @@ def solve_dual_equilibrium(
         if 0:  # no longer needed
             def lbd_obj(xprime, gf, lam, feed):
                 x = np.append(xprime, 1 - np.sum(xprime))
-                return lbd(x, gf, lam, feed)
+                return lbd(x, gf, lam, feed, g_func_args=g_func_args)
 
         # Bounds: x in [min_x, max_x]
         print(f'n = {n}')
@@ -398,7 +401,7 @@ def solve_dual_equilibrium(
         res = shgo(#lbd_obj,
                    func=lbd,
                    bounds=shgo_bounds,
-                   args=(g_func, Lambda_sol, Z0_clipped),
+                   args=(g_func, Lambda_sol, Z0_clipped, g_func_args),
                    constraints=nonlin_con,
                    n=shgo_n
         )
